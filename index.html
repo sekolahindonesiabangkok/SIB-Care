@@ -2166,12 +2166,16 @@ tr:hover td{
                 font-size:13px;
             ">
                 Format Excel Import: kolom
-                <strong>studentId, nama, jenjang, kelas, status</strong>
-                (status: Aktif / Nonaktif). Jika studentId sudah
-                ada, datanya akan diperbarui (nama/jenjang/kelas/status);
-                jika baru, akan ditambahkan otomatis. Riwayat locker
-                siswa lama tidak akan terhapus meskipun statusnya
-                diubah menjadi Nonaktif.
+                <strong>studentId (atau NIS/NISN)</strong>,
+                <strong>nama</strong>, <strong>jenjang</strong>,
+                <strong>kelas</strong>, <strong>status</strong>
+                (status: Aktif / Nonaktif) — nama kolom boleh pakai
+                spasi atau tidak, huruf besar/kecil bebas. Jika
+                studentId sudah ada, datanya akan diperbarui
+                (nama/jenjang/kelas/status); jika baru, akan
+                ditambahkan otomatis. Riwayat locker siswa lama
+                tidak akan terhapus meskipun statusnya diubah
+                menjadi Nonaktif.
             </div>
 
             <div class="grid grid-3" style="margin-bottom:18px;">
@@ -2307,10 +2311,14 @@ tr:hover td{
                 font-size:13px;
             ">
                 Format Excel Import: kolom
-                <strong>lockerId, nomorKunci, kondisi</strong>
-                (kondisi: Baik / Rusak Ringan / Rusak). Cocok untuk
-                memasukkan puluhan/ratusan unit locker sekaligus
-                di awal.
+                <strong>Locker ID / lockerId</strong>,
+                <strong>Nomor Kunci / nomorKunci</strong>,
+                <strong>Kondisi / kondisi</strong> — nama kolom
+                boleh pakai spasi atau tidak, huruf besar/kecil
+                bebas. Nilai Kondisi selain "Baik" / "Rusak Ringan" /
+                "Rusak" (misal "Belum Kembali", "Kosong") akan
+                otomatis dianggap "Baik". Cocok untuk memasukkan
+                puluhan/ratusan unit locker sekaligus di awal.
             </div>
 
             <div class="table-wrap">
@@ -8451,6 +8459,65 @@ async function deleteStudent(id){
 }
 
 
+function normalizeExcelRow(row){
+
+    const normalized = {};
+
+    Object.keys(row).forEach(key=>{
+
+        const normKey =
+            key.toString().trim().toLowerCase()
+                .replace(/[\s_\-\.]/g,"");
+
+        normalized[normKey] = row[key];
+
+    });
+
+    return normalized;
+
+}
+
+
+function pickExcelValue(row, keys){
+
+    for(const key of keys){
+
+        if(row[key] !== undefined && row[key] !== null && row[key] !== ""){
+            return String(row[key]).trim();
+        }
+
+    }
+
+    return "";
+
+}
+
+
+function normalizeLockerCondition(value){
+
+    const v = (value||"").toString().trim().toLowerCase();
+
+    if(v === "rusak"){
+        return "Rusak";
+    }
+
+    if(v === "rusak ringan" || v === "rusakringan"){
+        return "Rusak Ringan";
+    }
+
+    if(v === "baik"){
+        return "Baik";
+    }
+
+    // Nilai lain (mis. "Belum Kembali", "Kosong", kosong)
+    // bukan kondisi fisik locker yang valid — dianggap Baik
+    // secara default. Data penempatan/pemakai lama TIDAK ikut
+    // terbawa dari nilai ini (sesuai catatan di file sumber).
+    return "Baik";
+
+}
+
+
 async function importStudentsExcel(event){
 
     const file = event.target.files[0];
@@ -8482,27 +8549,30 @@ async function importStudentsExcel(event){
         let batch = db.batch();
         let opsInBatch = 0;
 
-        for(const row of rows){
+        for(const rawRow of rows){
+
+            const row = normalizeExcelRow(rawRow);
 
             const studentId =
-                String(row.studentId||row.StudentId||row.NIS||row.nis||"")
-                    .trim();
+                pickExcelValue(row, [
+                    "studentid","nis","nisn","id","idsiswa"
+                ]);
 
             const name =
-                String(row.nama||row.Nama||row.name||"").trim();
+                pickExcelValue(row, ["nama","name","namasiswa"]);
 
             if(!studentId || !name){
                 continue;
             }
 
             const jenjang =
-                String(row.jenjang||row.Jenjang||"").trim();
+                pickExcelValue(row, ["jenjang","level"]);
 
             const className =
-                String(row.kelas||row.Kelas||"").trim();
+                pickExcelValue(row, ["kelas","class","classname"]);
 
             const status =
-                String(row.status||row.Status||"Aktif").trim() || "Aktif";
+                pickExcelValue(row, ["status"]) || "Aktif";
 
             const ref = db.collection("students").doc(studentId);
 
@@ -8794,24 +8864,34 @@ async function importLockersExcel(event){
         }
 
         let count = 0;
+        let skipped = 0;
         let batch = db.batch();
         let opsInBatch = 0;
 
-        for(const row of rows){
+        for(const rawRow of rows){
+
+            const row = normalizeExcelRow(rawRow);
 
             const lockerId =
-                String(row.lockerId||row.LockerId||row.id||"").trim();
+                pickExcelValue(row, [
+                    "lockerid","idlocker","id","noLocker","nolocker"
+                ]);
 
             if(!lockerId){
+                skipped++;
                 continue;
             }
 
             const keyNumber =
-                String(row.nomorKunci||row.NomorKunci||row.keyNumber||"")
-                    .trim();
+                pickExcelValue(row, [
+                    "nomorkunci","keynumber","kunci","nokunci"
+                ]);
+
+            const rawCondition =
+                pickExcelValue(row, ["kondisi","condition"]);
 
             const condition =
-                String(row.kondisi||row.Kondisi||"Baik").trim() || "Baik";
+                normalizeLockerCondition(rawCondition);
 
             const ref = db.collection("lockers").doc(lockerId);
 
@@ -8836,7 +8916,10 @@ async function importLockersExcel(event){
             await batch.commit();
         }
 
-        showToast(count + " data locker berhasil diimpor/diperbarui.");
+        showToast(
+            count + " data locker berhasil diimpor/diperbarui." +
+            (skipped > 0 ? " (" + skipped + " baris dilewati karena ID locker kosong.)" : "")
+        );
 
     }catch(error){
 
