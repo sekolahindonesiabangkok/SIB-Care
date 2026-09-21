@@ -1241,11 +1241,31 @@ tr:hover td{
             📹 CCTV Sekolah
         </div>
 
+        <div class="nav-item"
+             id="navLocker"
+             data-page="locker"
+             onclick="showPage('locker')"
+             style="display:none;">
+            🔐 Locker Siswa
+        </div>
+
 
         <div id="adminNav">
 
             <div class="nav-title">
                 Administrasi
+            </div>
+
+            <div class="nav-item"
+                 data-page="students"
+                 onclick="showPage('students')">
+                👨‍🎓 Data Siswa
+            </div>
+
+            <div class="nav-item"
+                 data-page="lockermaster"
+                 onclick="showPage('lockermaster')">
+                🗄️ Data Locker
             </div>
 
             <div class="nav-item"
@@ -1934,6 +1954,379 @@ tr:hover td{
             </div>
 
             <div id="cctvContent" class="grid grid-3"></div>
+
+        </section>
+
+
+        <!-- =================================================
+             LOCKER SISWA
+        ================================================= -->
+        <section id="page-locker" class="page">
+
+            <div class="page-header" style="
+                display:flex;
+                justify-content:space-between;
+                align-items:flex-start;
+                gap:15px;
+                flex-wrap:wrap;
+            ">
+                <div>
+                    <h1>🔐 Locker Siswa</h1>
+                    <p>
+                        Pengelolaan penempatan locker dan
+                        sirkulasi kunci siswa.
+                    </p>
+                </div>
+
+                <button
+                    id="lockerAssignBtn"
+                    class="btn btn-primary"
+                    style="display:none;"
+                    onclick="openAssignLockerModal()">
+                    + Tempatkan Locker
+                </button>
+            </div>
+
+            <div class="grid grid-4" style="margin-bottom:18px;">
+
+                <div class="card stat-card">
+                    <div class="stat-icon">🗄️</div>
+                    <div>
+                        <h3 id="lockerStatTotal">0</h3>
+                        <p>Total Locker</p>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon">🔒</div>
+                    <div>
+                        <h3 id="lockerStatFilled">0</h3>
+                        <p>Terisi</p>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div>
+                        <h3 id="lockerStatAvailable">0</h3>
+                        <p>Tersedia</p>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon">⚠️</div>
+                    <div>
+                        <h3 id="lockerStatDamaged">0</h3>
+                        <p>Rusak</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="card">
+
+                <div class="recap-filter" style="margin-bottom:12px;">
+
+                    <div class="form-group" style="margin:0;flex:2;min-width:200px;">
+                        <label>Cari Siswa / Locker</label>
+                        <input
+                            type="text"
+                            id="lockerSearchInput"
+                            class="form-control"
+                            placeholder="Nama siswa atau nomor locker..."
+                            oninput="renderLockerPage()"
+                        >
+                    </div>
+
+                    <div class="form-group" style="margin:0;">
+                        <label>Jenjang</label>
+                        <select id="lockerFilterJenjang"
+                                class="form-control"
+                                onchange="renderLockerPage()">
+                            <option value="">Semua</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin:0;">
+                        <label>Kelas</label>
+                        <select id="lockerFilterKelas"
+                                class="form-control"
+                                onchange="renderLockerPage()">
+                            <option value="">Semua</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin:0;">
+                        <label>Status</label>
+                        <select id="lockerFilterStatus"
+                                class="form-control"
+                                onchange="renderLockerPage()">
+                            <option value="">Semua</option>
+                            <option value="Aktif">Diterima</option>
+                            <option value="Dikembalikan">Dikembalikan</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div style="
+                    display:flex;
+                    gap:10px;
+                    flex-wrap:wrap;
+                    margin-bottom:12px;
+                ">
+                    <button class="btn btn-secondary btn-sm"
+                            onclick="exportLockerCSV()">
+                        📄 Unduh CSV
+                    </button>
+                    <button class="btn btn-secondary btn-sm"
+                            onclick="exportLockerExcel()">
+                        📊 Unduh Excel
+                    </button>
+                    <button class="btn btn-secondary btn-sm"
+                            onclick="printLockerRecap()">
+                        🖨️ Unduh PDF / Cetak
+                    </button>
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Nama Siswa</th>
+                                <th>Kelas</th>
+                                <th>Locker</th>
+                                <th>Kunci</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lockerTableBody"></tbody>
+                    </table>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             DATA SISWA (MASTER)
+        ================================================= -->
+        <section id="page-students" class="page">
+
+            <div class="page-header" style="
+                display:flex;
+                justify-content:space-between;
+                align-items:flex-start;
+                gap:15px;
+                flex-wrap:wrap;
+            ">
+                <div>
+                    <h1>👨‍🎓 Data Siswa</h1>
+                    <p>
+                        Master data siswa — sumber data untuk
+                        penempatan Locker Siswa. Naik kelas
+                        tidak perlu mengubah data locker satu-satu,
+                        cukup perbarui data siswa di sini.
+                    </p>
+                </div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+
+                    <button class="btn btn-secondary"
+                            onclick="document.getElementById('studentImportInput').click()">
+                        📥 Import Excel
+                    </button>
+
+                    <input type="file"
+                           id="studentImportInput"
+                           accept=".xlsx,.xls"
+                           style="display:none;"
+                           onchange="importStudentsExcel(event)">
+
+                    <button class="btn btn-secondary"
+                            onclick="exportStudentsExcel()">
+                        📤 Export Excel
+                    </button>
+
+                    <button class="btn btn-primary"
+                            onclick="openStudentForm()">
+                        + Tambah Siswa
+                    </button>
+
+                </div>
+            </div>
+
+            <div class="card" style="
+                margin-bottom:18px;
+                background:#eef6ff;
+                border-color:#cfe3ff;
+                font-size:13px;
+            ">
+                Format Excel Import: kolom
+                <strong>studentId, nama, jenjang, kelas, status</strong>
+                (status: Aktif / Nonaktif). Jika studentId sudah
+                ada, datanya akan diperbarui (nama/jenjang/kelas/status);
+                jika baru, akan ditambahkan otomatis. Riwayat locker
+                siswa lama tidak akan terhapus meskipun statusnya
+                diubah menjadi Nonaktif.
+            </div>
+
+            <div class="grid grid-3" style="margin-bottom:18px;">
+
+                <div class="card stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div>
+                        <h3 id="studentStatTotal">0</h3>
+                        <p>Total Siswa</p>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div>
+                        <h3 id="studentStatActive">0</h3>
+                        <p>Aktif</p>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon">⏸️</div>
+                    <div>
+                        <h3 id="studentStatInactive">0</h3>
+                        <p>Nonaktif</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="card">
+
+                <div class="recap-filter" style="margin-bottom:12px;">
+
+                    <div class="form-group" style="margin:0;flex:2;min-width:200px;">
+                        <label>Cari Nama / ID Siswa</label>
+                        <input
+                            type="text"
+                            id="studentSearchInput"
+                            class="form-control"
+                            placeholder="Nama atau NIS/ID..."
+                            oninput="renderStudents()"
+                        >
+                    </div>
+
+                    <div class="form-group" style="margin:0;">
+                        <label>Jenjang</label>
+                        <select id="studentFilterJenjang"
+                                class="form-control"
+                                onchange="renderStudents()">
+                            <option value="">Semua</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin:0;">
+                        <label>Status</label>
+                        <select id="studentFilterStatus"
+                                class="form-control"
+                                onchange="renderStudents()">
+                            <option value="">Semua</option>
+                            <option value="Aktif">Aktif</option>
+                            <option value="Nonaktif">Nonaktif</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID Siswa</th>
+                                <th>Nama</th>
+                                <th>Jenjang</th>
+                                <th>Kelas</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTableBody"></tbody>
+                    </table>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             DATA LOCKER (MASTER)
+        ================================================= -->
+        <section id="page-lockermaster" class="page">
+
+            <div class="page-header" style="
+                display:flex;
+                justify-content:space-between;
+                align-items:flex-start;
+                gap:15px;
+                flex-wrap:wrap;
+            ">
+                <div>
+                    <h1>🗄️ Data Locker</h1>
+                    <p>
+                        Master inventaris unit locker dan kunci.
+                    </p>
+                </div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+
+                    <button class="btn btn-secondary"
+                            onclick="document.getElementById('lockerImportInput').click()">
+                        📥 Import Excel
+                    </button>
+
+                    <input type="file"
+                           id="lockerImportInput"
+                           accept=".xlsx,.xls"
+                           style="display:none;"
+                           onchange="importLockersExcel(event)">
+
+                    <button class="btn btn-primary"
+                            onclick="openLockerMasterForm()">
+                        + Tambah Locker
+                    </button>
+
+                </div>
+            </div>
+
+            <div class="card" style="
+                margin-bottom:18px;
+                background:#eef6ff;
+                border-color:#cfe3ff;
+                font-size:13px;
+            ">
+                Format Excel Import: kolom
+                <strong>lockerId, nomorKunci, kondisi</strong>
+                (kondisi: Baik / Rusak Ringan / Rusak). Cocok untuk
+                memasukkan puluhan/ratusan unit locker sekaligus
+                di awal.
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID Locker</th>
+                            <th>Nomor Kunci</th>
+                            <th>Kondisi</th>
+                            <th>Status</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lockerMasterTableBody"></tbody>
+                </table>
+            </div>
 
         </section>
 
@@ -2939,6 +3332,243 @@ tr:hover td{
 
 
 <!-- =========================================================
+     STUDENT FORM MODAL
+========================================================= -->
+<div id="studentFormModal" class="modal">
+
+    <div class="modal-content" style="max-width:460px;">
+
+        <div class="modal-header">
+            <h2 id="studentFormTitle">Tambah Siswa</h2>
+            <div class="close" onclick="closeModal('studentFormModal')">×</div>
+        </div>
+
+        <form id="studentForm" onsubmit="submitStudentForm(event)">
+
+            <input type="hidden" id="editStudentId">
+
+            <div class="form-group">
+                <label>ID Siswa (NIS/NISN)</label>
+                <input type="text" id="studentIdInput" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label>Nama Siswa</label>
+                <input type="text" id="studentNameInput" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label>Jenjang</label>
+                <input type="text" id="studentJenjangInput" class="form-control"
+                       list="studentJenjangOptions" placeholder="Contoh: SD, SMP, SMA" required>
+                <datalist id="studentJenjangOptions">
+                    <option value="SD"><option value="SMP"><option value="SMA">
+                </datalist>
+            </div>
+
+            <div class="form-group">
+                <label>Kelas</label>
+                <input type="text" id="studentKelasInput" class="form-control" placeholder="Contoh: VII-A" required>
+            </div>
+
+            <div class="form-group">
+                <label>Status</label>
+                <select id="studentStatusInput" class="form-control" required>
+                    <option value="Aktif">Aktif</option>
+                    <option value="Nonaktif">Nonaktif</option>
+                </select>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('studentFormModal')">Batal</button>
+                <button type="submit" id="studentFormSubmitBtn" class="btn btn-primary">Simpan</button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     LOCKER MASTER FORM MODAL
+========================================================= -->
+<div id="lockerMasterFormModal" class="modal">
+
+    <div class="modal-content" style="max-width:420px;">
+
+        <div class="modal-header">
+            <h2 id="lockerMasterFormTitle">Tambah Locker</h2>
+            <div class="close" onclick="closeModal('lockerMasterFormModal')">×</div>
+        </div>
+
+        <form id="lockerMasterForm" onsubmit="submitLockerMasterForm(event)">
+
+            <input type="hidden" id="editLockerMasterId">
+
+            <div class="form-group">
+                <label>ID Locker</label>
+                <input type="text" id="lockerMasterIdInput" class="form-control"
+                       placeholder="Contoh: L-018" required>
+            </div>
+
+            <div class="form-group">
+                <label>Nomor Kunci</label>
+                <input type="text" id="lockerMasterKeyInput" class="form-control"
+                       placeholder="Contoh: K-018" required>
+            </div>
+
+            <div class="form-group">
+                <label>Kondisi Locker</label>
+                <select id="lockerMasterConditionInput" class="form-control" required>
+                    <option value="Baik">Baik</option>
+                    <option value="Rusak Ringan">Rusak Ringan</option>
+                    <option value="Rusak">Rusak</option>
+                </select>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('lockerMasterFormModal')">Batal</button>
+                <button type="submit" id="lockerMasterFormSubmitBtn" class="btn btn-primary">Simpan</button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     ASSIGN LOCKER MODAL (TEMPATKAN LOCKER)
+========================================================= -->
+<div id="lockerAssignModal" class="modal">
+
+    <div class="modal-content" style="max-width:460px;">
+
+        <div class="modal-header">
+            <h2>Tempatkan Locker</h2>
+            <div class="close" onclick="closeModal('lockerAssignModal')">×</div>
+        </div>
+
+        <form id="lockerAssignForm" onsubmit="submitAssignLocker(event)">
+
+            <div class="form-group">
+                <label>Siswa</label>
+                <select id="assignStudentSelect" class="form-control" required>
+                    <option value="">Pilih siswa</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Locker Tersedia</label>
+                <select id="assignLockerSelect" class="form-control" required>
+                    <option value="">Pilih locker</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Tanggal Mulai</label>
+                <input type="date" id="assignStartDate" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label>Catatan (opsional)</label>
+                <textarea id="assignNote" class="form-control"></textarea>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('lockerAssignModal')">Batal</button>
+                <button type="submit" id="lockerAssignSubmitBtn" class="btn btn-primary">Simpan Penempatan</button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     RETURN LOCKER MODAL (KEMBALIKAN KUNCI)
+========================================================= -->
+<div id="lockerReturnModal" class="modal">
+
+    <div class="modal-content" style="max-width:420px;">
+
+        <div class="modal-header">
+            <h2>Pengembalian Locker</h2>
+            <div class="close" onclick="closeModal('lockerReturnModal')">×</div>
+        </div>
+
+        <form id="lockerReturnForm" onsubmit="submitReturnLocker(event)">
+
+            <input type="hidden" id="returnAssignmentId">
+
+            <div id="lockerReturnInfo" style="
+                background:#f8f9fa;
+                border-radius:8px;
+                padding:10px 12px;
+                margin-bottom:14px;
+                font-size:13px;
+            "></div>
+
+            <div class="form-group">
+                <label>Kondisi Locker</label>
+                <select id="returnLockerCondition" class="form-control" required>
+                    <option value="Baik">Baik</option>
+                    <option value="Rusak Ringan">Rusak Ringan</option>
+                    <option value="Rusak">Rusak</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Kondisi Kunci</label>
+                <select id="returnKeyCondition" class="form-control" required>
+                    <option value="Baik">Baik</option>
+                    <option value="Rusak">Rusak</option>
+                    <option value="Hilang">Hilang</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Catatan (opsional)</label>
+                <textarea id="returnNote" class="form-control"></textarea>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('lockerReturnModal')">Batal</button>
+                <button type="submit" id="lockerReturnSubmitBtn" class="btn btn-primary">Simpan Pengembalian</button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     LOCKER HISTORY MODAL (RIWAYAT SISWA)
+========================================================= -->
+<div id="lockerHistoryModal" class="modal">
+
+    <div class="modal-content" style="max-width:560px;">
+
+        <div class="modal-header">
+            <h2 id="lockerHistoryTitle">Riwayat Locker</h2>
+            <div class="close" onclick="closeModal('lockerHistoryModal')">×</div>
+        </div>
+
+        <div id="lockerHistoryContent"></div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
      DETAIL MODAL
 ========================================================= -->
 <div id="detailModal" class="modal">
@@ -3187,6 +3817,9 @@ let facilityConditions = [];
 let conditionFilterCategory = "";
 let cctvCameras = [];
 let cctvRefreshTimers = {};
+let students = [];
+let lockers = [];
+let lockerAssignments = [];
 
 let firebaseReady = false;
 
@@ -3820,6 +4453,60 @@ function listenToData(){
             }
         );
 
+
+    db.collection("students")
+        .onSnapshot(
+            snapshot=>{
+
+                students = snapshot.docs.map(
+                    doc=>({ id:doc.id, ...doc.data() })
+                );
+
+                refreshAll();
+
+            },
+            error=>{
+                console.error("students:",error);
+                refreshAll();
+            }
+        );
+
+
+    db.collection("lockers")
+        .onSnapshot(
+            snapshot=>{
+
+                lockers = snapshot.docs.map(
+                    doc=>({ id:doc.id, ...doc.data() })
+                );
+
+                refreshAll();
+
+            },
+            error=>{
+                console.error("lockers:",error);
+                refreshAll();
+            }
+        );
+
+
+    db.collection("lockerAssignments")
+        .onSnapshot(
+            snapshot=>{
+
+                lockerAssignments = snapshot.docs.map(
+                    doc=>({ id:doc.id, ...doc.data() })
+                );
+
+                refreshAll();
+
+            },
+            error=>{
+                console.error("lockerAssignments:",error);
+                refreshAll();
+            }
+        );
+
 }
 
 
@@ -3963,6 +4650,8 @@ async function login(){
 
         document.getElementById("cctvAddBtn").style.display="inline-flex";
 
+        document.getElementById("lockerAssignBtn").style.display="inline-flex";
+
     }else{
 
         document.getElementById("adminNav").style.display="none";
@@ -3972,6 +4661,8 @@ async function login(){
         document.getElementById("conditionAddBtn").style.display="none";
 
         document.getElementById("cctvAddBtn").style.display="none";
+
+        document.getElementById("lockerAssignBtn").style.display="none";
 
     }
 
@@ -3984,6 +4675,8 @@ async function login(){
 
         document.getElementById("navCctv").style.display="none";
 
+        document.getElementById("navLocker").style.display="none";
+
     }else{
 
         document.getElementById("navBorrow").style.display="flex";
@@ -3991,6 +4684,8 @@ async function login(){
         document.getElementById("homeBorrowCard").style.display="block";
 
         document.getElementById("navCctv").style.display="flex";
+
+        document.getElementById("navLocker").style.display="flex";
 
     }
 
@@ -7508,6 +8203,1265 @@ function closeCctvViewer(){
 
 
 /* =========================================================
+   DATA SISWA (MASTER)
+========================================================= */
+
+function renderStudents(){
+
+    const tbody = document.getElementById("studentTableBody");
+
+    if(!tbody){
+        return;
+    }
+
+    const jenjangSelect =
+        document.getElementById("studentFilterJenjang");
+
+    if(jenjangSelect){
+
+        const jenjangs =
+            [...new Set(students.map(s=>s.jenjang).filter(Boolean))]
+                .sort();
+
+        const current = jenjangSelect.value;
+
+        jenjangSelect.innerHTML =
+            '<option value="">Semua</option>' +
+            jenjangs.map(j=>
+                `<option value="${escapeHTML(j)}" ${j===current?"selected":""}>
+                    ${escapeHTML(j)}
+                </option>`
+            ).join("");
+
+    }
+
+
+    document.getElementById("studentStatTotal").textContent =
+        students.length;
+
+    document.getElementById("studentStatActive").textContent =
+        students.filter(s=>s.status==="Aktif").length;
+
+    document.getElementById("studentStatInactive").textContent =
+        students.filter(s=>s.status==="Nonaktif").length;
+
+
+    const search =
+        (document.getElementById("studentSearchInput")?.value||"")
+            .toLowerCase();
+
+    const jenjangFilter =
+        document.getElementById("studentFilterJenjang")?.value||"";
+
+    const statusFilter =
+        document.getElementById("studentFilterStatus")?.value||"";
+
+
+    const filtered =
+        students.filter(s=>{
+
+            if(jenjangFilter && s.jenjang!==jenjangFilter){
+                return false;
+            }
+
+            if(statusFilter && s.status!==statusFilter){
+                return false;
+            }
+
+            if(search){
+                const hay = ((s.name||"")+" "+(s.id||"")).toLowerCase();
+                if(!hay.includes(search)){
+                    return false;
+                }
+            }
+
+            return true;
+
+        }).sort((a,b)=>(a.name||"").localeCompare(b.name||""));
+
+
+    tbody.innerHTML =
+        filtered.length
+        ? filtered.map(s=>`
+            <tr>
+                <td>${escapeHTML(s.id)}</td>
+                <td>${escapeHTML(s.name)}</td>
+                <td>${escapeHTML(s.jenjang||"")}</td>
+                <td>${escapeHTML(s.className||"")}</td>
+                <td>
+                    ${
+                        s.status==="Aktif"
+                        ? '<span class="badge badge-success">Aktif</span>'
+                        : '<span class="badge badge-secondary">Nonaktif</span>'
+                    }
+                </td>
+                <td>
+                    <div style="display:flex;gap:5px;">
+                        <button class="btn btn-secondary btn-sm"
+                                onclick="openStudentForm('${s.id}')">
+                            ✏️
+                        </button>
+                        <button class="btn btn-danger btn-sm"
+                                onclick="deleteStudent('${s.id}')">
+                            🗑️
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join("")
+        : `<tr><td colspan="6">
+                <div class="empty">Belum ada data siswa.</div>
+            </td></tr>`;
+
+}
+
+
+let studentFormEditingId = null;
+
+
+function openStudentForm(id){
+
+    studentFormEditingId = id || null;
+
+    const s = id ? students.find(x=>x.id===id) : null;
+
+    document.getElementById("studentForm").reset();
+
+    document.getElementById("editStudentId").value = id || "";
+
+    document.getElementById("studentFormTitle").textContent =
+        id ? "Edit Siswa" : "Tambah Siswa";
+
+    document.getElementById("studentIdInput").disabled = !!id;
+
+    if(s){
+
+        document.getElementById("studentIdInput").value = s.id;
+        document.getElementById("studentNameInput").value = s.name||"";
+        document.getElementById("studentJenjangInput").value = s.jenjang||"";
+        document.getElementById("studentKelasInput").value = s.className||"";
+        document.getElementById("studentStatusInput").value = s.status||"Aktif";
+
+    }
+
+    document.getElementById("studentFormModal").classList.add("show");
+
+}
+
+
+async function submitStudentForm(event){
+
+    event.preventDefault();
+
+    const id =
+        studentFormEditingId ||
+        document.getElementById("studentIdInput").value.trim();
+
+    const name =
+        document.getElementById("studentNameInput").value.trim();
+
+    const jenjang =
+        document.getElementById("studentJenjangInput").value.trim();
+
+    const className =
+        document.getElementById("studentKelasInput").value.trim();
+
+    const status =
+        document.getElementById("studentStatusInput").value;
+
+
+    if(!id || !name){
+        showToast("ID dan nama siswa wajib diisi.");
+        return;
+    }
+
+    if(!studentFormEditingId && students.some(s=>s.id===id)){
+        showToast("ID siswa sudah digunakan.");
+        return;
+    }
+
+
+    const submitBtn = document.getElementById("studentFormSubmitBtn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Menyimpan...";
+
+    try{
+
+        await db.collection("students").doc(id).set({
+            id, name, jenjang, className, status
+        });
+
+        closeModal("studentFormModal");
+
+        showToast("Data siswa berhasil disimpan.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal menyimpan data siswa.");
+
+    }finally{
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Simpan";
+
+    }
+
+}
+
+
+async function deleteStudent(id){
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat menghapus data siswa.");
+        return;
+    }
+
+    const hasActive =
+        lockerAssignments.some(
+            a=>a.studentId===id && a.status==="Aktif"
+        );
+
+    if(hasActive){
+        showToast(
+            "Siswa ini masih memiliki locker aktif. " +
+            "Kembalikan locker terlebih dahulu."
+        );
+        return;
+    }
+
+    if(!confirm(
+        "Hapus data siswa ini? Riwayat locker tidak akan ikut terhapus."
+    )){
+        return;
+    }
+
+    try{
+
+        await db.collection("students").doc(id).delete();
+        showToast("Data siswa berhasil dihapus.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal menghapus data siswa.");
+
+    }
+
+}
+
+
+async function importStudentsExcel(event){
+
+    const file = event.target.files[0];
+
+    if(!file){
+        return;
+    }
+
+    if(typeof XLSX === "undefined"){
+        showToast("Pustaka Excel gagal dimuat. Periksa koneksi internet.");
+        event.target.value = "";
+        return;
+    }
+
+    try{
+
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, {type:"array"});
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, {defval:""});
+
+        if(!rows.length){
+            showToast("File Excel kosong atau format tidak sesuai.");
+            event.target.value = "";
+            return;
+        }
+
+        let count = 0;
+        let batch = db.batch();
+        let opsInBatch = 0;
+
+        for(const row of rows){
+
+            const studentId =
+                String(row.studentId||row.StudentId||row.NIS||row.nis||"")
+                    .trim();
+
+            const name =
+                String(row.nama||row.Nama||row.name||"").trim();
+
+            if(!studentId || !name){
+                continue;
+            }
+
+            const jenjang =
+                String(row.jenjang||row.Jenjang||"").trim();
+
+            const className =
+                String(row.kelas||row.Kelas||"").trim();
+
+            const status =
+                String(row.status||row.Status||"Aktif").trim() || "Aktif";
+
+            const ref = db.collection("students").doc(studentId);
+
+            batch.set(
+                ref,
+                {id:studentId, name, jenjang, className, status},
+                {merge:true}
+            );
+
+            count++;
+            opsInBatch++;
+
+            if(opsInBatch >= 400){
+                await batch.commit();
+                batch = db.batch();
+                opsInBatch = 0;
+            }
+
+        }
+
+        if(opsInBatch > 0){
+            await batch.commit();
+        }
+
+        showToast(count + " data siswa berhasil diimpor/diperbarui.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal membaca file Excel. Pastikan formatnya benar.");
+
+    }finally{
+
+        event.target.value = "";
+
+    }
+
+}
+
+
+function exportStudentsExcel(){
+
+    if(typeof XLSX === "undefined"){
+        showToast("Pustaka Excel gagal dimuat. Periksa koneksi internet.");
+        return;
+    }
+
+    if(!students.length){
+        showToast("Belum ada data siswa untuk diunduh.");
+        return;
+    }
+
+    const header = ["studentId","nama","jenjang","kelas","status"];
+
+    const rows = students.map(s=>[
+        s.id, s.name, s.jenjang||"", s.className||"", s.status||"Aktif"
+    ]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Data Siswa");
+
+    XLSX.writeFile(workbook, "data-siswa-"+todayISO()+".xlsx");
+
+}
+
+
+/* =========================================================
+   DATA LOCKER (MASTER)
+========================================================= */
+
+function getLockerStatus(lockerId){
+
+    const locker = lockers.find(l=>l.id===lockerId);
+
+    if(!locker){
+        return "Tidak Diketahui";
+    }
+
+    if(locker.condition === "Rusak"){
+        return "Rusak";
+    }
+
+    const active =
+        lockerAssignments.find(
+            a=>a.lockerId===lockerId && a.status==="Aktif"
+        );
+
+    return active ? "Terisi" : "Tersedia";
+
+}
+
+
+function renderLockerMaster(){
+
+    const tbody = document.getElementById("lockerMasterTableBody");
+
+    if(!tbody){
+        return;
+    }
+
+    const sorted =
+        [...lockers].sort((a,b)=>(a.id||"").localeCompare(b.id||""));
+
+
+    tbody.innerHTML =
+        sorted.length
+        ? sorted.map(l=>{
+
+            const status = getLockerStatus(l.id);
+
+            const cls =
+                status === "Terisi" ? "badge-warning" :
+                status === "Rusak" ? "badge-danger" :
+                "badge-success";
+
+            return `
+                <tr>
+                    <td>${escapeHTML(l.id)}</td>
+                    <td>${escapeHTML(l.keyNumber||"")}</td>
+                    <td>${escapeHTML(l.condition||"Baik")}</td>
+                    <td><span class="badge ${cls}">${escapeHTML(status)}</span></td>
+                    <td>
+                        <div style="display:flex;gap:5px;">
+                            <button class="btn btn-secondary btn-sm"
+                                    onclick="openLockerMasterForm('${l.id}')">
+                                ✏️
+                            </button>
+                            <button class="btn btn-danger btn-sm"
+                                    onclick="deleteLockerMaster('${l.id}')">
+                                🗑️
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+
+        }).join("")
+        : `<tr><td colspan="5">
+                <div class="empty">Belum ada data locker.</div>
+            </td></tr>`;
+
+}
+
+
+let lockerMasterEditingId = null;
+
+
+function openLockerMasterForm(id){
+
+    lockerMasterEditingId = id || null;
+
+    const l = id ? lockers.find(x=>x.id===id) : null;
+
+    document.getElementById("lockerMasterForm").reset();
+
+    document.getElementById("editLockerMasterId").value = id || "";
+
+    document.getElementById("lockerMasterFormTitle").textContent =
+        id ? "Edit Locker" : "Tambah Locker";
+
+    document.getElementById("lockerMasterIdInput").disabled = !!id;
+
+    if(l){
+
+        document.getElementById("lockerMasterIdInput").value = l.id;
+        document.getElementById("lockerMasterKeyInput").value = l.keyNumber||"";
+        document.getElementById("lockerMasterConditionInput").value = l.condition||"Baik";
+
+    }
+
+    document.getElementById("lockerMasterFormModal").classList.add("show");
+
+}
+
+
+async function submitLockerMasterForm(event){
+
+    event.preventDefault();
+
+    const id =
+        lockerMasterEditingId ||
+        document.getElementById("lockerMasterIdInput").value.trim();
+
+    const keyNumber =
+        document.getElementById("lockerMasterKeyInput").value.trim();
+
+    const condition =
+        document.getElementById("lockerMasterConditionInput").value;
+
+
+    if(!id){
+        showToast("ID Locker wajib diisi.");
+        return;
+    }
+
+    if(!lockerMasterEditingId && lockers.some(l=>l.id===id)){
+        showToast("ID locker sudah digunakan.");
+        return;
+    }
+
+
+    const submitBtn = document.getElementById("lockerMasterFormSubmitBtn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Menyimpan...";
+
+    try{
+
+        await db.collection("lockers").doc(id).set({
+            id, keyNumber, condition
+        });
+
+        closeModal("lockerMasterFormModal");
+
+        showToast("Data locker berhasil disimpan.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal menyimpan data locker.");
+
+    }finally{
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Simpan";
+
+    }
+
+}
+
+
+async function deleteLockerMaster(id){
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat menghapus locker.");
+        return;
+    }
+
+    if(getLockerStatus(id) === "Terisi"){
+        showToast("Locker sedang terisi, tidak dapat dihapus.");
+        return;
+    }
+
+    if(!confirm("Hapus locker ini dari daftar?")){
+        return;
+    }
+
+    try{
+
+        await db.collection("lockers").doc(id).delete();
+        showToast("Locker berhasil dihapus.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal menghapus locker.");
+
+    }
+
+}
+
+
+async function importLockersExcel(event){
+
+    const file = event.target.files[0];
+
+    if(!file){
+        return;
+    }
+
+    if(typeof XLSX === "undefined"){
+        showToast("Pustaka Excel gagal dimuat. Periksa koneksi internet.");
+        event.target.value = "";
+        return;
+    }
+
+    try{
+
+        const data = await file.arrayBuffer();
+        const workbook = XLSX.read(data, {type:"array"});
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, {defval:""});
+
+        if(!rows.length){
+            showToast("File Excel kosong atau format tidak sesuai.");
+            event.target.value = "";
+            return;
+        }
+
+        let count = 0;
+        let batch = db.batch();
+        let opsInBatch = 0;
+
+        for(const row of rows){
+
+            const lockerId =
+                String(row.lockerId||row.LockerId||row.id||"").trim();
+
+            if(!lockerId){
+                continue;
+            }
+
+            const keyNumber =
+                String(row.nomorKunci||row.NomorKunci||row.keyNumber||"")
+                    .trim();
+
+            const condition =
+                String(row.kondisi||row.Kondisi||"Baik").trim() || "Baik";
+
+            const ref = db.collection("lockers").doc(lockerId);
+
+            batch.set(
+                ref,
+                {id:lockerId, keyNumber, condition},
+                {merge:true}
+            );
+
+            count++;
+            opsInBatch++;
+
+            if(opsInBatch >= 400){
+                await batch.commit();
+                batch = db.batch();
+                opsInBatch = 0;
+            }
+
+        }
+
+        if(opsInBatch > 0){
+            await batch.commit();
+        }
+
+        showToast(count + " data locker berhasil diimpor/diperbarui.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal membaca file Excel. Pastikan formatnya benar.");
+
+    }finally{
+
+        event.target.value = "";
+
+    }
+
+}
+
+
+/* =========================================================
+   LOCKER SISWA — PENEMPATAN & SIRKULASI KUNCI
+========================================================= */
+
+function populateLockerFilterOptions(){
+
+    const jenjangSelect =
+        document.getElementById("lockerFilterJenjang");
+
+    const kelasSelect =
+        document.getElementById("lockerFilterKelas");
+
+    if(!jenjangSelect || !kelasSelect){
+        return;
+    }
+
+    const jenjangs =
+        [...new Set(students.map(s=>s.jenjang).filter(Boolean))].sort();
+
+    const currentJenjang = jenjangSelect.value;
+
+    jenjangSelect.innerHTML =
+        '<option value="">Semua</option>' +
+        jenjangs.map(j=>
+            `<option value="${escapeHTML(j)}" ${j===currentJenjang?"selected":""}>
+                ${escapeHTML(j)}
+            </option>`
+        ).join("");
+
+
+    const kelasList =
+        [...new Set(students.map(s=>s.className).filter(Boolean))].sort();
+
+    const currentKelas = kelasSelect.value;
+
+    kelasSelect.innerHTML =
+        '<option value="">Semua</option>' +
+        kelasList.map(k=>
+            `<option value="${escapeHTML(k)}" ${k===currentKelas?"selected":""}>
+                ${escapeHTML(k)}
+            </option>`
+        ).join("");
+
+}
+
+
+function getFilteredLockerAssignments(){
+
+    const search =
+        (document.getElementById("lockerSearchInput")?.value||"")
+            .toLowerCase();
+
+    const jenjang =
+        document.getElementById("lockerFilterJenjang")?.value||"";
+
+    const kelas =
+        document.getElementById("lockerFilterKelas")?.value||"";
+
+    const status =
+        document.getElementById("lockerFilterStatus")?.value||"";
+
+
+    return lockerAssignments.filter(a=>{
+
+        if(jenjang && a.jenjang!==jenjang){
+            return false;
+        }
+
+        if(kelas && a.className!==kelas){
+            return false;
+        }
+
+        if(status && a.status!==status){
+            return false;
+        }
+
+        if(search){
+            const hay =
+                ((a.studentName||"")+" "+(a.lockerId||"")+" "+(a.keyNumber||""))
+                    .toLowerCase();
+            if(!hay.includes(search)){
+                return false;
+            }
+        }
+
+        return true;
+
+    }).sort((a,b)=>(b.startDate||"").localeCompare(a.startDate||""));
+
+}
+
+
+function renderLockerPage(){
+
+    const tbody = document.getElementById("lockerTableBody");
+
+    if(!tbody){
+        return;
+    }
+
+    populateLockerFilterOptions();
+
+
+    let filled=0, available=0, damaged=0;
+
+    lockers.forEach(l=>{
+
+        const status = getLockerStatus(l.id);
+
+        if(status==="Terisi"){ filled++; }
+        else if(status==="Rusak"){ damaged++; }
+        else{ available++; }
+
+    });
+
+    document.getElementById("lockerStatTotal").textContent = lockers.length;
+    document.getElementById("lockerStatFilled").textContent = filled;
+    document.getElementById("lockerStatAvailable").textContent = available;
+    document.getElementById("lockerStatDamaged").textContent = damaged;
+
+
+    const admin = isAdmin();
+
+    const filtered = getFilteredLockerAssignments();
+
+
+    tbody.innerHTML =
+        filtered.length
+        ? filtered.map((a,i)=>`
+            <tr>
+                <td>${i+1}</td>
+                <td>${escapeHTML(a.studentName)}</td>
+                <td>${escapeHTML(a.className||"")}</td>
+                <td>${escapeHTML(a.lockerId)}</td>
+                <td>${escapeHTML(a.keyNumber||"")}</td>
+                <td>
+                    ${
+                        a.status==="Aktif"
+                        ? '<span class="badge badge-success">Diterima</span>'
+                        : '<span class="badge badge-info">Dikembalikan</span>'
+                    }
+                </td>
+                <td>
+                    <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                        ${
+                            admin && a.status==="Aktif"
+                            ? `<button class="btn btn-primary btn-sm"
+                                    onclick="openReturnLockerModal('${a.id}')">
+                                    🔑 Kembalikan
+                                </button>`
+                            : ""
+                        }
+                        <button class="btn btn-secondary btn-sm"
+                                onclick="openLockerHistory('${a.studentId}')">
+                            📜 Riwayat
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join("")
+        : `<tr><td colspan="7">
+                <div class="empty">
+                    Tidak ada data penempatan locker.
+                </div>
+            </td></tr>`;
+
+}
+
+
+function openAssignLockerModal(){
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat menempatkan locker.");
+        return;
+    }
+
+    const studentSelect =
+        document.getElementById("assignStudentSelect");
+
+    const lockerSelect =
+        document.getElementById("assignLockerSelect");
+
+
+    const busyStudentIds =
+        lockerAssignments
+            .filter(a=>a.status==="Aktif")
+            .map(a=>a.studentId);
+
+    const availableStudents =
+        students.filter(s=>
+            s.status==="Aktif" && !busyStudentIds.includes(s.id)
+        );
+
+    studentSelect.innerHTML =
+        '<option value="">Pilih siswa</option>' +
+        availableStudents.map(s=>
+            `<option value="${escapeHTML(s.id)}">
+                ${escapeHTML(s.name)} (${escapeHTML(s.className||"-")})
+            </option>`
+        ).join("");
+
+
+    const availableLockers =
+        lockers.filter(l=>getLockerStatus(l.id)==="Tersedia");
+
+    lockerSelect.innerHTML =
+        '<option value="">Pilih locker</option>' +
+        availableLockers.map(l=>
+            `<option value="${escapeHTML(l.id)}">
+                ${escapeHTML(l.id)} - Kunci ${escapeHTML(l.keyNumber||"-")}
+            </option>`
+        ).join("");
+
+
+    document.getElementById("assignStartDate").value = todayISO();
+
+    document.getElementById("assignNote").value = "";
+
+
+    document.getElementById("lockerAssignModal").classList.add("show");
+
+}
+
+
+async function submitAssignLocker(event){
+
+    event.preventDefault();
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat menempatkan locker.");
+        return;
+    }
+
+    const studentId =
+        document.getElementById("assignStudentSelect").value;
+
+    const lockerId =
+        document.getElementById("assignLockerSelect").value;
+
+    const startDate =
+        document.getElementById("assignStartDate").value;
+
+    const note =
+        document.getElementById("assignNote").value.trim();
+
+
+    if(!studentId || !lockerId || !startDate){
+        showToast("Lengkapi data penempatan locker.");
+        return;
+    }
+
+    const stillActiveForStudent =
+        lockerAssignments.some(
+            a=>a.studentId===studentId && a.status==="Aktif"
+        );
+
+    if(stillActiveForStudent){
+        showToast("Siswa ini sudah memiliki locker aktif.");
+        return;
+    }
+
+    if(getLockerStatus(lockerId) !== "Tersedia"){
+        showToast("Locker ini sudah tidak tersedia, silakan pilih locker lain.");
+        return;
+    }
+
+
+    const student = students.find(s=>s.id===studentId);
+    const locker = lockers.find(l=>l.id===lockerId);
+
+    if(!student || !locker){
+        showToast("Data siswa/locker tidak ditemukan.");
+        return;
+    }
+
+
+    const submitBtn = document.getElementById("lockerAssignSubmitBtn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Menyimpan...";
+
+    try{
+
+        const id = "LKA-" + Date.now();
+
+        await db.collection("lockerAssignments").doc(id).set({
+            id,
+            studentId,
+            studentName:student.name,
+            jenjang:student.jenjang||"",
+            className:student.className||"",
+            lockerId,
+            keyNumber:locker.keyNumber||"",
+            startDate,
+            returnDate:null,
+            status:"Aktif",
+            lockerCondition:"",
+            keyCondition:"",
+            note
+        });
+
+        closeModal("lockerAssignModal");
+
+        showToast("Locker berhasil ditempatkan untuk siswa ini.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal menyimpan penempatan locker.");
+
+    }finally{
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Simpan Penempatan";
+
+    }
+
+}
+
+
+function openReturnLockerModal(id){
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat memproses pengembalian.");
+        return;
+    }
+
+    const a = lockerAssignments.find(x=>x.id===id);
+
+    if(!a){
+        return;
+    }
+
+    document.getElementById("returnAssignmentId").value = id;
+
+    document.getElementById("lockerReturnInfo").innerHTML = `
+        <strong>${escapeHTML(a.studentName)}</strong>
+        (${escapeHTML(a.className||"-")})
+        <br>
+        Locker: ${escapeHTML(a.lockerId)} ·
+        Kunci: ${escapeHTML(a.keyNumber||"-")}
+        <br>
+        Sejak: ${formatDate(a.startDate)}
+    `;
+
+    document.getElementById("returnLockerCondition").value = "Baik";
+    document.getElementById("returnKeyCondition").value = "Baik";
+    document.getElementById("returnNote").value = "";
+
+    document.getElementById("lockerReturnModal").classList.add("show");
+
+}
+
+
+async function submitReturnLocker(event){
+
+    event.preventDefault();
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat memproses pengembalian.");
+        return;
+    }
+
+    const id =
+        document.getElementById("returnAssignmentId").value;
+
+    const lockerCondition =
+        document.getElementById("returnLockerCondition").value;
+
+    const keyCondition =
+        document.getElementById("returnKeyCondition").value;
+
+    const note =
+        document.getElementById("returnNote").value.trim();
+
+
+    const a = lockerAssignments.find(x=>x.id===id);
+
+    if(!a){
+        showToast("Data penempatan tidak ditemukan.");
+        return;
+    }
+
+
+    const submitBtn = document.getElementById("lockerReturnSubmitBtn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Menyimpan...";
+
+    try{
+
+        await db.collection("lockerAssignments").doc(id).update({
+            status:"Dikembalikan",
+            returnDate:todayISO(),
+            lockerCondition,
+            keyCondition,
+            note
+        });
+
+        await db.collection("lockers").doc(a.lockerId).update({
+            condition:lockerCondition
+        });
+
+        closeModal("lockerReturnModal");
+
+        showToast("Pengembalian locker berhasil disimpan.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal menyimpan pengembalian locker.");
+
+    }finally{
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Simpan Pengembalian";
+
+    }
+
+}
+
+
+function openLockerHistory(studentId){
+
+    const student = students.find(s=>s.id===studentId);
+
+    const history =
+        lockerAssignments
+            .filter(a=>a.studentId===studentId)
+            .sort((a,b)=>(b.startDate||"").localeCompare(a.startDate||""));
+
+    document.getElementById("lockerHistoryTitle").textContent =
+        "Riwayat Locker — " + (student ? student.name : studentId);
+
+    document.getElementById("lockerHistoryContent").innerHTML =
+        history.length
+        ? history.map(a=>`
+            <div style="border-bottom:1px solid #eee;padding:10px 0;">
+                <strong>${escapeHTML(a.lockerId)}</strong>
+                · Kunci ${escapeHTML(a.keyNumber||"-")}
+                ${
+                    a.status==="Aktif"
+                    ? '<span class="badge badge-success" style="margin-left:6px;">Diterima</span>'
+                    : '<span class="badge badge-info" style="margin-left:6px;">Dikembalikan</span>'
+                }
+                <br>
+                <small style="color:var(--muted);">
+                    Mulai: ${formatDate(a.startDate)}
+                    ${a.returnDate ? " · Kembali: "+formatDate(a.returnDate) : ""}
+                </small>
+                ${
+                    a.status==="Dikembalikan"
+                    ? `<br><small>
+                            Kondisi Locker: ${escapeHTML(a.lockerCondition||"-")} ·
+                            Kondisi Kunci: ${escapeHTML(a.keyCondition||"-")}
+                        </small>`
+                    : ""
+                }
+                ${a.note ? `<br><small>Catatan: ${escapeHTML(a.note)}</small>` : ""}
+            </div>
+        `).join("")
+        : `<div class="empty">Belum ada riwayat locker untuk siswa ini.</div>`;
+
+    document.getElementById("lockerHistoryModal").classList.add("show");
+
+}
+
+
+function buildLockerExportRows(){
+
+    const filtered = getFilteredLockerAssignments();
+
+    const header = [
+        "Nama Siswa","Jenjang","Kelas","Locker","Kunci",
+        "Tanggal Mulai","Tanggal Kembali","Status",
+        "Kondisi Locker","Kondisi Kunci","Catatan"
+    ];
+
+    const rows = filtered.map(a=>[
+        a.studentName||"", a.jenjang||"", a.className||"",
+        a.lockerId||"", a.keyNumber||"",
+        a.startDate||"", a.returnDate||"",
+        a.status==="Aktif" ? "Diterima" : "Dikembalikan",
+        a.lockerCondition||"", a.keyCondition||"", a.note||""
+    ]);
+
+    return { header, rows };
+
+}
+
+
+function exportLockerCSV(){
+
+    const { header, rows } = buildLockerExportRows();
+
+    if(!rows.length){
+        showToast("Tidak ada data untuk diunduh.");
+        return;
+    }
+
+    const escapeCsv = value=>{
+        const str = String(value ?? "");
+        if(/[",\n]/.test(str)){
+            return '"' + str.replace(/"/g,'""') + '"';
+        }
+        return str;
+    };
+
+    const lines = [header, ...rows].map(
+        row=>row.map(escapeCsv).join(",")
+    );
+
+    const csvContent = "\uFEFF" + lines.join("\r\n");
+
+    const blob = new Blob([csvContent], {type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "data-locker-siswa-"+todayISO()+".csv";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+function exportLockerExcel(){
+
+    if(typeof XLSX === "undefined"){
+        showToast("Pustaka Excel gagal dimuat. Periksa koneksi internet.");
+        return;
+    }
+
+    const { header, rows } = buildLockerExportRows();
+
+    if(!rows.length){
+        showToast("Tidak ada data untuk diunduh.");
+        return;
+    }
+
+    const worksheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Locker Siswa");
+
+    XLSX.writeFile(workbook, "data-locker-siswa-"+todayISO()+".xlsx");
+
+}
+
+
+function printLockerRecap(){
+
+    const { header, rows } = buildLockerExportRows();
+
+    const printWindow = window.open("", "_blank");
+
+    if(!printWindow){
+        showToast("Popup diblokir browser. Izinkan popup untuk mencetak.");
+        return;
+    }
+
+    const tableRows =
+        rows.length
+        ? rows.map(
+            row=>"<tr>"+row.map(
+                cell=>"<td>"+escapeHTML(String(cell??""))+"</td>"
+            ).join("")+"</tr>"
+        ).join("")
+        : `<tr><td colspan="${header.length}">Tidak ada data.</td></tr>`;
+
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Data Locker Siswa</title>
+            <meta charset="utf-8">
+            <style>
+                body{font-family:Arial,sans-serif;padding:24px;color:#172033;}
+                h1{font-size:18px;margin-bottom:4px;}
+                table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px;}
+                th,td{border:1px solid #ccc;padding:6px 8px;text-align:left;}
+                th{background:#f1f3f5;}
+            </style>
+        </head>
+        <body>
+            <h1>Data Locker Siswa</h1>
+            <table>
+                <thead>
+                    <tr>
+                        ${header.map(h=>"<th>"+escapeHTML(h)+"</th>").join("")}
+                    </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+            </table>
+        </body>
+        </html>
+    `);
+
+    printWindow.document.close();
+
+    printWindow.onload = () => {
+        printWindow.focus();
+        printWindow.print();
+    };
+
+}
+
+
+/* =========================================================
    DASHBOARD
 ========================================================= */
 
@@ -9538,6 +11492,12 @@ function refreshAll(){
     renderBorrowPage();
 
     renderCCTV();
+
+    renderStudents();
+
+    renderLockerMaster();
+
+    renderLockerPage();
 
     renderDashboard();
 
