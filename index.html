@@ -1233,6 +1233,14 @@ tr:hover td{
             🖥️ Peminjaman Sarana
         </div>
 
+        <div class="nav-item"
+             id="navCctv"
+             data-page="cctv"
+             onclick="showPage('cctv')"
+             style="display:none;">
+            📹 CCTV Sekolah
+        </div>
+
 
         <div id="adminNav">
 
@@ -1876,6 +1884,56 @@ tr:hover td{
                 </div>
 
             </div>
+
+        </section>
+
+
+        <!-- =================================================
+             CCTV SEKOLAH
+        ================================================= -->
+        <section id="page-cctv" class="page">
+
+            <div class="page-header" style="
+                display:flex;
+                justify-content:space-between;
+                align-items:flex-start;
+                gap:15px;
+                flex-wrap:wrap;
+            ">
+                <div>
+                    <h1>CCTV Sekolah</h1>
+                    <p>
+                        Pantau aktivitas sekolah secara langsung
+                        melalui kamera CCTV. Halaman ini hanya
+                        menampilkan tayangan langsung, tidak
+                        menyimpan rekaman apa pun.
+                    </p>
+                </div>
+
+                <button
+                    id="cctvAddBtn"
+                    class="btn btn-primary"
+                    style="display:none;"
+                    onclick="openCctvForm()">
+                    + Tambah Kamera
+                </button>
+            </div>
+
+            <div class="card" style="
+                margin-bottom:18px;
+                background:#fff7e6;
+                border-color:#ffe1a8;
+            ">
+                <strong>⚠️ Catatan:</strong>
+                Kamera NVR sekolah saat ini baru bisa diakses
+                dari dalam jaringan WiFi/LAN sekolah. Jika
+                tayangan tidak muncul, pastikan perangkat Anda
+                terhubung ke WiFi sekolah. Agar bisa diakses
+                dari luar sekolah, jaringan perlu dikonfigurasi
+                DDNS/port forwarding oleh teknisi jaringan.
+            </div>
+
+            <div id="cctvContent" class="grid grid-3"></div>
 
         </section>
 
@@ -2755,6 +2813,132 @@ tr:hover td{
 
 
 <!-- =========================================================
+     CCTV FORM MODAL
+========================================================= -->
+<div id="cctvFormModal" class="modal">
+
+    <div class="modal-content" style="max-width:460px;">
+
+        <div class="modal-header">
+            <h2 id="cctvFormTitle">Tambah Kamera</h2>
+            <div class="close"
+                 onclick="closeModal('cctvFormModal')">
+                ×
+            </div>
+        </div>
+
+        <form id="cctvForm" onsubmit="submitCctvForm(event)">
+
+            <input type="hidden" id="editCctvId">
+
+            <div class="form-group">
+                <label>Nama Kamera</label>
+                <input
+                    type="text"
+                    id="cctvName"
+                    class="form-control"
+                    placeholder="Contoh: Lorong Kelas Lantai 1"
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label>Channel NVR</label>
+                <input
+                    type="number"
+                    id="cctvChannel"
+                    class="form-control"
+                    placeholder="Contoh: 1"
+                    min="1"
+                    max="64"
+                >
+            </div>
+
+            <div class="form-group">
+                <label>Tipe Tayangan</label>
+                <select id="cctvType"
+                        class="form-control"
+                        onchange="toggleCctvUrlHint()"
+                        required>
+                    <option value="snapshot">
+                        Gambar (snapshot auto-refresh)
+                    </option>
+                    <option value="stream">
+                        Video langsung (HLS/MP4)
+                    </option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>URL Sumber</label>
+                <input
+                    type="text"
+                    id="cctvUrl"
+                    class="form-control"
+                    placeholder="http://user:pass@IP-NVR/cgi-bin/snapshot.cgi?channel=1"
+                    required
+                >
+                <small id="cctvUrlHint" style="color:var(--muted);">
+                    Untuk NVR Dahua/IMOU, contoh URL snapshot:
+                    http://user:password@IP-NVR/cgi-bin/snapshot.cgi?channel=1
+                </small>
+            </div>
+
+            <div class="form-group" id="cctvRefreshGroup">
+                <label>Refresh Setiap (detik)</label>
+                <input
+                    type="number"
+                    id="cctvRefreshSeconds"
+                    class="form-control"
+                    value="3"
+                    min="1"
+                    max="60"
+                >
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button"
+                        class="btn btn-secondary"
+                        onclick="closeModal('cctvFormModal')">
+                    Batal
+                </button>
+                <button type="submit"
+                        id="cctvFormSubmitBtn"
+                        class="btn btn-primary">
+                    Simpan
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     CCTV VIEWER (PERBESAR) MODAL
+========================================================= -->
+<div id="cctvViewerModal" class="modal">
+
+    <div class="modal-content" style="max-width:720px;">
+
+        <div class="modal-header">
+            <h2 id="cctvViewerTitle">Kamera</h2>
+            <div class="close"
+                 onclick="closeCctvViewer()">
+                ×
+            </div>
+        </div>
+
+        <div id="cctvViewerContent" style="text-align:center;"></div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
      DETAIL MODAL
 ========================================================= -->
 <div id="detailModal" class="modal">
@@ -3001,6 +3185,8 @@ let borrowings = [];
 let borrowCart = [];   /* daftar id perangkat yang akan dipinjam (multi unit) */
 let facilityConditions = [];
 let conditionFilterCategory = "";
+let cctvCameras = [];
+let cctvRefreshTimers = {};
 
 let firebaseReady = false;
 
@@ -3613,6 +3799,27 @@ function listenToData(){
             }
         );
 
+
+    db.collection("cctvCameras")
+        .onSnapshot(
+            snapshot=>{
+
+                cctvCameras = snapshot.docs.map(
+                    doc=>({
+                        id:doc.id,
+                        ...doc.data()
+                    })
+                );
+
+                refreshAll();
+
+            },
+            error=>{
+                console.error("cctvCameras:",error);
+                refreshAll();
+            }
+        );
+
 }
 
 
@@ -3754,6 +3961,8 @@ async function login(){
 
         document.getElementById("conditionAddBtn").style.display="inline-flex";
 
+        document.getElementById("cctvAddBtn").style.display="inline-flex";
+
     }else{
 
         document.getElementById("adminNav").style.display="none";
@@ -3761,6 +3970,8 @@ async function login(){
         document.getElementById("galleryAddBtn").style.display="none";
 
         document.getElementById("conditionAddBtn").style.display="none";
+
+        document.getElementById("cctvAddBtn").style.display="none";
 
     }
 
@@ -3771,11 +3982,15 @@ async function login(){
 
         document.getElementById("homeBorrowCard").style.display="none";
 
+        document.getElementById("navCctv").style.display="none";
+
     }else{
 
         document.getElementById("navBorrow").style.display="flex";
 
         document.getElementById("homeBorrowCard").style.display="block";
+
+        document.getElementById("navCctv").style.display="flex";
 
     }
 
@@ -6829,6 +7044,470 @@ async function deleteConditionItem(id){
 
 
 /* =========================================================
+   CCTV SEKOLAH — TAYANGAN LANGSUNG (BUKAN PENYIMPANAN)
+========================================================= */
+
+function toggleCctvUrlHint(){
+
+    const type =
+        document.getElementById("cctvType").value;
+
+    const hint =
+        document.getElementById("cctvUrlHint");
+
+    const urlInput =
+        document.getElementById("cctvUrl");
+
+    const refreshGroup =
+        document.getElementById("cctvRefreshGroup");
+
+    if(type === "snapshot"){
+
+        hint.textContent =
+            "Untuk NVR Dahua/IMOU, contoh URL snapshot: " +
+            "http://user:password@IP-NVR/cgi-bin/snapshot.cgi?channel=1";
+
+        urlInput.placeholder =
+            "http://user:pass@IP-NVR/cgi-bin/snapshot.cgi?channel=1";
+
+        refreshGroup.style.display = "block";
+
+    }else{
+
+        hint.textContent =
+            "Isi dengan URL video langsung (misal hasil " +
+            "konversi RTSP ke HLS: https://server-anda/kamera1.m3u8), " +
+            "atau URL file MP4/stream lain yang didukung browser.";
+
+        urlInput.placeholder =
+            "https://server-anda/kamera1.m3u8";
+
+        refreshGroup.style.display = "none";
+
+    }
+
+}
+
+
+function stopAllCctvTimers(){
+
+    Object.values(cctvRefreshTimers).forEach(
+        timerId => clearInterval(timerId)
+    );
+
+    cctvRefreshTimers = {};
+
+}
+
+
+function renderCCTV(){
+
+    const container =
+        document.getElementById("cctvContent");
+
+    if(!container){
+        return;
+    }
+
+
+    stopAllCctvTimers();
+
+
+    const admin = isAdmin();
+
+
+    if(!cctvCameras.length){
+
+        container.innerHTML = `
+            <div class="card" style="grid-column:1/-1;">
+                <div class="empty">
+                    Belum ada kamera yang ditambahkan.
+                    ${
+                        admin
+                        ? 'Klik "+ Tambah Kamera" untuk mulai.'
+                        : "Silakan hubungi Admin Sarpras."
+                    }
+                </div>
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    container.innerHTML = cctvCameras.map(cam=>`
+
+        <div class="card">
+
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:flex-start;
+                margin-bottom:10px;
+                gap:8px;
+            ">
+                <div>
+                    <strong>${escapeHTML(cam.name)}</strong>
+                    <br>
+                    <small style="color:var(--muted);">
+                        ${cam.channel ? "Channel "+escapeHTML(String(cam.channel)) : ""}
+                    </small>
+                </div>
+
+                ${admin ? `
+                    <div style="display:flex;gap:5px;flex-shrink:0;">
+                        <button
+                            class="btn btn-secondary btn-sm"
+                            onclick="openCctvForm('${cam.id}')">
+                            ✏️
+                        </button>
+                        <button
+                            class="btn btn-danger btn-sm"
+                            onclick="deleteCctvItem('${cam.id}')">
+                            🗑️
+                        </button>
+                    </div>
+                ` : ""}
+            </div>
+
+            <div style="
+                background:#000;
+                border-radius:8px;
+                overflow:hidden;
+                aspect-ratio:16/9;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                cursor:pointer;
+            " onclick="openCctvViewer('${cam.id}')">
+
+                ${
+                    cam.type === "stream"
+                    ? `<video
+                            id="cctvVideo-${cam.id}"
+                            src="${escapeHTML(cam.url)}"
+                            style="width:100%;height:100%;object-fit:cover;"
+                            muted
+                            autoplay
+                            playsinline
+                            onerror="this.closest('div').innerHTML='<span style=color:white;font-size:12px;>Gagal memuat tayangan. Pastikan Anda terhubung ke jaringan sekolah.</span>'">
+                       </video>`
+                    : `<img
+                            id="cctvImg-${cam.id}"
+                            src="${escapeHTML(cam.url)}"
+                            style="width:100%;height:100%;object-fit:cover;"
+                            onerror="this.style.display='none';this.nextElementSibling.style.display='block';">
+                       <span style="
+                            display:none;
+                            color:#fff;
+                            font-size:12px;
+                            text-align:center;
+                            padding:0 10px;
+                       ">
+                            Gagal memuat tayangan. Pastikan Anda
+                            terhubung ke jaringan WiFi/LAN sekolah.
+                       </span>`
+                }
+
+            </div>
+
+        </div>
+
+    `).join("");
+
+
+    cctvCameras
+        .filter(cam=>cam.type !== "stream")
+        .forEach(cam=>{
+
+            const seconds =
+                Number(cam.refreshSeconds) > 0
+                    ? Number(cam.refreshSeconds)
+                    : 3;
+
+            cctvRefreshTimers[cam.id] = setInterval(()=>{
+
+                const pageActive =
+                    document.getElementById("page-cctv")
+                        .classList.contains("active");
+
+                if(!pageActive){
+                    return;
+                }
+
+                const img =
+                    document.getElementById("cctvImg-"+cam.id);
+
+                if(img){
+
+                    const base = cam.url.split("&_t=")[0];
+
+                    img.src = base + "&_t=" + Date.now();
+
+                }
+
+            }, seconds*1000);
+
+        });
+
+}
+
+
+let cctvFormEditingId = null;
+
+
+function openCctvForm(id){
+
+    if(!isAdmin()){
+
+        showToast(
+            "Hanya Admin Sarpras yang dapat mengelola kamera."
+        );
+
+        return;
+    }
+
+    cctvFormEditingId = id || null;
+
+    const cam =
+        id ? cctvCameras.find(c=>c.id===id) : null;
+
+    document.getElementById("cctvForm").reset();
+
+    document.getElementById("editCctvId").value = id || "";
+
+    document.getElementById("cctvFormTitle").textContent =
+        id ? "Edit Kamera" : "Tambah Kamera";
+
+    if(cam){
+
+        document.getElementById("cctvName").value =
+            cam.name || "";
+
+        document.getElementById("cctvChannel").value =
+            cam.channel || "";
+
+        document.getElementById("cctvType").value =
+            cam.type || "snapshot";
+
+        document.getElementById("cctvUrl").value =
+            cam.url || "";
+
+        document.getElementById("cctvRefreshSeconds").value =
+            cam.refreshSeconds || 3;
+
+    }
+
+    toggleCctvUrlHint();
+
+    document.getElementById("cctvFormModal")
+        .classList.add("show");
+
+}
+
+
+async function submitCctvForm(event){
+
+    event.preventDefault();
+
+    if(!isAdmin()){
+
+        showToast(
+            "Hanya Admin Sarpras yang dapat mengelola kamera."
+        );
+
+        return;
+    }
+
+    const submitBtn =
+        document.getElementById("cctvFormSubmitBtn");
+
+    const name =
+        document.getElementById("cctvName").value.trim();
+
+    const channel =
+        document.getElementById("cctvChannel").value.trim();
+
+    const type =
+        document.getElementById("cctvType").value;
+
+    const url =
+        document.getElementById("cctvUrl").value.trim();
+
+    const refreshSeconds =
+        Number(
+            document.getElementById("cctvRefreshSeconds").value
+        ) || 3;
+
+
+    if(!name || !url){
+
+        showToast("Nama kamera dan URL wajib diisi.");
+
+        return;
+    }
+
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Menyimpan...";
+
+    try{
+
+        const id =
+            cctvFormEditingId ||
+            "CAM-" + Date.now();
+
+        await db.collection("cctvCameras")
+            .doc(id)
+            .set({
+                id:id,
+                name:name,
+                channel:channel,
+                type:type,
+                url:url,
+                refreshSeconds:refreshSeconds
+            });
+
+        closeModal("cctvFormModal");
+
+        showToast("Kamera berhasil disimpan.");
+
+    }catch(error){
+
+        console.error(error);
+
+        showToast("Gagal menyimpan data kamera.");
+
+    }finally{
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Simpan";
+
+    }
+
+}
+
+
+async function deleteCctvItem(id){
+
+    if(!isAdmin()){
+
+        showToast(
+            "Hanya Admin Sarpras yang dapat menghapus kamera."
+        );
+
+        return;
+    }
+
+    if(!confirm("Hapus kamera ini dari daftar?")){
+        return;
+    }
+
+    try{
+
+        await db.collection("cctvCameras")
+            .doc(id)
+            .delete();
+
+        showToast("Kamera berhasil dihapus.");
+
+    }catch(error){
+
+        console.error(error);
+
+        showToast("Gagal menghapus kamera.");
+
+    }
+
+}
+
+
+function openCctvViewer(id){
+
+    const cam =
+        cctvCameras.find(c=>c.id===id);
+
+    if(!cam){
+        return;
+    }
+
+    document.getElementById("cctvViewerTitle").textContent =
+        cam.name;
+
+    const content =
+        document.getElementById("cctvViewerContent");
+
+    if(cam.type === "stream"){
+
+        content.innerHTML = `
+            <video
+                src="${escapeHTML(cam.url)}"
+                style="width:100%;border-radius:8px;"
+                controls
+                autoplay
+                muted
+                playsinline>
+            </video>
+        `;
+
+    }else{
+
+        content.innerHTML = `
+            <img
+                id="cctvViewerImg"
+                src="${escapeHTML(cam.url)}"
+                style="width:100%;border-radius:8px;">
+        `;
+
+        const seconds =
+            Number(cam.refreshSeconds) > 0
+                ? Number(cam.refreshSeconds)
+                : 3;
+
+        cctvRefreshTimers["viewer"] = setInterval(()=>{
+
+            const img =
+                document.getElementById("cctvViewerImg");
+
+            if(!img){
+
+                clearInterval(cctvRefreshTimers["viewer"]);
+
+                return;
+
+            }
+
+            const base = cam.url.split("&_t=")[0];
+
+            img.src = base + "&_t=" + Date.now();
+
+        }, seconds*1000);
+
+    }
+
+    document.getElementById("cctvViewerModal")
+        .classList.add("show");
+
+}
+
+
+function closeCctvViewer(){
+
+    if(cctvRefreshTimers["viewer"]){
+
+        clearInterval(cctvRefreshTimers["viewer"]);
+
+        delete cctvRefreshTimers["viewer"];
+
+    }
+
+    closeModal("cctvViewerModal");
+
+}
+
+
+/* =========================================================
    DASHBOARD
 ========================================================= */
 
@@ -8857,6 +9536,8 @@ function refreshAll(){
     renderDenah();
 
     renderBorrowPage();
+
+    renderCCTV();
 
     renderDashboard();
 
