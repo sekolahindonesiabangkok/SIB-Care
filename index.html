@@ -1249,6 +1249,12 @@ tr:hover td{
             🔐 Locker Siswa
         </div>
 
+        <div class="nav-item"
+             data-page="lostfound"
+             onclick="showPage('lostfound')">
+            🔎 Barang Hilang & Temuan
+        </div>
+
 
         <div id="adminNav">
 
@@ -2105,6 +2111,145 @@ tr:hover td{
                         <tbody id="lockerTableBody"></tbody>
                     </table>
                 </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             BARANG HILANG & TEMUAN (LOST & FOUND)
+        ================================================= -->
+        <section id="page-lostfound" class="page">
+
+            <div class="page-header" style="
+                display:flex;
+                justify-content:space-between;
+                align-items:flex-start;
+                gap:15px;
+                flex-wrap:wrap;
+            ">
+                <div>
+                    <h1>🔎 Barang Hilang & Temuan</h1>
+                    <p>
+                        Laporkan, telusuri, dan klaim barang hilang
+                        atau temuan di sekolah. Siklus lengkap:
+                        Dilaporkan → Diproses → Menunggu Klaim →
+                        Diklaim/Dikembalikan, atau ditindaklanjuti
+                        (lelang/donasi) jika tidak diklaim.
+                    </p>
+                </div>
+
+                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                    <button class="btn btn-secondary"
+                            onclick="openLostFoundForm('Hilang')">
+                        📢 Lapor Kehilangan
+                    </button>
+                    <button class="btn btn-primary"
+                            onclick="openLostFoundForm('Temuan')">
+                        📦 Lapor Temuan
+                    </button>
+                </div>
+            </div>
+
+            <div id="lostFoundAlertBanner"></div>
+
+            <div class="grid grid-4" style="margin-bottom:18px;">
+
+                <div class="card stat-card">
+                    <div class="stat-icon">📢</div>
+                    <div>
+                        <h3 id="lfStatLost">0</h3>
+                        <p>Barang Hilang (Aktif)</p>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon">📦</div>
+                    <div>
+                        <h3 id="lfStatWaiting">0</h3>
+                        <p>Temuan Menunggu Klaim</p>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div>
+                        <h3 id="lfStatReturned">0</h3>
+                        <p>Berhasil Dikembalikan</p>
+                    </div>
+                </div>
+
+                <div class="card stat-card">
+                    <div class="stat-icon">🔨</div>
+                    <div>
+                        <h3 id="lfStatAuction">0</h3>
+                        <p>Siap Ditindaklanjuti</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="card">
+
+                <div style="
+                    display:flex;
+                    gap:8px;
+                    flex-wrap:wrap;
+                    margin-bottom:14px;
+                " id="lostFoundTabs">
+                    <button class="btn btn-primary btn-sm" data-tab="semua"
+                            onclick="setLostFoundTab('semua')">Semua</button>
+                    <button class="btn btn-secondary btn-sm" data-tab="Hilang"
+                            onclick="setLostFoundTab('Hilang')">📢 Barang Hilang</button>
+                    <button class="btn btn-secondary btn-sm" data-tab="Temuan"
+                            onclick="setLostFoundTab('Temuan')">📦 Barang Temuan</button>
+                    <button class="btn btn-secondary btn-sm" data-tab="lelang"
+                            onclick="setLostFoundTab('lelang')">🔨 Lelang & Tindak Lanjut</button>
+                </div>
+
+                <div class="recap-filter" style="margin-bottom:14px;">
+
+                    <div class="form-group" style="margin:0;flex:2;min-width:200px;">
+                        <label>Cari Barang</label>
+                        <input type="text" id="lfSearchInput" class="form-control"
+                               placeholder="Nama barang, lokasi..."
+                               oninput="renderLostFound()">
+                    </div>
+
+                    <div class="form-group" style="margin:0;">
+                        <label>Kategori</label>
+                        <select id="lfFilterCategory" class="form-control"
+                                onchange="renderLostFound()">
+                            <option value="">Semua Kategori</option>
+                            <option value="Tas">Tas</option>
+                            <option value="Pakaian">Pakaian</option>
+                            <option value="Elektronik">Elektronik</option>
+                            <option value="Buku">Buku</option>
+                            <option value="Alat Makan/Botol">Alat Makan/Botol</option>
+                            <option value="Dokumen/Kartu">Dokumen/Kartu</option>
+                            <option value="Uang">Uang</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div style="
+                    display:flex;
+                    gap:10px;
+                    flex-wrap:wrap;
+                    margin-bottom:14px;
+                ">
+                    <button class="btn btn-secondary btn-sm" onclick="exportLostFoundCSV()">
+                        📄 Unduh CSV
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="exportLostFoundExcel()">
+                        📊 Unduh Excel
+                    </button>
+                </div>
+
+                <div id="lostFoundGrid" class="grid grid-3"></div>
 
             </div>
 
@@ -3577,6 +3722,263 @@ tr:hover td{
 
 
 <!-- =========================================================
+     LOST & FOUND — FORM LAPOR (HILANG/TEMUAN)
+========================================================= -->
+<div id="lostFoundFormModal" class="modal">
+
+    <div class="modal-content" style="max-width:480px;">
+
+        <div class="modal-header">
+            <h2 id="lostFoundFormTitle">Lapor Barang</h2>
+            <div class="close" onclick="closeModal('lostFoundFormModal')">×</div>
+        </div>
+
+        <form id="lostFoundForm" onsubmit="submitLostFoundForm(event)">
+
+            <input type="hidden" id="lfFormType">
+
+            <div class="form-group">
+                <label>Jenis Barang</label>
+                <select id="lfItemCategory" class="form-control" required>
+                    <option value="Tas">Tas</option>
+                    <option value="Pakaian">Pakaian</option>
+                    <option value="Elektronik">Elektronik</option>
+                    <option value="Buku">Buku</option>
+                    <option value="Alat Makan/Botol">Alat Makan/Botol</option>
+                    <option value="Dokumen/Kartu">Dokumen/Kartu (KTP, kartu pelajar, dll)</option>
+                    <option value="Uang">Uang</option>
+                    <option value="Lainnya">Lainnya</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label id="lfItemNameLabel">Nama Barang</label>
+                <input type="text" id="lfItemName" class="form-control"
+                       placeholder="Contoh: Tas sekolah hitam" required>
+            </div>
+
+            <div class="form-group">
+                <label id="lfLocationLabel">Lokasi</label>
+                <input type="text" id="lfLocation" class="form-control"
+                       placeholder="Contoh: Kelas VIII, Kantin, Lapangan" required>
+            </div>
+
+            <div class="form-group">
+                <label id="lfDateLabel">Tanggal</label>
+                <input type="date" id="lfDate" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label>Ciri Umum (akan ditampilkan ke publik)</label>
+                <textarea id="lfDescription" class="form-control"
+                          placeholder="Warna, ukuran, kondisi umum..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label id="lfSecretLabel">
+                    Ciri Khusus (HANYA untuk verifikasi Admin, tidak ditampilkan publik)
+                </label>
+                <textarea id="lfSecretDetail" class="form-control"
+                          placeholder="Merek, nomor seri, tanda/coretan khusus, isi tas, dll."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Foto Barang (opsional)</label>
+                <input type="file" id="lfPhotoInput" accept="image/*" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label>Kontak Anda (opsional, WA/lainnya)</label>
+                <input type="text" id="lfReporterContact" class="form-control"
+                       placeholder="08xxxxxxxxxx">
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('lostFoundFormModal')">Batal</button>
+                <button type="submit" id="lostFoundFormSubmitBtn"
+                        class="btn btn-primary">Kirim Laporan</button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     LOST & FOUND — PROSES TEMUAN (ADMIN)
+========================================================= -->
+<div id="lfProcessModal" class="modal">
+
+    <div class="modal-content" style="max-width:420px;">
+
+        <div class="modal-header">
+            <h2>Proses Barang Temuan</h2>
+            <div class="close" onclick="closeModal('lfProcessModal')">×</div>
+        </div>
+
+        <form id="lfProcessForm" onsubmit="submitLfProcess(event)">
+
+            <input type="hidden" id="lfProcessId">
+
+            <div class="form-group">
+                <label>Lokasi Penyimpanan</label>
+                <input type="text" id="lfStorageLocation" class="form-control"
+                       placeholder="Contoh: Pos Satpam - Rak B2" required>
+            </div>
+
+            <div class="form-group">
+                <label>Petugas Penerima</label>
+                <input type="text" id="lfReceivedBy" class="form-control"
+                       placeholder="Nama petugas" required>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('lfProcessModal')">Batal</button>
+                <button type="submit" id="lfProcessSubmitBtn"
+                        class="btn btn-primary">Simpan & Publikasikan</button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     LOST & FOUND — AJUKAN KLAIM
+========================================================= -->
+<div id="lfClaimModal" class="modal">
+
+    <div class="modal-content" style="max-width:420px;">
+
+        <div class="modal-header">
+            <h2>Ajukan Klaim</h2>
+            <div class="close" onclick="closeModal('lfClaimModal')">×</div>
+        </div>
+
+        <form id="lfClaimForm" onsubmit="submitLfClaim(event)">
+
+            <input type="hidden" id="lfClaimId">
+
+            <div class="form-group">
+                <label>Nama Anda</label>
+                <input type="text" id="lfClaimantName" class="form-control" required>
+            </div>
+
+            <div class="form-group">
+                <label>Kontak (WA/lainnya)</label>
+                <input type="text" id="lfClaimantContact" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label>Bukti Kepemilikan / Ciri Khusus</label>
+                <textarea id="lfClaimantNote" class="form-control"
+                          placeholder="Jelaskan ciri khusus barang ini sebagai bukti bahwa ini milik Anda"
+                          required></textarea>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('lfClaimModal')">Batal</button>
+                <button type="submit" id="lfClaimSubmitBtn"
+                        class="btn btn-primary">Kirim Klaim</button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     LOST & FOUND — TINDAK LANJUT (LELANG/DONASI/MUSNAH)
+========================================================= -->
+<div id="lfResolveModal" class="modal">
+
+    <div class="modal-content" style="max-width:460px;">
+
+        <div class="modal-header">
+            <h2>Tindak Lanjut Barang Tidak Diklaim</h2>
+            <div class="close" onclick="closeModal('lfResolveModal')">×</div>
+        </div>
+
+        <div id="lfResolveWarning"></div>
+
+        <form id="lfResolveForm" onsubmit="submitLfResolve(event)">
+
+            <input type="hidden" id="lfResolveId">
+
+            <div class="form-group">
+                <label>Metode Penyelesaian</label>
+                <select id="lfResolutionMethod" class="form-control" required
+                        onchange="toggleAuctionFields()">
+                    <option value="Dilelang">Dilelang</option>
+                    <option value="Disumbangkan">Disumbangkan</option>
+                    <option value="Dimusnahkan">Dimusnahkan</option>
+                    <option value="Penanganan Khusus">Penanganan Khusus (diserahkan ke pihak berwajib/kebijakan sekolah)</option>
+                </select>
+            </div>
+
+            <div id="lfAuctionFields">
+
+                <div class="form-group">
+                    <label>Harga Awal Lelang (opsional)</label>
+                    <input type="text" id="lfAuctionPrice" class="form-control"
+                           placeholder="Contoh: THB 100">
+                </div>
+
+                <div class="form-group">
+                    <label>Tanggal Pelaksanaan Lelang (opsional)</label>
+                    <input type="date" id="lfAuctionDate" class="form-control">
+                </div>
+
+            </div>
+
+            <div class="form-group">
+                <label>Catatan</label>
+                <textarea id="lfResolutionNote" class="form-control"></textarea>
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary"
+                        onclick="closeModal('lfResolveModal')">Batal</button>
+                <button type="submit" id="lfResolveSubmitBtn"
+                        class="btn btn-primary">Simpan Keputusan</button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     LOST & FOUND — DETAIL
+========================================================= -->
+<div id="lfDetailModal" class="modal">
+
+    <div class="modal-content" style="max-width:480px;">
+
+        <div class="modal-header">
+            <h2 id="lfDetailTitle">Detail Barang</h2>
+            <div class="close" onclick="closeModal('lfDetailModal')">×</div>
+        </div>
+
+        <div id="lfDetailContent"></div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
      DETAIL MODAL
 ========================================================= -->
 <div id="detailModal" class="modal">
@@ -3828,6 +4230,8 @@ let cctvRefreshTimers = {};
 let students = [];
 let lockers = [];
 let lockerAssignments = [];
+let lostFoundItems = [];
+let lostFoundTab = "semua";
 
 let firebaseReady = false;
 
@@ -4511,6 +4915,24 @@ function listenToData(){
             },
             error=>{
                 console.error("lockerAssignments:",error);
+                refreshAll();
+            }
+        );
+
+
+    db.collection("lostFound")
+        .onSnapshot(
+            snapshot=>{
+
+                lostFoundItems = snapshot.docs.map(
+                    doc=>({ id:doc.id, ...doc.data() })
+                );
+
+                refreshAll();
+
+            },
+            error=>{
+                console.error("lostFound:",error);
                 refreshAll();
             }
         );
@@ -8248,10 +8670,10 @@ function renderStudents(){
         students.length;
 
     document.getElementById("studentStatActive").textContent =
-        students.filter(s=>s.status==="Aktif").length;
+        students.filter(s=>isActiveStatus(s.status)).length;
 
     document.getElementById("studentStatInactive").textContent =
-        students.filter(s=>s.status==="Nonaktif").length;
+        students.filter(s=>!isActiveStatus(s.status)).length;
 
 
     const search =
@@ -8272,8 +8694,18 @@ function renderStudents(){
                 return false;
             }
 
-            if(statusFilter && s.status!==statusFilter){
-                return false;
+            if(statusFilter){
+
+                const active = isActiveStatus(s.status);
+
+                if(statusFilter==="Aktif" && !active){
+                    return false;
+                }
+
+                if(statusFilter==="Nonaktif" && active){
+                    return false;
+                }
+
             }
 
             if(search){
@@ -8290,7 +8722,11 @@ function renderStudents(){
 
     tbody.innerHTML =
         filtered.length
-        ? filtered.map(s=>`
+        ? filtered.map(s=>{
+
+            const active = isActiveStatus(s.status);
+
+            return `
             <tr>
                 <td>${escapeHTML(s.id)}</td>
                 <td>${escapeHTML(s.name)}</td>
@@ -8298,25 +8734,33 @@ function renderStudents(){
                 <td>${escapeHTML(s.className||"")}</td>
                 <td>
                     ${
-                        s.status==="Aktif"
+                        active
                         ? '<span class="badge badge-success">Aktif</span>'
                         : '<span class="badge badge-secondary">Nonaktif</span>'
                     }
                 </td>
                 <td>
-                    <div style="display:flex;gap:5px;">
+                    <div style="display:flex;gap:5px;flex-wrap:wrap;">
                         <button class="btn btn-secondary btn-sm"
-                                onclick="openStudentForm('${s.id}')">
+                                onclick="openStudentForm('${s.id}')"
+                                title="Edit">
                             ✏️
                         </button>
+                        <button class="btn btn-secondary btn-sm"
+                                onclick="toggleStudentStatus('${s.id}')"
+                                title="${active ? 'Nonaktifkan' : 'Aktifkan'}">
+                            ${active ? '⏸️' : '▶️'}
+                        </button>
                         <button class="btn btn-danger btn-sm"
-                                onclick="deleteStudent('${s.id}')">
+                                onclick="deleteStudent('${s.id}')"
+                                title="Hapus">
                             🗑️
                         </button>
                     </div>
                 </td>
             </tr>
-        `).join("")
+        `;
+        }).join("")
         : `<tr><td colspan="6">
                 <div class="empty">Belum ada data siswa.</div>
             </td></tr>`;
@@ -8459,6 +8903,42 @@ async function deleteStudent(id){
 }
 
 
+async function toggleStudentStatus(id){
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat mengubah status siswa.");
+        return;
+    }
+
+    const s = students.find(x=>x.id===id);
+
+    if(!s){
+        return;
+    }
+
+    const nextStatus =
+        isActiveStatus(s.status) ? "Nonaktif" : "Aktif";
+
+    try{
+
+        await db.collection("students").doc(id).update({
+            status:nextStatus
+        });
+
+        showToast(
+            "Status " + s.name + " diubah menjadi " + nextStatus + "."
+        );
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal mengubah status siswa.");
+
+    }
+
+}
+
+
 function normalizeExcelRow(row){
 
     const normalized = {};
@@ -8467,7 +8947,7 @@ function normalizeExcelRow(row){
 
         const normKey =
             key.toString().trim().toLowerCase()
-                .replace(/[\s_\-\.]/g,"");
+                .replace(/[\s_\-\.\(\)\/\\]/g,"");
 
         normalized[normKey] = row[key];
 
@@ -8480,15 +8960,84 @@ function normalizeExcelRow(row){
 
 function pickExcelValue(row, keys){
 
+    const entries = Object.entries(row);
+
     for(const key of keys){
 
-        if(row[key] !== undefined && row[key] !== null && row[key] !== ""){
-            return String(row[key]).trim();
+        const found =
+            entries.find(([k])=>k.includes(key));
+
+        if(
+            found &&
+            found[1] !== undefined &&
+            found[1] !== null &&
+            found[1] !== ""
+        ){
+            return String(found[1]).trim();
         }
 
     }
 
     return "";
+
+}
+
+
+function extractExcelRows(sheet, headerHints){
+
+    // Beberapa file Excel sekolah punya kop surat/judul di
+    // baris-baris atas sebelum tabel data yang sebenarnya.
+    // Fungsi ini mencari baris header yang cocok (mengandung
+    // minimal 2 kata kunci) di mana pun posisinya, bukan
+    // selalu mengasumsikan baris pertama adalah header.
+
+    const raw =
+        XLSX.utils.sheet_to_json(sheet, {header:1, defval:""});
+
+    let headerIndex = -1;
+
+    for(let i=0; i<raw.length; i++){
+
+        const rowValues =
+            (raw[i]||[]).map(c=>String(c||"").toLowerCase());
+
+        const matchCount =
+            headerHints.filter(hint=>
+                rowValues.some(v=>v.includes(hint))
+            ).length;
+
+        if(matchCount >= 2){
+            headerIndex = i;
+            break;
+        }
+
+    }
+
+    if(headerIndex === -1){
+        headerIndex = 0;
+    }
+
+    const headerRow = raw[headerIndex] || [];
+
+    const dataRows = raw.slice(headerIndex+1);
+
+    return dataRows
+        .map(r=>{
+
+            const obj = {};
+
+            headerRow.forEach((h,idx)=>{
+                obj[h || ("col"+idx)] = r[idx];
+            });
+
+            return obj;
+
+        })
+        .filter(r=>
+            Object.values(r).some(
+                v => v !== "" && v !== undefined && v !== null
+            )
+        );
 
 }
 
@@ -8518,6 +9067,37 @@ function normalizeLockerCondition(value){
 }
 
 
+function isActiveStatus(status){
+
+    const v = (status||"").toString().trim().toLowerCase();
+
+    // Status kosong dianggap Aktif (default siswa baru).
+    // Menerima variasi penulisan apa pun: AKTIF, Aktif, aktif, Active.
+    return v === "" || v === "aktif" || v === "active";
+
+}
+
+
+function normalizeStudentStatus(value){
+
+    const v = (value||"").toString().trim().toLowerCase();
+
+    if(
+        v === "nonaktif" ||
+        v === "tidak aktif" ||
+        v === "inactive" ||
+        v === "keluar" ||
+        v === "pindah" ||
+        v === "lulus"
+    ){
+        return "Nonaktif";
+    }
+
+    return "Aktif";
+
+}
+
+
 async function importStudentsExcel(event){
 
     const file = event.target.files[0];
@@ -8537,42 +9117,59 @@ async function importStudentsExcel(event){
         const data = await file.arrayBuffer();
         const workbook = XLSX.read(data, {type:"array"});
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(sheet, {defval:""});
+
+        const rows = extractExcelRows(
+            sheet,
+            ["nama","jenjang","kelas","status","nis"]
+        );
 
         if(!rows.length){
-            showToast("File Excel kosong atau format tidak sesuai.");
+            showToast(
+                "Baris data siswa tidak ditemukan. Pastikan ada " +
+                "kolom Nama, Jenjang, Kelas, dan Status di file."
+            );
             event.target.value = "";
             return;
         }
 
         let count = 0;
+        let skipped = 0;
+        let autoIdCount = 0;
         let batch = db.batch();
         let opsInBatch = 0;
 
-        for(const rawRow of rows){
+        for(let i=0; i<rows.length; i++){
 
-            const row = normalizeExcelRow(rawRow);
-
-            const studentId =
-                pickExcelValue(row, [
-                    "studentid","nis","nisn","id","idsiswa"
-                ]);
+            const row = normalizeExcelRow(rows[i]);
 
             const name =
-                pickExcelValue(row, ["nama","name","namasiswa"]);
+                pickExcelValue(row, ["nama","name"]);
 
-            if(!studentId || !name){
+            if(!name){
+                skipped++;
                 continue;
+            }
+
+            let studentId =
+                pickExcelValue(row, [
+                    "studentid","studenid","nisn","nis","idsiswa"
+                ]);
+
+            if(!studentId){
+                studentId = "SIS-AUTO-" + String(i+1).padStart(4,"0");
+                autoIdCount++;
             }
 
             const jenjang =
                 pickExcelValue(row, ["jenjang","level"]);
 
             const className =
-                pickExcelValue(row, ["kelas","class","classname"]);
+                pickExcelValue(row, ["kelas","class"]);
 
             const status =
-                pickExcelValue(row, ["status"]) || "Aktif";
+                normalizeStudentStatus(
+                    pickExcelValue(row, ["status"])
+                );
 
             const ref = db.collection("students").doc(studentId);
 
@@ -8597,7 +9194,11 @@ async function importStudentsExcel(event){
             await batch.commit();
         }
 
-        showToast(count + " data siswa berhasil diimpor/diperbarui.");
+        showToast(
+            count + " data siswa berhasil diimpor/diperbarui." +
+            (skipped > 0 ? " (" + skipped + " baris dilewati karena nama kosong.)" : "") +
+            (autoIdCount > 0 ? " " + autoIdCount + " siswa tanpa NIS diberi ID otomatis (SIS-AUTO-xxxx), bisa diedit manual nanti." : "")
+        );
 
     }catch(error){
 
@@ -9125,7 +9726,7 @@ function openAssignLockerModal(){
 
     const availableStudents =
         students.filter(s=>
-            s.status==="Aktif" && !busyStudentIds.includes(s.id)
+            isActiveStatus(s.status) && !busyStudentIds.includes(s.id)
         );
 
     studentSelect.innerHTML =
@@ -9540,6 +10141,971 @@ function printLockerRecap(){
         printWindow.focus();
         printWindow.print();
     };
+
+}
+
+
+/* =========================================================
+   BARANG HILANG & TEMUAN (LOST & FOUND)
+========================================================= */
+
+const LF_CLAIM_DEADLINE_DAYS = 30;
+
+
+function daysSince(dateStr){
+
+    if(!dateStr){
+        return 0;
+    }
+
+    const d = new Date(dateStr);
+
+    if(isNaN(d.getTime())){
+        return 0;
+    }
+
+    const diffMs = Date.now() - d.getTime();
+
+    return Math.max(0, Math.floor(diffMs/(1000*60*60*24)));
+
+}
+
+
+function isSensitiveLfCategory(category){
+
+    return category === "Dokumen/Kartu" || category === "Uang";
+
+}
+
+
+function isLfOverdue(item){
+
+    if(item.type !== "Temuan" || item.status !== "Menunggu Klaim"){
+        return false;
+    }
+
+    const anchorDate = item.receivedDate || item.date;
+
+    return daysSince(anchorDate) > LF_CLAIM_DEADLINE_DAYS;
+
+}
+
+
+function lfStatusBadge(item){
+
+    const map = {
+        "Dilaporkan": ["badge-secondary","🟡 Dilaporkan"],
+        "Menunggu Klaim": ["badge-warning","🟠 Menunggu Klaim"],
+        "Dikembalikan": ["badge-success","✅ Dikembalikan"],
+        "Selesai": ["badge-info","🔨 Selesai Ditindaklanjuti"],
+        "Dicari": ["badge-warning","🔎 Dicari"],
+        "Ditemukan": ["badge-success","✅ Ditemukan"],
+        "Ditutup": ["badge-secondary","⏹️ Ditutup"]
+    };
+
+    const [cls, label] = map[item.status] || ["badge-secondary", item.status||"-"];
+
+    let extra = "";
+
+    if(isLfOverdue(item)){
+        extra = ' <span class="badge badge-danger">⏰ Lewat Batas Klaim</span>';
+    }
+
+    if(item.claimStatus === "Diajukan"){
+        extra += ' <span class="badge badge-info">🙋 Ada Klaim Masuk</span>';
+    }
+
+    return `<span class="badge ${cls}">${label}</span>${extra}`;
+
+}
+
+
+function setLostFoundTab(tab){
+
+    lostFoundTab = tab;
+
+    document.querySelectorAll("#lostFoundTabs button").forEach(btn=>{
+
+        if(btn.dataset.tab === tab){
+            btn.className = "btn btn-primary btn-sm";
+        }else{
+            btn.className = "btn btn-secondary btn-sm";
+        }
+
+    });
+
+    renderLostFound();
+
+}
+
+
+function getFilteredLostFound(){
+
+    const search =
+        (document.getElementById("lfSearchInput")?.value||"").toLowerCase();
+
+    const category =
+        document.getElementById("lfFilterCategory")?.value||"";
+
+    return lostFoundItems.filter(item=>{
+
+        if(lostFoundTab === "Hilang" && item.type !== "Hilang"){
+            return false;
+        }
+
+        if(lostFoundTab === "Temuan" && item.type !== "Temuan"){
+            return false;
+        }
+
+        if(lostFoundTab === "lelang"){
+            const isFollowUp =
+                item.status === "Selesai" || isLfOverdue(item);
+            if(!isFollowUp){
+                return false;
+            }
+        }
+
+        if(category && item.category !== category){
+            return false;
+        }
+
+        if(search){
+            const hay =
+                ((item.itemName||"")+" "+(item.location||"")+" "+(item.description||""))
+                    .toLowerCase();
+            if(!hay.includes(search)){
+                return false;
+            }
+        }
+
+        return true;
+
+    }).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+
+}
+
+
+function renderLostFound(){
+
+    const grid = document.getElementById("lostFoundGrid");
+
+    if(!grid){
+        return;
+    }
+
+    const admin = isAdmin();
+
+
+    document.getElementById("lfStatLost").textContent =
+        lostFoundItems.filter(i=>i.type==="Hilang" && i.status==="Dicari").length;
+
+    document.getElementById("lfStatWaiting").textContent =
+        lostFoundItems.filter(i=>i.type==="Temuan" && i.status==="Menunggu Klaim").length;
+
+    document.getElementById("lfStatReturned").textContent =
+        lostFoundItems.filter(i=>
+            (i.type==="Temuan" && i.status==="Dikembalikan") ||
+            (i.type==="Hilang" && i.status==="Ditemukan")
+        ).length;
+
+    document.getElementById("lfStatAuction").textContent =
+        lostFoundItems.filter(i=> i.status==="Selesai" || isLfOverdue(i)).length;
+
+
+    const banner = document.getElementById("lostFoundAlertBanner");
+
+    if(admin){
+
+        const unprocessed =
+            lostFoundItems.filter(i=>
+                i.type==="Temuan" &&
+                i.status==="Dilaporkan" &&
+                daysSince(i.date) >= 1
+            );
+
+        banner.innerHTML =
+            unprocessed.length
+            ? `<div class="card" style="
+                    margin-bottom:18px;
+                    background:#fff0f0;
+                    border-color:#ffc9c9;
+                ">
+                    ⚠️ <strong>${unprocessed.length} barang temuan</strong>
+                    belum diproses admin lebih dari 1 hari. Segera proses
+                    agar bisa dipublikasikan dan dicari pemiliknya.
+                </div>`
+            : "";
+
+    }else{
+
+        banner.innerHTML = "";
+
+    }
+
+
+    const filtered = getFilteredLostFound();
+
+    grid.innerHTML =
+        filtered.length
+        ? filtered.map(item=>{
+
+            const overdue = isLfOverdue(item);
+
+            const typeBadge =
+                item.type === "Hilang"
+                ? '<span class="badge badge-danger">📢 Hilang</span>'
+                : '<span class="badge badge-primary">📦 Temuan</span>';
+
+            let actions = "";
+
+            if(item.type === "Temuan" && item.status === "Dilaporkan" && admin){
+                actions += `<button class="btn btn-primary btn-sm" onclick="openLfProcess('${item.id}')">🗂️ Proses</button>`;
+            }
+
+            if(item.type === "Temuan" && item.status === "Menunggu Klaim" && !admin && item.claimStatus !== "Diajukan"){
+                actions += `<button class="btn btn-primary btn-sm" onclick="openLfClaim('${item.id}')">🙋 Ini Barang Saya</button>`;
+            }
+
+            if(item.type === "Temuan" && item.status === "Menunggu Klaim" && admin && item.claimStatus === "Diajukan"){
+                actions += `<button class="btn btn-primary btn-sm" onclick="approveLfClaim('${item.id}')">✅ Setujui Klaim</button>`;
+                actions += `<button class="btn btn-secondary btn-sm" onclick="rejectLfClaim('${item.id}')">❌ Tolak</button>`;
+            }
+
+            if(item.type === "Temuan" && item.status === "Menunggu Klaim" && admin && overdue){
+                actions += `<button class="btn btn-secondary btn-sm" onclick="openLfResolve('${item.id}')">🔨 Tindak Lanjut</button>`;
+            }
+
+            if(item.type === "Hilang" && item.status === "Dicari" && admin){
+                actions += `<button class="btn btn-primary btn-sm" onclick="markLostFound('${item.id}')">✅ Sudah Ditemukan</button>`;
+                actions += `<button class="btn btn-secondary btn-sm" onclick="closeLostReport('${item.id}')">⏹️ Tutup</button>`;
+            }
+
+            actions += `<button class="btn btn-secondary btn-sm" onclick="openLfDetail('${item.id}')">👁️ Detail</button>`;
+
+            if(admin){
+                actions += `<button class="btn btn-danger btn-sm" onclick="deleteLostFoundItem('${item.id}')">🗑️</button>`;
+            }
+
+            return `
+                <div class="card">
+
+                    <div style="
+                        background:#f1f3f5;
+                        border-radius:8px;
+                        aspect-ratio:4/3;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        overflow:hidden;
+                        margin-bottom:10px;
+                        cursor:pointer;
+                    " onclick="openLfDetail('${item.id}')">
+                        ${
+                            item.photoURL
+                            ? `<img src="${item.photoURL}" style="width:100%;height:100%;object-fit:cover;">`
+                            : `<span style="font-size:40px;">📦</span>`
+                        }
+                    </div>
+
+                    <div style="margin-bottom:6px;">
+                        ${typeBadge}
+                        <span class="badge badge-secondary">${escapeHTML(item.category||"")}</span>
+                    </div>
+
+                    <strong>${escapeHTML(item.itemName)}</strong>
+                    <br>
+                    <small style="color:var(--muted);">
+                        📍 ${escapeHTML(item.location||"-")} ·
+                        ${formatDate(item.date)}
+                        (${daysSince(item.date)} hari lalu)
+                    </small>
+
+                    <div style="margin:8px 0;">
+                        ${lfStatusBadge(item)}
+                    </div>
+
+                    <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                        ${actions}
+                    </div>
+
+                </div>
+            `;
+
+        }).join("")
+        : `<div class="card" style="grid-column:1/-1;">
+                <div class="empty">Tidak ada data pada kategori/pencarian ini.</div>
+            </div>`;
+
+}
+
+
+let lfFormType = "Temuan";
+
+
+function openLostFoundForm(type){
+
+    lfFormType = type;
+
+    document.getElementById("lostFoundForm").reset();
+
+    document.getElementById("lfFormType").value = type;
+
+    document.getElementById("lfDate").value = todayISO();
+
+    if(type === "Hilang"){
+
+        document.getElementById("lostFoundFormTitle").textContent =
+            "📢 Lapor Barang Hilang";
+
+        document.getElementById("lfItemNameLabel").textContent =
+            "Nama Barang yang Hilang";
+
+        document.getElementById("lfLocationLabel").textContent =
+            "Lokasi Terakhir Terlihat";
+
+        document.getElementById("lfDateLabel").textContent =
+            "Tanggal Hilang";
+
+        document.getElementById("lfSecretLabel").textContent =
+            "Ciri Khusus (untuk membantu identifikasi bila ditemukan)";
+
+    }else{
+
+        document.getElementById("lostFoundFormTitle").textContent =
+            "📦 Lapor Barang Temuan";
+
+        document.getElementById("lfItemNameLabel").textContent =
+            "Nama Barang yang Ditemukan";
+
+        document.getElementById("lfLocationLabel").textContent =
+            "Lokasi Ditemukan";
+
+        document.getElementById("lfDateLabel").textContent =
+            "Tanggal Ditemukan";
+
+        document.getElementById("lfSecretLabel").textContent =
+            "Ciri Khusus (HANYA untuk verifikasi Admin, tidak ditampilkan publik)";
+
+    }
+
+    document.getElementById("lostFoundFormModal").classList.add("show");
+
+}
+
+
+async function submitLostFoundForm(event){
+
+    event.preventDefault();
+
+    const type = document.getElementById("lfFormType").value;
+
+    const category = document.getElementById("lfItemCategory").value;
+    const itemName = document.getElementById("lfItemName").value.trim();
+    const location = document.getElementById("lfLocation").value.trim();
+    const date = document.getElementById("lfDate").value;
+    const description = document.getElementById("lfDescription").value.trim();
+    const secretDetail = document.getElementById("lfSecretDetail").value.trim();
+    const reporterContact = document.getElementById("lfReporterContact").value.trim();
+    const photoFile = document.getElementById("lfPhotoInput").files[0];
+
+    if(!itemName || !location || !date){
+        showToast("Lengkapi nama barang, lokasi, dan tanggal.");
+        return;
+    }
+
+    const submitBtn = document.getElementById("lostFoundFormSubmitBtn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Mengirim...";
+
+    try{
+
+        const photoURL = photoFile ? await compressImage(photoFile) : "";
+
+        const id = "LF-" + Date.now();
+
+        await db.collection("lostFound").doc(id).set({
+            id,
+            type,
+            category,
+            itemName,
+            location,
+            date,
+            description,
+            secretDetail,
+            photoURL,
+            reporterName: currentUser ? currentUser.name : "",
+            reporterRole: currentUser ? currentUser.role : "",
+            reporterContact,
+            status: type === "Hilang" ? "Dicari" : "Dilaporkan",
+            storageLocation:"",
+            receivedBy:"",
+            receivedDate:"",
+            claimantName:"",
+            claimantContact:"",
+            claimantNote:"",
+            claimStatus:"",
+            resolutionMethod:"",
+            resolutionNote:"",
+            resolutionDate:"",
+            auctionPrice:"",
+            auctionDate:"",
+            returnedTo:"",
+            returnedDate:"",
+            createdAt: new Date().toISOString()
+        });
+
+        closeModal("lostFoundFormModal");
+
+        showToast(
+            type === "Hilang"
+            ? "Laporan kehilangan berhasil dikirim."
+            : "Laporan temuan berhasil dikirim. Terima kasih!"
+        );
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal mengirim laporan.");
+
+    }finally{
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Kirim Laporan";
+
+    }
+
+}
+
+
+function openLfProcess(id){
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat memproses barang temuan.");
+        return;
+    }
+
+    document.getElementById("lfProcessForm").reset();
+    document.getElementById("lfProcessId").value = id;
+
+    document.getElementById("lfProcessModal").classList.add("show");
+
+}
+
+
+async function submitLfProcess(event){
+
+    event.preventDefault();
+
+    const id = document.getElementById("lfProcessId").value;
+    const storageLocation = document.getElementById("lfStorageLocation").value.trim();
+    const receivedBy = document.getElementById("lfReceivedBy").value.trim();
+
+    if(!storageLocation || !receivedBy){
+        showToast("Lengkapi lokasi penyimpanan dan petugas.");
+        return;
+    }
+
+    const submitBtn = document.getElementById("lfProcessSubmitBtn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Menyimpan...";
+
+    try{
+
+        await db.collection("lostFound").doc(id).update({
+            status:"Menunggu Klaim",
+            storageLocation,
+            receivedBy,
+            receivedDate:todayISO()
+        });
+
+        closeModal("lfProcessModal");
+        showToast("Barang berhasil diproses dan dipublikasikan.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal memproses barang.");
+
+    }finally{
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Simpan & Publikasikan";
+
+    }
+
+}
+
+
+function openLfClaim(id){
+
+    document.getElementById("lfClaimForm").reset();
+    document.getElementById("lfClaimId").value = id;
+
+    document.getElementById("lfClaimModal").classList.add("show");
+
+}
+
+
+async function submitLfClaim(event){
+
+    event.preventDefault();
+
+    const id = document.getElementById("lfClaimId").value;
+    const claimantName = document.getElementById("lfClaimantName").value.trim();
+    const claimantContact = document.getElementById("lfClaimantContact").value.trim();
+    const claimantNote = document.getElementById("lfClaimantNote").value.trim();
+
+    if(!claimantName || !claimantNote){
+        showToast("Lengkapi nama dan bukti kepemilikan.");
+        return;
+    }
+
+    const submitBtn = document.getElementById("lfClaimSubmitBtn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Mengirim...";
+
+    try{
+
+        await db.collection("lostFound").doc(id).update({
+            claimantName, claimantContact, claimantNote,
+            claimStatus:"Diajukan"
+        });
+
+        closeModal("lfClaimModal");
+        showToast("Klaim berhasil dikirim, menunggu verifikasi Admin.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal mengirim klaim.");
+
+    }finally{
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Kirim Klaim";
+
+    }
+
+}
+
+
+async function approveLfClaim(id){
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat memverifikasi klaim.");
+        return;
+    }
+
+    const item = lostFoundItems.find(i=>i.id===id);
+
+    if(!item){
+        return;
+    }
+
+    if(!confirm("Setujui klaim ini dan tandai barang sudah dikembalikan?")){
+        return;
+    }
+
+    try{
+
+        await db.collection("lostFound").doc(id).update({
+            status:"Dikembalikan",
+            returnedTo:item.claimantName,
+            returnedDate:todayISO(),
+            // Data foto dihapus otomatis karena kasus sudah selesai
+            photoURL:""
+        });
+
+        showToast("Klaim disetujui. Barang telah dikembalikan ke pemilik.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal menyetujui klaim.");
+
+    }
+
+}
+
+
+async function rejectLfClaim(id){
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat memverifikasi klaim.");
+        return;
+    }
+
+    if(!confirm("Tolak klaim ini? Barang akan kembali berstatus menunggu klaim.")){
+        return;
+    }
+
+    try{
+
+        await db.collection("lostFound").doc(id).update({
+            claimantName:"", claimantContact:"", claimantNote:"",
+            claimStatus:""
+        });
+
+        showToast("Klaim ditolak.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal menolak klaim.");
+
+    }
+
+}
+
+
+async function markLostFound(id){
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat mengubah status ini.");
+        return;
+    }
+
+    try{
+
+        await db.collection("lostFound").doc(id).update({
+            status:"Ditemukan",
+            photoURL:""
+        });
+
+        showToast("Laporan kehilangan ditandai sudah ditemukan.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal memperbarui status.");
+
+    }
+
+}
+
+
+async function closeLostReport(id){
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat mengubah status ini.");
+        return;
+    }
+
+    if(!confirm("Tutup laporan kehilangan ini?")){
+        return;
+    }
+
+    try{
+
+        await db.collection("lostFound").doc(id).update({
+            status:"Ditutup",
+            photoURL:""
+        });
+
+        showToast("Laporan kehilangan ditutup.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal menutup laporan.");
+
+    }
+
+}
+
+
+function toggleAuctionFields(){
+
+    const method = document.getElementById("lfResolutionMethod").value;
+
+    document.getElementById("lfAuctionFields").style.display =
+        method === "Dilelang" ? "block" : "none";
+
+}
+
+
+function openLfResolve(id){
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat memproses tindak lanjut.");
+        return;
+    }
+
+    const item = lostFoundItems.find(i=>i.id===id);
+
+    if(!item){
+        return;
+    }
+
+    document.getElementById("lfResolveForm").reset();
+    document.getElementById("lfResolveId").value = id;
+
+    const methodSelect = document.getElementById("lfResolutionMethod");
+    const warningBox = document.getElementById("lfResolveWarning");
+
+    if(isSensitiveLfCategory(item.category)){
+
+        methodSelect.innerHTML =
+            `<option value="Penanganan Khusus">Penanganan Khusus (diserahkan ke pihak berwajib/kebijakan sekolah)</option>`;
+
+        warningBox.innerHTML = `
+            <div class="card" style="background:#fff0f0;border-color:#ffc9c9;margin-bottom:14px;font-size:13px;">
+                ⚠️ Barang kategori <strong>${escapeHTML(item.category)}</strong>
+                tidak boleh dilelang/dimusnahkan sembarangan. Wajib diserahkan
+                sesuai kebijakan sekolah/pihak berwajib.
+            </div>
+        `;
+
+    }else{
+
+        methodSelect.innerHTML = `
+            <option value="Dilelang">Dilelang</option>
+            <option value="Disumbangkan">Disumbangkan</option>
+            <option value="Dimusnahkan">Dimusnahkan</option>
+            <option value="Penanganan Khusus">Penanganan Khusus</option>
+        `;
+
+        warningBox.innerHTML = "";
+
+    }
+
+    toggleAuctionFields();
+
+    document.getElementById("lfResolveModal").classList.add("show");
+
+}
+
+
+async function submitLfResolve(event){
+
+    event.preventDefault();
+
+    const id = document.getElementById("lfResolveId").value;
+    const resolutionMethod = document.getElementById("lfResolutionMethod").value;
+    const resolutionNote = document.getElementById("lfResolutionNote").value.trim();
+    const auctionPrice = document.getElementById("lfAuctionPrice").value.trim();
+    const auctionDate = document.getElementById("lfAuctionDate").value;
+
+    const submitBtn = document.getElementById("lfResolveSubmitBtn");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Menyimpan...";
+
+    try{
+
+        await db.collection("lostFound").doc(id).update({
+            status:"Selesai",
+            resolutionMethod,
+            resolutionNote,
+            resolutionDate:todayISO(),
+            auctionPrice: resolutionMethod==="Dilelang" ? auctionPrice : "",
+            auctionDate: resolutionMethod==="Dilelang" ? auctionDate : "",
+            // Data foto dihapus otomatis karena kasus sudah final
+            photoURL:""
+        });
+
+        closeModal("lfResolveModal");
+        showToast("Keputusan tindak lanjut berhasil disimpan.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal menyimpan keputusan.");
+
+    }finally{
+
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Simpan Keputusan";
+
+    }
+
+}
+
+
+function openLfDetail(id){
+
+    const item = lostFoundItems.find(i=>i.id===id);
+
+    if(!item){
+        return;
+    }
+
+    const admin = isAdmin();
+
+    document.getElementById("lfDetailTitle").textContent = item.itemName;
+
+    document.getElementById("lfDetailContent").innerHTML = `
+
+        ${
+            item.photoURL
+            ? `<img src="${item.photoURL}" style="width:100%;border-radius:8px;margin-bottom:12px;">`
+            : ""
+        }
+
+        <div style="margin-bottom:8px;">
+            ${
+                item.type === "Hilang"
+                ? '<span class="badge badge-danger">📢 Hilang</span>'
+                : '<span class="badge badge-primary">📦 Temuan</span>'
+            }
+            <span class="badge badge-secondary">${escapeHTML(item.category||"")}</span>
+            ${lfStatusBadge(item)}
+        </div>
+
+        <p><strong>Lokasi:</strong> ${escapeHTML(item.location||"-")}</p>
+        <p><strong>Tanggal:</strong> ${formatDate(item.date)}</p>
+        <p><strong>Ciri Umum:</strong> ${escapeHTML(item.description||"-")}</p>
+
+        ${
+            item.storageLocation
+            ? `<p><strong>Lokasi Penyimpanan:</strong> ${escapeHTML(item.storageLocation)}
+                (Petugas: ${escapeHTML(item.receivedBy||"-")})</p>`
+            : ""
+        }
+
+        ${
+            admin
+            ? `<div class="card" style="background:#f8f9fa;margin-top:10px;font-size:13px;">
+                    <strong>🔒 Info Verifikasi Admin (tidak publik)</strong><br>
+                    Ciri Khusus: ${escapeHTML(item.secretDetail||"-")}<br>
+                    Pelapor: ${escapeHTML(item.reporterName||"-")}
+                    (${escapeHTML(item.reporterRole||"-")})<br>
+                    Kontak Pelapor: ${escapeHTML(item.reporterContact||"-")}
+                    ${
+                        item.claimStatus==="Diajukan"
+                        ? `<br><br><strong>Klaim Masuk:</strong><br>
+                            Nama: ${escapeHTML(item.claimantName||"-")}<br>
+                            Kontak: ${escapeHTML(item.claimantContact||"-")}<br>
+                            Bukti: ${escapeHTML(item.claimantNote||"-")}`
+                        : ""
+                    }
+                    ${
+                        item.status==="Dikembalikan"
+                        ? `<br><br>Dikembalikan kepada: ${escapeHTML(item.returnedTo||"-")}
+                            pada ${formatDate(item.returnedDate)}`
+                        : ""
+                    }
+                    ${
+                        item.status==="Selesai"
+                        ? `<br><br>Metode: ${escapeHTML(item.resolutionMethod||"-")}<br>
+                            Catatan: ${escapeHTML(item.resolutionNote||"-")}
+                            ${item.auctionPrice ? "<br>Harga Awal Lelang: "+escapeHTML(item.auctionPrice) : ""}
+                            ${item.auctionDate ? "<br>Tanggal Lelang: "+formatDate(item.auctionDate) : ""}`
+                        : ""
+                    }
+                </div>`
+            : ""
+        }
+    `;
+
+    document.getElementById("lfDetailModal").classList.add("show");
+
+}
+
+
+async function deleteLostFoundItem(id){
+
+    if(!isAdmin()){
+        showToast("Hanya Admin Sarpras yang dapat menghapus laporan ini.");
+        return;
+    }
+
+    if(!confirm("Hapus laporan barang ini secara permanen?")){
+        return;
+    }
+
+    try{
+
+        await db.collection("lostFound").doc(id).delete();
+        showToast("Laporan berhasil dihapus.");
+
+    }catch(error){
+
+        console.error(error);
+        showToast("Gagal menghapus laporan.");
+
+    }
+
+}
+
+
+function buildLostFoundExportRows(){
+
+    const filtered = getFilteredLostFound();
+
+    const header = [
+        "Tipe","Kategori","Nama Barang","Lokasi","Tanggal","Status",
+        "Pelapor","Lokasi Penyimpanan","Diklaim/Dikembalikan Ke",
+        "Metode Tindak Lanjut","Catatan"
+    ];
+
+    const rows = filtered.map(i=>[
+        i.type||"", i.category||"", i.itemName||"", i.location||"",
+        i.date||"", i.status||"", i.reporterName||"",
+        i.storageLocation||"", i.returnedTo||"",
+        i.resolutionMethod||"", i.resolutionNote||""
+    ]);
+
+    return { header, rows };
+
+}
+
+
+function exportLostFoundCSV(){
+
+    const { header, rows } = buildLostFoundExportRows();
+
+    if(!rows.length){
+        showToast("Tidak ada data untuk diunduh.");
+        return;
+    }
+
+    const escapeCsv = value=>{
+        const str = String(value ?? "");
+        if(/[",\n]/.test(str)){
+            return '"' + str.replace(/"/g,'""') + '"';
+        }
+        return str;
+    };
+
+    const lines = [header, ...rows].map(row=>row.map(escapeCsv).join(","));
+    const csvContent = "\uFEFF" + lines.join("\r\n");
+
+    const blob = new Blob([csvContent], {type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "barang-hilang-temuan-"+todayISO()+".csv";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    URL.revokeObjectURL(url);
+
+}
+
+
+function exportLostFoundExcel(){
+
+    if(typeof XLSX === "undefined"){
+        showToast("Pustaka Excel gagal dimuat. Periksa koneksi internet.");
+        return;
+    }
+
+    const { header, rows } = buildLostFoundExportRows();
+
+    if(!rows.length){
+        showToast("Tidak ada data untuk diunduh.");
+        return;
+    }
+
+    const worksheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Hilang & Temuan");
+
+    XLSX.writeFile(workbook, "barang-hilang-temuan-"+todayISO()+".xlsx");
 
 }
 
@@ -11581,6 +13147,8 @@ function refreshAll(){
     renderLockerMaster();
 
     renderLockerPage();
+
+    renderLostFound();
 
     renderDashboard();
 
