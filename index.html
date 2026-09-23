@@ -1127,6 +1127,42 @@ tr:hover td{
 
             </div>
 
+            <div class="password-box" id="guruPasswordBox">
+
+                <div class="form-group">
+                    <label for="guruPassword">
+                        Kode Akses Guru/Staf
+                    </label>
+
+                    <input
+                        type="password"
+                        id="guruPassword"
+                        class="form-control"
+                        placeholder="Masukkan kode akses Guru/Staf"
+                        onkeydown="if(event.key==='Enter')login()"
+                    >
+                </div>
+
+            </div>
+
+            <div class="password-box" id="siswaPasswordBox">
+
+                <div class="form-group">
+                    <label for="siswaPassword">
+                        Kode Akses Siswa
+                    </label>
+
+                    <input
+                        type="password"
+                        id="siswaPassword"
+                        class="form-control"
+                        placeholder="Masukkan kode akses Siswa"
+                        onkeydown="if(event.key==='Enter')login()"
+                    >
+                </div>
+
+            </div>
+
             <div id="loginError" class="login-error">
                 Password Admin tidak benar.
             </div>
@@ -4033,12 +4069,15 @@ const firebaseAuth = firebase.auth();
 
 
 /* =========================================================
-   KONFIGURASI ADMIN
+   KONFIGURASI PERAN
    =========================================================
-   GANTI PASSWORD DI SINI JIKA DIPERLUKAN
+   Password Admin/Guru/Siswa TIDAK lagi disimpan di sini.
+   Sejak Tahap 1 (autentikasi Firebase), setiap peran login
+   dengan akun Firebase Authentication miliknya sendiri
+   (lihat ROLE_ACCOUNTS + fungsi login()). Untuk mengganti
+   password, ubah lewat Firebase Console > Authentication >
+   Users, BUKAN lewat kode ini.
 ========================================================= */
-
-const ADMIN_PASSWORD = "SIBCARE2026";
 
 
 /* =========================================================
@@ -4557,30 +4596,11 @@ function priorityBadge(priority){
 
 /* =========================================================
    FIREBASE INIT
+   (login sekarang dilakukan per peran di dalam login() lewat
+   signInWithEmailAndPassword — tidak ada lagi sign-in anonim
+   otomatis saat halaman dibuka, supaya Firestore Security
+   Rules bisa benar-benar membedakan identitas pengguna)
 ========================================================= */
-
-async function initializeFirebase(){
-
-    try{
-
-        await firebaseAuth.signInAnonymously();
-
-        firebaseReady = true;
-
-        listenToData();
-
-    }catch(error){
-
-        console.error(error);
-
-        showToast(
-            "Koneksi Firebase belum tersedia."
-        );
-
-    }
-
-}
-
 
 /* =========================================================
    SEEDING AWAL (supaya data default tersimpan permanen di
@@ -4955,6 +4975,14 @@ function selectRole(role){
         });
 
 
+    ["adminPasswordBox","guruPasswordBox","siswaPasswordBox"]
+        .forEach(id=>{
+            document
+                .getElementById(id)
+                .classList.remove("show");
+        });
+
+
     if(role === "admin"){
 
         document
@@ -4965,17 +4993,25 @@ function selectRole(role){
             .getElementById("adminPasswordBox")
             .classList.add("show");
 
-    }else{
+    }else if(role === "guru"){
 
         document
-            .getElementById("adminPasswordBox")
-            .classList.remove("show");
-
-        document
-            .getElementById("role"+(
-                role==="guru" ? "Guru" : "Siswa"
-            ))
+            .getElementById("roleGuru")
             .classList.add("selected");
+
+        document
+            .getElementById("guruPasswordBox")
+            .classList.add("show");
+
+    }else if(role === "siswa"){
+
+        document
+            .getElementById("roleSiswa")
+            .classList.add("selected");
+
+        document
+            .getElementById("siswaPasswordBox")
+            .classList.add("show");
 
     }
 
@@ -4984,6 +5020,25 @@ function selectRole(role){
         .style.display="none";
 
 }
+
+
+const ROLE_ACCOUNTS = {
+    admin:{
+        email:"admin@sibcare-app.internal",
+        name:"Admin Sarpras",
+        role:"ADMIN_SARPRAS"
+    },
+    guru:{
+        email:"guru@sibcare-app.internal",
+        name:"Guru / Staf",
+        role:"GURU_STAF"
+    },
+    siswa:{
+        email:"siswa@sibcare-app.internal",
+        name:"Siswa",
+        role:"SISWA"
+    }
+};
 
 
 async function login(){
@@ -4999,65 +5054,91 @@ async function login(){
     }
 
 
-    if(selectedRole === "admin"){
+    const passwordFieldMap = {
+        admin:"adminPassword",
+        guru:"guruPassword",
+        siswa:"siswaPassword"
+    };
 
-        const password =
-            document.getElementById("adminPassword").value;
+    const password =
+        document
+            .getElementById(passwordFieldMap[selectedRole])
+            .value;
 
-        if(password !== ADMIN_PASSWORD){
+    if(!password){
 
-            document.getElementById("loginError").textContent =
-                "Password Admin tidak benar.";
+        document.getElementById("loginError").textContent =
+            "Silakan masukkan password/kode akses.";
 
-            document.getElementById("loginError").style.display =
-                "block";
+        document.getElementById("loginError").style.display="block";
 
-            return;
+        return;
+    }
+
+
+    const loginBtn =
+        document.querySelector(
+            ".login-card .btn-primary"
+        );
+
+    if(loginBtn){
+        loginBtn.disabled = true;
+        loginBtn.textContent = "Memeriksa...";
+    }
+
+
+    const account = ROLE_ACCOUNTS[selectedRole];
+
+    try{
+
+        const credential =
+            await firebaseAuth.signInWithEmailAndPassword(
+                account.email,
+                password
+            );
+
+        currentUser = {
+            name:account.name,
+            role:account.role,
+            uid:credential.user.uid
+        };
+
+        firebaseReady = true;
+
+        listenToData();
+
+    }catch(error){
+
+        console.error(error);
+
+        let message = "Password/kode akses tidak benar.";
+
+        if(
+            error.code === "auth/network-request-failed"
+        ){
+            message = "Koneksi Firebase belum tersedia. Coba lagi.";
+        }else if(
+            error.code === "auth/too-many-requests"
+        ){
+            message = "Terlalu banyak percobaan. Coba lagi nanti.";
+        }else if(
+            error.code === "auth/user-not-found" ||
+            error.code === "auth/configuration-not-found"
+        ){
+            message =
+                "Akun peran ini belum dibuat di Firebase Authentication.";
         }
 
-    }
+        document.getElementById("loginError").textContent = message;
 
+        document.getElementById("loginError").style.display="block";
 
-    if(!firebaseReady){
+        if(loginBtn){
+            loginBtn.disabled = false;
+            loginBtn.textContent = "🔐 Masuk ke SIB CARE";
+        }
 
-        await initializeFirebase();
-
-    }
-
-
-    if(selectedRole === "admin"){
-
-        currentUser = {
-            name:"Admin Sarpras",
-            role:"ADMIN_SARPRAS",
-            uid:firebaseAuth.currentUser
-                ? firebaseAuth.currentUser.uid
-                : null
-        };
-
-    }
-
-    if(selectedRole === "guru"){
-
-        currentUser = {
-            name:"Guru / Staf",
-            role:"GURU_STAF",
-            uid:firebaseAuth.currentUser
-                ? firebaseAuth.currentUser.uid
-                : null
-        };
-
-    }
-
-    if(selectedRole === "siswa"){
-
-        currentUser = {
-            name:"Siswa",
-            role:"SISWA",
-            uid:firebaseAuth.currentUser
-                ? firebaseAuth.currentUser.uid
-                : null
-        };
+        return;
 
     }
 
@@ -5133,11 +5214,21 @@ async function login(){
 
 function logout(){
 
+    firebaseAuth.signOut().catch(error=>{
+        console.error("signOut:", error);
+    });
+
+    firebaseReady = false;
+
     currentUser = null;
 
     selectedRole = null;
 
     document.getElementById("adminPassword").value="";
+
+    document.getElementById("guruPassword").value="";
+
+    document.getElementById("siswaPassword").value="";
 
     document.getElementById("loginPage").style.display="flex";
 
@@ -5149,9 +5240,12 @@ function logout(){
             card.classList.remove("selected");
         });
 
-    document
-        .getElementById("adminPasswordBox")
-        .classList.remove("show");
+    ["adminPasswordBox","guruPasswordBox","siswaPasswordBox"]
+        .forEach(id=>{
+            document
+                .getElementById(id)
+                .classList.remove("show");
+        });
 
 }
 
@@ -13181,9 +13275,9 @@ function refreshAll(){
 
 /* =========================================================
    START
+   (Firebase baru terhubung & mulai mengambil data setelah
+   pengguna berhasil login lewat fungsi login())
 ========================================================= */
-
-initializeFirebase();
 
 
 /* =========================================================
