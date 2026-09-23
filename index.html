@@ -1104,7 +1104,8 @@ tr:hover td{
                 <div class="role-card" id="roleSiswa"
                      onclick="selectRole('siswa')">
                     <div class="icon">🎓</div>
-                    <strong>Siswa</strong>
+                    <strong>Siswa / Publik</strong>
+                    <small style="display:block;color:var(--muted);margin-top:5px;font-size:11px;">Tanpa password</small>
                 </div>
 
             </div>
@@ -1145,22 +1146,9 @@ tr:hover td{
 
             </div>
 
-            <div class="password-box" id="siswaPasswordBox">
-
-                <div class="form-group">
-                    <label for="siswaPassword">
-                        Kode Akses Siswa
-                    </label>
-
-                    <input
-                        type="password"
-                        id="siswaPassword"
-                        class="form-control"
-                        placeholder="Masukkan kode akses Siswa"
-                        onkeydown="if(event.key==='Enter')login()"
-                    >
-                </div>
-
+            <div id="publicAccessInfo" style="display:none;margin-top:20px;padding:12px 14px;border-radius:10px;background:#eef7ff;border:1px solid #cfe5ff;color:#084298;font-size:13px;">
+                🌐 <strong>Akses Publik/Siswa</strong><br>
+                Tidak memerlukan password. Mode ini digunakan untuk melihat kondisi sekolah dan informasi penggunaan sarana yang dibuka untuk umum.
             </div>
 
             <div id="loginError" class="login-error">
@@ -4974,14 +4962,14 @@ function selectRole(role){
             card.classList.remove("selected");
         });
 
-
-    ["adminPasswordBox","guruPasswordBox","siswaPasswordBox"]
+    ["adminPasswordBox","guruPasswordBox"]
         .forEach(id=>{
             document
                 .getElementById(id)
                 .classList.remove("show");
         });
 
+    document.getElementById("publicAccessInfo").style.display="none";
 
     if(role === "admin"){
 
@@ -5009,16 +4997,20 @@ function selectRole(role){
             .getElementById("roleSiswa")
             .classList.add("selected");
 
-        document
-            .getElementById("siswaPasswordBox")
-            .classList.add("show");
+        // Siswa/publik tidak menggunakan password.
+        document.getElementById("publicAccessInfo").style.display="block";
+    }
 
+    const loginBtn = document.querySelector(".login-card .btn-primary");
+    if(loginBtn){
+        loginBtn.textContent = role === "siswa"
+            ? "🌐 Masuk Tanpa Password"
+            : "🔐 Masuk ke SIB CARE";
     }
 
     document
         .getElementById("loginError")
         .style.display="none";
-
 }
 
 
@@ -5032,11 +5024,6 @@ const ROLE_ACCOUNTS = {
         email:"guru@sibcare-app.internal",
         name:"Guru / Staf",
         role:"GURU_STAF"
-    },
-    siswa:{
-        email:"siswa@sibcare-app.internal",
-        name:"Siswa",
-        role:"SISWA"
     }
 };
 
@@ -5049,53 +5036,68 @@ async function login(){
             "Silakan pilih peran terlebih dahulu.";
 
         document.getElementById("loginError").style.display="block";
-
         return;
     }
 
-
-    const passwordFieldMap = {
-        admin:"adminPassword",
-        guru:"guruPassword",
-        siswa:"siswaPassword"
-    };
-
-    const password =
-        document
-            .getElementById(passwordFieldMap[selectedRole])
-            .value;
-
-    if(!password){
-
-        document.getElementById("loginError").textContent =
-            "Silakan masukkan password/kode akses.";
-
-        document.getElementById("loginError").style.display="block";
-
-        return;
-    }
-
-
-    const loginBtn =
-        document.querySelector(
-            ".login-card .btn-primary"
-        );
+    const loginBtn = document.querySelector(".login-card .btn-primary");
 
     if(loginBtn){
         loginBtn.disabled = true;
-        loginBtn.textContent = "Memeriksa...";
+        loginBtn.textContent = selectedRole === "siswa"
+            ? "Menghubungkan..."
+            : "Memeriksa...";
     }
-
-
-    const account = ROLE_ACCOUNTS[selectedRole];
 
     try{
 
-        const credential =
-            await firebaseAuth.signInWithEmailAndPassword(
-                account.email,
-                password
-            );
+        let credential;
+        let account;
+
+        if(selectedRole === "siswa"){
+
+            // Akses siswa/publik menggunakan Firebase Anonymous Authentication.
+            // Tidak ada password dan tidak perlu akun email.
+            credential = await firebaseAuth.signInAnonymously();
+
+            account = {
+                name:"Siswa / Publik",
+                role:"SISWA"
+            };
+
+        }else{
+
+            const passwordFieldMap = {
+                admin:"adminPassword",
+                guru:"guruPassword"
+            };
+
+            const password =
+                document
+                    .getElementById(passwordFieldMap[selectedRole])
+                    .value;
+
+            if(!password){
+
+                document.getElementById("loginError").textContent =
+                    "Silakan masukkan password/kode akses.";
+
+                document.getElementById("loginError").style.display="block";
+
+                if(loginBtn){
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = "🔐 Masuk ke SIB CARE";
+                }
+                return;
+            }
+
+            account = ROLE_ACCOUNTS[selectedRole];
+
+            credential =
+                await firebaseAuth.signInWithEmailAndPassword(
+                    account.email,
+                    password
+                );
+        }
 
         currentUser = {
             name:account.name,
@@ -5113,98 +5115,71 @@ async function login(){
 
         let message = "Password/kode akses tidak benar.";
 
-        if(
-            error.code === "auth/network-request-failed"
-        ){
+        if(selectedRole === "siswa" && error.code === "auth/operation-not-allowed"){
+            message = "Akses publik belum diaktifkan. Aktifkan Anonymous Authentication di Firebase Console.";
+        }else if(error.code === "auth/network-request-failed"){
             message = "Koneksi Firebase belum tersedia. Coba lagi.";
-        }else if(
-            error.code === "auth/too-many-requests"
-        ){
+        }else if(error.code === "auth/too-many-requests"){
             message = "Terlalu banyak percobaan. Coba lagi nanti.";
-        }else if(
-            error.code === "auth/user-not-found" ||
-            error.code === "auth/configuration-not-found"
-        ){
-            message =
-                "Akun peran ini belum dibuat di Firebase Authentication.";
+        }else if(error.code === "auth/user-not-found" || error.code === "auth/configuration-not-found"){
+            message = "Akun peran ini belum dibuat di Firebase Authentication.";
         }
 
         document.getElementById("loginError").textContent = message;
-
         document.getElementById("loginError").style.display="block";
 
         if(loginBtn){
             loginBtn.disabled = false;
-            loginBtn.textContent = "🔐 Masuk ke SIB CARE";
+            loginBtn.textContent = selectedRole === "siswa"
+                ? "🌐 Masuk Tanpa Password"
+                : "🔐 Masuk ke SIB CARE";
         }
 
         return;
-
     }
 
-
     document.getElementById("loginPage").style.display="none";
-
     document.getElementById("app").style.display="block";
 
     document.getElementById("currentUserBadge").textContent =
         currentUser.name;
 
-
     if(currentUser.role === "ADMIN_SARPRAS"){
 
         document.getElementById("adminNav").style.display="block";
-
         document.getElementById("galleryAddBtn").style.display="inline-flex";
-
         document.getElementById("conditionAddBtn").style.display="inline-flex";
-
         document.getElementById("cctvAddBtn").style.display="inline-flex";
-
         document.getElementById("lockerAssignBtn").style.display="inline-flex";
 
     }else{
 
         document.getElementById("adminNav").style.display="none";
-
         document.getElementById("galleryAddBtn").style.display="none";
-
         document.getElementById("conditionAddBtn").style.display="none";
-
         document.getElementById("cctvAddBtn").style.display="none";
-
         document.getElementById("lockerAssignBtn").style.display="none";
-
     }
 
-
+    // Siswa/publik dapat melihat kondisi sekolah dan penggunaan sarana,
+    // tetapi menu administrasi tetap tersembunyi.
     if(currentUser.role === "SISWA"){
 
-        document.getElementById("navBorrow").style.display="none";
-
-        document.getElementById("homeBorrowCard").style.display="none";
-
+        document.getElementById("navBorrow").style.display="flex";
+        document.getElementById("homeBorrowCard").style.display="block";
         document.getElementById("navCctv").style.display="none";
-
         document.getElementById("navLocker").style.display="none";
 
     }else{
 
         document.getElementById("navBorrow").style.display="flex";
-
         document.getElementById("homeBorrowCard").style.display="block";
-
         document.getElementById("navCctv").style.display="flex";
-
         document.getElementById("navLocker").style.display="flex";
-
     }
 
-
     showPage("home");
-
     refreshAll();
-
 }
 
 
@@ -5228,9 +5203,10 @@ function logout(){
 
     document.getElementById("guruPassword").value="";
 
-    document.getElementById("siswaPassword").value="";
 
     document.getElementById("loginPage").style.display="flex";
+
+    document.getElementById("publicAccessInfo").style.display="none";
 
     document.getElementById("app").style.display="none";
 
@@ -5240,7 +5216,7 @@ function logout(){
             card.classList.remove("selected");
         });
 
-    ["adminPasswordBox","guruPasswordBox","siswaPasswordBox"]
+    ["adminPasswordBox","guruPasswordBox"]
         .forEach(id=>{
             document
                 .getElementById(id)
