@@ -1066,6 +1066,75 @@ tr:hover td{
     font-size:11px;
     cursor:pointer;
 }
+
+
+/* =========================================================
+   PENGATURAN BERANDA ADMIN
+========================================================= */
+.home-settings-list{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+.home-setting-item{
+    display:grid;
+    grid-template-columns:38px minmax(0,1fr) auto auto auto;
+    align-items:center;
+    gap:10px;
+    padding:12px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:#fff;
+}
+.home-setting-icon{
+    width:36px;
+    height:36px;
+    border-radius:9px;
+    background:var(--secondary);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:19px;
+}
+.home-setting-info strong{
+    display:block;
+    margin-bottom:3px;
+}
+.home-setting-info small{
+    color:var(--muted);
+}
+.home-setting-actions{
+    display:flex;
+    align-items:center;
+    gap:5px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+}
+.home-order-badge{
+    min-width:30px;
+    text-align:center;
+    padding:5px 8px;
+    border-radius:999px;
+    background:var(--secondary);
+    font-weight:bold;
+    font-size:12px;
+}
+.home-setting-hidden{
+    opacity:.58;
+}
+.home-setting-priority{
+    border-left:4px solid var(--primary);
+}
+@media(max-width:800px){
+    .home-setting-item{
+        grid-template-columns:38px minmax(0,1fr);
+    }
+    .home-setting-actions{
+        grid-column:1 / -1;
+        justify-content:flex-start;
+    }
+}
+
 </style>
 </head>
 
@@ -1104,8 +1173,7 @@ tr:hover td{
                 <div class="role-card" id="roleSiswa"
                      onclick="selectRole('siswa')">
                     <div class="icon">🎓</div>
-                    <strong>Siswa / Publik</strong>
-                    <small style="display:block;color:var(--muted);margin-top:5px;font-size:11px;">Tanpa password</small>
+                    <strong>Siswa</strong>
                 </div>
 
             </div>
@@ -1146,9 +1214,22 @@ tr:hover td{
 
             </div>
 
-            <div id="publicAccessInfo" style="display:none;margin-top:20px;padding:12px 14px;border-radius:10px;background:#eef7ff;border:1px solid #cfe5ff;color:#084298;font-size:13px;">
-                🌐 <strong>Akses Publik/Siswa</strong><br>
-                Tidak memerlukan password. Mode ini digunakan untuk melihat kondisi sekolah dan informasi penggunaan sarana yang dibuka untuk umum.
+            <div class="password-box" id="siswaPasswordBox">
+
+                <div class="form-group">
+                    <label for="siswaPassword">
+                        Kode Akses Siswa
+                    </label>
+
+                    <input
+                        type="password"
+                        id="siswaPassword"
+                        class="form-control"
+                        placeholder="Masukkan kode akses Siswa"
+                        onkeydown="if(event.key==='Enter')login()"
+                    >
+                </div>
+
             </div>
 
             <div id="loginError" class="login-error">
@@ -1328,6 +1409,12 @@ tr:hover td{
                 📈 Statistik
             </div>
 
+            <div class="nav-item"
+                 data-page="home-settings"
+                 onclick="showPage('home-settings')">
+                🏠 Pengaturan Beranda
+            </div>
+
         </div>
 
     </aside>
@@ -1350,9 +1437,9 @@ tr:hover td{
                 </p>
             </div>
 
-            <div class="grid grid-3">
+            <div class="grid grid-3" id="homeMenuGrid">
 
-                <div class="card"
+                <div class="card home-managed-card" id="homeCardReport"
                      style="cursor:pointer;"
                      onclick="openReportModal()">
                     <div class="stat-icon" style="margin-bottom:10px;">📢</div>
@@ -1365,7 +1452,7 @@ tr:hover td{
                     </p>
                 </div>
 
-                <div class="card"
+                <div class="card home-managed-card"
                      id="homeBorrowCard"
                      style="cursor:pointer;"
                      onclick="showPage('borrow')">
@@ -1379,7 +1466,7 @@ tr:hover td{
                     </p>
                 </div>
 
-                <div class="card"
+                <div class="card home-managed-card" id="homeCardCondition"
                      style="cursor:pointer;"
                      onclick="showPage('condition')">
                     <div class="stat-icon" style="margin-bottom:10px;">🏫</div>
@@ -1392,7 +1479,7 @@ tr:hover td{
                     </p>
                 </div>
 
-                <div class="card"
+                <div class="card home-managed-card" id="homeCardDenah"
                      style="cursor:pointer;"
                      onclick="showPage('denah')">
                     <div class="stat-icon" style="margin-bottom:10px;">🗺️</div>
@@ -1405,7 +1492,7 @@ tr:hover td{
                     </p>
                 </div>
 
-                <div class="card"
+                <div class="card home-managed-card" id="homeCardMyReports"
                      style="cursor:pointer;"
                      onclick="showPage('myreports')">
                     <div class="stat-icon" style="margin-bottom:10px;">🔄</div>
@@ -1418,11 +1505,41 @@ tr:hover td{
                     </p>
                 </div>
 
+                <div class="card home-managed-card" id="homeCardCctv"
+                     style="cursor:pointer;"
+                     onclick="showPage('cctv')">
+                    <div class="stat-icon" style="margin-bottom:10px;">📹</div>
+                    <h2 style="margin-bottom:8px;font-size:17px;">CCTV Sekolah</h2>
+                    <p style="color:var(--muted);font-size:13px;">
+                        Pantau tayangan kamera CCTV sekolah.
+                    </p>
+                </div>
+
+                <div class="card home-managed-card" id="homeCardLocker"
+                     style="cursor:pointer;"
+                     onclick="showPage('locker')">
+                    <div class="stat-icon" style="margin-bottom:10px;">🔐</div>
+                    <h2 style="margin-bottom:8px;font-size:17px;">Locker Siswa</h2>
+                    <p style="color:var(--muted);font-size:13px;">
+                        Informasi penempatan dan sirkulasi locker siswa.
+                    </p>
+                </div>
+
+                <div class="card home-managed-card" id="homeCardLostFound"
+                     style="cursor:pointer;"
+                     onclick="showPage('lostfound')">
+                    <div class="stat-icon" style="margin-bottom:10px;">🔎</div>
+                    <h2 style="margin-bottom:8px;font-size:17px;">Barang Hilang & Temuan</h2>
+                    <p style="color:var(--muted);font-size:13px;">
+                        Telusuri dan laporkan barang hilang atau temuan.
+                    </p>
+                </div>
+
             </div>
 
             <br>
 
-            <div class="card">
+            <div class="card" id="homeGallerySection">
 
                 <div style="
                     display:flex;
@@ -2907,6 +3024,49 @@ tr:hover td{
 
             </div>
 
+
+
+        </section>
+
+        <!-- =================================================
+             PENGATURAN BERANDA
+        ================================================= -->
+        <section id="page-home-settings" class="page">
+
+            <div class="page-header">
+                <h1>Pengaturan Beranda</h1>
+                <p>
+                    Atur menu yang tampil di Beranda, urutan kemunculan,
+                    dan prioritasnya tanpa mengubah kode HTML.
+                </p>
+            </div>
+
+            <div class="card">
+
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px;">
+                    <div>
+                        <h2>🏠 Menu Beranda</h2>
+                        <p style="color:var(--muted);font-size:13px;margin-top:5px;">
+                            Gunakan tombol ↑ dan ↓ untuk mengatur posisi. Matikan tombol Tampil
+                            untuk menyembunyikan menu dari Beranda.
+                        </p>
+                    </div>
+
+                    <button class="btn btn-secondary btn-sm" onclick="resetHomeSettings()">
+                        ↺ Kembalikan Pengaturan Awal
+                    </button>
+                </div>
+
+                <div id="homeSettingsList" class="home-settings-list"></div>
+
+                <div style="margin-top:15px;padding:12px;border-radius:9px;background:var(--secondary);font-size:13px;color:var(--muted);">
+                    <strong style="color:var(--dark);">ℹ️ Cara kerja:</strong>
+                    perubahan disimpan ke Firebase sehingga pengaturan Beranda dapat digunakan
+                    bersama, bukan hanya tersimpan di komputer Admin.
+                </div>
+
+            </div>
+
         </section>
 
     </main>
@@ -4260,6 +4420,25 @@ let lockerAssignments = [];
 let lostFoundItems = [];
 let lostFoundTab = "semua";
 
+/* =========================================================
+   KONFIGURASI BERANDA
+   Pengaturan ini disimpan di Firestore pada
+   appSettings/home sehingga Admin tidak perlu mengubah HTML.
+========================================================= */
+const defaultHomeSettings = [
+    { key:"report",    title:"Sampaikan Kondisi",      icon:"📢", description:"Laporkan fasilitas yang rusak atau bermasalah.", visible:true, priority:true,  order:1 },
+    { key:"borrow",    title:"Peminjaman Sarana",      icon:"🖥️", description:"Pinjam dan kembalikan iPad/laptop untuk kebutuhan jam pelajaran.", visible:true, priority:true,  order:2 },
+    { key:"condition", title:"Kondisi Sekolah",       icon:"🏫", description:"Lihat kondisi ruangan dan sarana prasarana terkini.", visible:true, priority:true,  order:3 },
+    { key:"denah",     title:"Denah Sekolah",         icon:"🗺️", description:"Jelajahi denah dan lokasi ruangan sekolah.", visible:true, priority:false, order:4 },
+    { key:"myreports",  title:"Pemantauan Progres",      icon:"🔄", description:"Pantau perkembangan laporan yang telah Anda sampaikan.", visible:true, priority:false, order:5 },
+    { key:"cctv",       title:"CCTV Sekolah",             icon:"📹", description:"Pantau tayangan kamera CCTV sekolah.", visible:false, priority:false, order:6 },
+    { key:"locker",     title:"Locker Siswa",             icon:"🔐", description:"Informasi penempatan dan sirkulasi locker siswa.", visible:false, priority:false, order:7 },
+    { key:"lostfound",  title:"Barang Hilang & Temuan",   icon:"🔎", description:"Telusuri dan laporkan barang hilang atau temuan.", visible:false, priority:false, order:8 },
+    { key:"gallery",    title:"Dokumentasi Kegiatan",     icon:"🖼️", description:"Pratinjau dokumentasi kegiatan sekolah.", visible:true, priority:false, order:9, section:true }
+];
+
+let homeSettings = defaultHomeSettings.map(item=>({...item}));
+
 let firebaseReady = false;
 
 const LOGO_DATA_URI = "data:image/jpeg;base64,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";
@@ -4945,6 +5124,35 @@ function listenToData(){
             }
         );
 
+    db.collection("appSettings")
+        .doc("home")
+        .onSnapshot(
+            snapshot=>{
+
+                if(snapshot.exists){
+                    const data = snapshot.data() || {};
+                    if(Array.isArray(data.items) && data.items.length){
+                        homeSettings = normalizeHomeSettings(data.items);
+                    }else{
+                        homeSettings = defaultHomeSettings.map(item=>({...item}));
+                    }
+                }else{
+                    homeSettings = defaultHomeSettings.map(item=>({...item}));
+                }
+
+                refreshHomeSettingsUI();
+                renderHome();
+
+            },
+            error=>{
+                console.error("appSettings/home:",error);
+                homeSettings = defaultHomeSettings.map(item=>({...item}));
+                refreshHomeSettingsUI();
+                renderHome();
+            }
+        );
+
+
 }
 
 
@@ -4962,14 +5170,14 @@ function selectRole(role){
             card.classList.remove("selected");
         });
 
-    ["adminPasswordBox","guruPasswordBox"]
+
+    ["adminPasswordBox","guruPasswordBox","siswaPasswordBox"]
         .forEach(id=>{
             document
                 .getElementById(id)
                 .classList.remove("show");
         });
 
-    document.getElementById("publicAccessInfo").style.display="none";
 
     if(role === "admin"){
 
@@ -4997,20 +5205,16 @@ function selectRole(role){
             .getElementById("roleSiswa")
             .classList.add("selected");
 
-        // Siswa/publik tidak menggunakan password.
-        document.getElementById("publicAccessInfo").style.display="block";
-    }
+        document
+            .getElementById("siswaPasswordBox")
+            .classList.add("show");
 
-    const loginBtn = document.querySelector(".login-card .btn-primary");
-    if(loginBtn){
-        loginBtn.textContent = role === "siswa"
-            ? "🌐 Masuk Tanpa Password"
-            : "🔐 Masuk ke SIB CARE";
     }
 
     document
         .getElementById("loginError")
         .style.display="none";
+
 }
 
 
@@ -5024,6 +5228,11 @@ const ROLE_ACCOUNTS = {
         email:"guru@sibcare-app.internal",
         name:"Guru / Staf",
         role:"GURU_STAF"
+    },
+    siswa:{
+        email:"siswa@sibcare-app.internal",
+        name:"Siswa",
+        role:"SISWA"
     }
 };
 
@@ -5036,68 +5245,53 @@ async function login(){
             "Silakan pilih peran terlebih dahulu.";
 
         document.getElementById("loginError").style.display="block";
+
         return;
     }
 
-    const loginBtn = document.querySelector(".login-card .btn-primary");
+
+    const passwordFieldMap = {
+        admin:"adminPassword",
+        guru:"guruPassword",
+        siswa:"siswaPassword"
+    };
+
+    const password =
+        document
+            .getElementById(passwordFieldMap[selectedRole])
+            .value;
+
+    if(!password){
+
+        document.getElementById("loginError").textContent =
+            "Silakan masukkan password/kode akses.";
+
+        document.getElementById("loginError").style.display="block";
+
+        return;
+    }
+
+
+    const loginBtn =
+        document.querySelector(
+            ".login-card .btn-primary"
+        );
 
     if(loginBtn){
         loginBtn.disabled = true;
-        loginBtn.textContent = selectedRole === "siswa"
-            ? "Menghubungkan..."
-            : "Memeriksa...";
+        loginBtn.textContent = "Memeriksa...";
     }
+
+
+    const account = ROLE_ACCOUNTS[selectedRole];
 
     try{
 
-        let credential;
-        let account;
-
-        if(selectedRole === "siswa"){
-
-            // Akses siswa/publik menggunakan Firebase Anonymous Authentication.
-            // Tidak ada password dan tidak perlu akun email.
-            credential = await firebaseAuth.signInAnonymously();
-
-            account = {
-                name:"Siswa / Publik",
-                role:"SISWA"
-            };
-
-        }else{
-
-            const passwordFieldMap = {
-                admin:"adminPassword",
-                guru:"guruPassword"
-            };
-
-            const password =
-                document
-                    .getElementById(passwordFieldMap[selectedRole])
-                    .value;
-
-            if(!password){
-
-                document.getElementById("loginError").textContent =
-                    "Silakan masukkan password/kode akses.";
-
-                document.getElementById("loginError").style.display="block";
-
-                if(loginBtn){
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = "🔐 Masuk ke SIB CARE";
-                }
-                return;
-            }
-
-            account = ROLE_ACCOUNTS[selectedRole];
-
-            credential =
-                await firebaseAuth.signInWithEmailAndPassword(
-                    account.email,
-                    password
-                );
-        }
+        const credential =
+            await firebaseAuth.signInWithEmailAndPassword(
+                account.email,
+                password
+            );
 
         currentUser = {
             name:account.name,
@@ -5115,71 +5309,98 @@ async function login(){
 
         let message = "Password/kode akses tidak benar.";
 
-        if(selectedRole === "siswa" && error.code === "auth/operation-not-allowed"){
-            message = "Akses publik belum diaktifkan. Aktifkan Anonymous Authentication di Firebase Console.";
-        }else if(error.code === "auth/network-request-failed"){
+        if(
+            error.code === "auth/network-request-failed"
+        ){
             message = "Koneksi Firebase belum tersedia. Coba lagi.";
-        }else if(error.code === "auth/too-many-requests"){
+        }else if(
+            error.code === "auth/too-many-requests"
+        ){
             message = "Terlalu banyak percobaan. Coba lagi nanti.";
-        }else if(error.code === "auth/user-not-found" || error.code === "auth/configuration-not-found"){
-            message = "Akun peran ini belum dibuat di Firebase Authentication.";
+        }else if(
+            error.code === "auth/user-not-found" ||
+            error.code === "auth/configuration-not-found"
+        ){
+            message =
+                "Akun peran ini belum dibuat di Firebase Authentication.";
         }
 
         document.getElementById("loginError").textContent = message;
+
         document.getElementById("loginError").style.display="block";
 
         if(loginBtn){
             loginBtn.disabled = false;
-            loginBtn.textContent = selectedRole === "siswa"
-                ? "🌐 Masuk Tanpa Password"
-                : "🔐 Masuk ke SIB CARE";
+            loginBtn.textContent = "🔐 Masuk ke SIB CARE";
         }
 
         return;
+
     }
 
+
     document.getElementById("loginPage").style.display="none";
+
     document.getElementById("app").style.display="block";
 
     document.getElementById("currentUserBadge").textContent =
         currentUser.name;
 
+
     if(currentUser.role === "ADMIN_SARPRAS"){
 
         document.getElementById("adminNav").style.display="block";
+
         document.getElementById("galleryAddBtn").style.display="inline-flex";
+
         document.getElementById("conditionAddBtn").style.display="inline-flex";
+
         document.getElementById("cctvAddBtn").style.display="inline-flex";
+
         document.getElementById("lockerAssignBtn").style.display="inline-flex";
 
     }else{
 
         document.getElementById("adminNav").style.display="none";
+
         document.getElementById("galleryAddBtn").style.display="none";
+
         document.getElementById("conditionAddBtn").style.display="none";
+
         document.getElementById("cctvAddBtn").style.display="none";
+
         document.getElementById("lockerAssignBtn").style.display="none";
+
     }
 
-    // Siswa/publik dapat melihat kondisi sekolah dan penggunaan sarana,
-    // tetapi menu administrasi tetap tersembunyi.
+
     if(currentUser.role === "SISWA"){
 
-        document.getElementById("navBorrow").style.display="flex";
-        document.getElementById("homeBorrowCard").style.display="block";
+        document.getElementById("navBorrow").style.display="none";
+
+        document.getElementById("homeBorrowCard").style.display="none";
+
         document.getElementById("navCctv").style.display="none";
+
         document.getElementById("navLocker").style.display="none";
 
     }else{
 
         document.getElementById("navBorrow").style.display="flex";
+
         document.getElementById("homeBorrowCard").style.display="block";
+
         document.getElementById("navCctv").style.display="flex";
+
         document.getElementById("navLocker").style.display="flex";
+
     }
 
+
     showPage("home");
+
     refreshAll();
+
 }
 
 
@@ -5203,10 +5424,9 @@ function logout(){
 
     document.getElementById("guruPassword").value="";
 
+    document.getElementById("siswaPassword").value="";
 
     document.getElementById("loginPage").style.display="flex";
-
-    document.getElementById("publicAccessInfo").style.display="none";
 
     document.getElementById("app").style.display="none";
 
@@ -5216,7 +5436,7 @@ function logout(){
             card.classList.remove("selected");
         });
 
-    ["adminPasswordBox","guruPasswordBox"]
+    ["adminPasswordBox","guruPasswordBox","siswaPasswordBox"]
         .forEach(id=>{
             document
                 .getElementById(id)
@@ -5231,6 +5451,11 @@ function logout(){
 ========================================================= */
 
 function showPage(page){
+
+    if(page === "home-settings" && (!currentUser || currentUser.role !== "ADMIN_SARPRAS")){
+        showToast("Menu Pengaturan Beranda hanya dapat diakses Admin Sarpras.");
+        page = "home";
+    }
 
     document
         .querySelectorAll(".page")
@@ -11227,14 +11452,276 @@ function renderDashboard(){
    HOME
 ========================================================= */
 
+function normalizeHomeSettings(items){
+
+    const source = Array.isArray(items) ? items : [];
+
+    const byKey = {};
+
+    source.forEach((item,index)=>{
+        if(item && item.key){
+            byKey[item.key] = {
+                ...item,
+                visible:item.visible !== false,
+                priority:item.priority === true,
+                order:Number.isFinite(Number(item.order)) ? Number(item.order) : index+1
+            };
+        }
+    });
+
+    const merged = defaultHomeSettings.map((defaultItem,index)=>({
+        ...defaultItem,
+        ...(byKey[defaultItem.key] || {}),
+        order:byKey[defaultItem.key]
+            ? Number(byKey[defaultItem.key].order)
+            : index+1
+    }));
+
+    return merged.sort((a,b)=>a.order-b.order);
+}
+
+function getHomeSettingsSorted(){
+    return normalizeHomeSettings(homeSettings);
+}
+
 function renderHome(){
 
-    // Statistik laporan di Beranda sudah dihapus.
-    // Beranda kini hanya menampilkan kartu akses cepat
-    // (Sampaikan Kondisi, Kondisi Sekolah, Denah Sekolah,
-    // Pemantauan Progres) yang bersifat statis di HTML,
-    // jadi tidak perlu render data di sini.
+    const grid = document.getElementById("homeMenuGrid");
 
+    if(grid){
+
+        const cardMap = {
+            report:document.getElementById("homeCardReport"),
+            borrow:document.getElementById("homeBorrowCard"),
+            condition:document.getElementById("homeCardCondition"),
+            denah:document.getElementById("homeCardDenah"),
+            myreports:document.getElementById("homeCardMyReports"),
+            cctv:document.getElementById("homeCardCctv"),
+            locker:document.getElementById("homeCardLocker"),
+            lostfound:document.getElementById("homeCardLostFound")
+        };
+
+        getHomeSettingsSorted().forEach(item=>{
+
+            if(item.section || !cardMap[item.key]){
+                return;
+            }
+
+            const card = cardMap[item.key];
+
+            card.style.display = item.visible ? "block" : "none";
+
+            grid.appendChild(card);
+
+        });
+
+    }
+
+    const gallerySection = document.getElementById("homeGallerySection");
+    const gallerySetting = getHomeSettingsSorted().find(item=>item.key === "gallery");
+
+    if(gallerySection){
+        gallerySection.style.display =
+            gallerySetting && gallerySetting.visible !== false
+                ? "block"
+                : "none";
+    }
+
+}
+
+function refreshHomeSettingsUI(){
+
+    const container = document.getElementById("homeSettingsList");
+
+    if(!container){
+        return;
+    }
+
+    const items = getHomeSettingsSorted();
+
+    container.innerHTML = items.map((item,index)=>{
+
+        const first = index === 0;
+        const last = index === items.length-1;
+
+        return `
+            <div class="home-setting-item ${item.visible ? "" : "home-setting-hidden"} ${item.priority ? "home-setting-priority" : ""}">
+
+                <div class="home-setting-icon">${item.icon}</div>
+
+                <div class="home-setting-info">
+                    <strong>${escapeHTML(item.title)}</strong>
+                    <small>${escapeHTML(item.description)}</small>
+                </div>
+
+                <div class="home-setting-actions">
+                    <span class="home-order-badge">${index+1}</span>
+
+                    <button class="btn btn-secondary btn-sm"
+                            onclick="moveHomeMenu('${item.key}',-1)"
+                            ${first ? "disabled" : ""}
+                            title="Naikkan posisi">↑</button>
+
+                    <button class="btn btn-secondary btn-sm"
+                            onclick="moveHomeMenu('${item.key}',1)"
+                            ${last ? "disabled" : ""}
+                            title="Turunkan posisi">↓</button>
+
+                    <button class="btn ${item.priority ? "btn-primary" : "btn-secondary"} btn-sm"
+                            onclick="toggleHomePriority('${item.key}')">
+                        ${item.priority ? "⭐ Prioritas" : "☆ Normal"}
+                    </button>
+
+                    <button class="btn ${item.visible ? "btn-primary" : "btn-secondary"} btn-sm"
+                            onclick="toggleHomeVisibility('${item.key}')">
+                        ${item.visible ? "👁️ Tampil" : "🚫 Disembunyikan"}
+                    </button>
+                </div>
+
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+async function persistHomeSettings(showMessage=true){
+
+    if(!currentUser || currentUser.role !== "ADMIN_SARPRAS"){
+        showToast("Hanya Admin Sarpras yang dapat mengubah Beranda.");
+        return false;
+    }
+
+    try{
+
+        const items = getHomeSettingsSorted().map((item,index)=>({
+            key:item.key,
+            title:item.title,
+            icon:item.icon,
+            description:item.description,
+            visible:item.visible !== false,
+            priority:item.priority === true,
+            order:index+1,
+            section:item.section === true
+        }));
+
+        await db.collection("appSettings")
+            .doc("home")
+            .set({
+                items:items,
+                updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+                updatedBy:currentUser.name || "Admin Sarpras"
+            },{merge:true});
+
+        homeSettings = normalizeHomeSettings(items);
+        refreshHomeSettingsUI();
+        renderHome();
+
+        if(showMessage){
+            showToast("Pengaturan Beranda berhasil disimpan.");
+        }
+
+        return true;
+
+    }catch(error){
+
+        console.error("save home settings:",error);
+
+        showToast("Pengaturan belum tersimpan. Periksa koneksi Firebase dan Security Rules.");
+
+        return false;
+    }
+}
+
+async function moveHomeMenu(key,direction){
+
+    if(!currentUser || currentUser.role !== "ADMIN_SARPRAS"){
+        return;
+    }
+
+    const items = getHomeSettingsSorted();
+    const index = items.findIndex(item=>item.key===key);
+
+    if(index < 0){
+        return;
+    }
+
+    const target = index + direction;
+
+    if(target < 0 || target >= items.length){
+        return;
+    }
+
+    const temp = items[index];
+    items[index] = items[target];
+    items[target] = temp;
+
+    items.forEach((item,i)=>item.order=i+1);
+
+    homeSettings = items;
+    refreshHomeSettingsUI();
+    renderHome();
+    await persistHomeSettings(false);
+}
+
+async function toggleHomeVisibility(key){
+
+    if(!currentUser || currentUser.role !== "ADMIN_SARPRAS"){
+        return;
+    }
+
+    const item = homeSettings.find(item=>item.key===key);
+
+    if(!item){
+        return;
+    }
+
+    item.visible = item.visible === false;
+
+    refreshHomeSettingsUI();
+    renderHome();
+    await persistHomeSettings(false);
+}
+
+async function toggleHomePriority(key){
+
+    if(!currentUser || currentUser.role !== "ADMIN_SARPRAS"){
+        return;
+    }
+
+    const item = homeSettings.find(item=>item.key===key);
+
+    if(!item){
+        return;
+    }
+
+    item.priority = item.priority !== true;
+
+    homeSettings = normalizeHomeSettings(homeSettings);
+    refreshHomeSettingsUI();
+    renderHome();
+    await persistHomeSettings(false);
+}
+
+async function resetHomeSettings(){
+
+    if(!currentUser || currentUser.role !== "ADMIN_SARPRAS"){
+        return;
+    }
+
+    const confirmed = confirm(
+        "Kembalikan susunan, prioritas, dan tampilan Beranda ke pengaturan awal?"
+    );
+
+    if(!confirmed){
+        return;
+    }
+
+    homeSettings = defaultHomeSettings.map(item=>({...item}));
+
+    refreshHomeSettingsUI();
+    renderHome();
+    await persistHomeSettings();
 }
 
 
@@ -13193,6 +13680,7 @@ function renderStatistics(){
 function refreshAll(){
 
     renderHome();
+    refreshHomeSettingsUI();
 
     renderHomeGallery();
 
