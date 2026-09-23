@@ -1216,18 +1216,15 @@ tr:hover td{
 
             <div class="password-box" id="siswaPasswordBox">
 
-                <div class="form-group">
-                    <label for="siswaPassword">
-                        Kode Akses Siswa
-                    </label>
-
-                    <input
-                        type="password"
-                        id="siswaPassword"
-                        class="form-control"
-                        placeholder="Masukkan kode akses Siswa"
-                        onkeydown="if(event.key==='Enter')login()"
-                    >
+                <div class="form-group" style="
+                    background:var(--secondary);
+                    border-radius:10px;
+                    padding:12px 14px;
+                    color:var(--primary-dark);
+                    font-size:13px;
+                    font-weight:bold;
+                ">
+                    🎓 Tidak perlu password, langsung klik "Masuk ke SIB CARE".
                 </div>
 
             </div>
@@ -5236,6 +5233,11 @@ const ROLE_ACCOUNTS = {
     }
 };
 
+/* Siswa/publik tidak perlu memasukkan password sendiri.
+   Akun siswa tetap login lewat Firebase Auth di belakang layar
+   memakai kode akses tetap ini, supaya siswa cukup klik "Masuk". */
+const SISWA_AUTO_ACCESS_CODE = "siswa-akses-publik-2026";
+
 
 async function login(){
 
@@ -5252,23 +5254,32 @@ async function login(){
 
     const passwordFieldMap = {
         admin:"adminPassword",
-        guru:"guruPassword",
-        siswa:"siswaPassword"
+        guru:"guruPassword"
     };
 
-    const password =
-        document
-            .getElementById(passwordFieldMap[selectedRole])
-            .value;
+    let password;
 
-    if(!password){
+    if(selectedRole === "siswa"){
 
-        document.getElementById("loginError").textContent =
-            "Silakan masukkan password/kode akses.";
+        password = SISWA_AUTO_ACCESS_CODE;
 
-        document.getElementById("loginError").style.display="block";
+    }else{
 
-        return;
+        password =
+            document
+                .getElementById(passwordFieldMap[selectedRole])
+                .value;
+
+        if(!password){
+
+            document.getElementById("loginError").textContent =
+                "Silakan masukkan password/kode akses.";
+
+            document.getElementById("loginError").style.display="block";
+
+            return;
+        }
+
     }
 
 
@@ -5423,8 +5434,6 @@ function logout(){
     document.getElementById("adminPassword").value="";
 
     document.getElementById("guruPassword").value="";
-
-    document.getElementById("siswaPassword").value="";
 
     document.getElementById("loginPage").style.display="flex";
 
