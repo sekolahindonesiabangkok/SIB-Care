@@ -4422,6 +4422,12 @@ let lostFoundTab = "semua";
    Pengaturan ini disimpan di Firestore pada
    appSettings/home sehingga Admin tidak perlu mengubah HTML.
 ========================================================= */
+/* Menu-menu ini TIDAK BOLEH pernah tampil di Beranda Siswa,
+   walaupun Admin mengaktifkannya lewat Pengaturan Beranda.
+   Toggle di Pengaturan Beranda tetap berlaku untuk Guru/Staf/Admin,
+   hanya sisi Siswa yang dikunci di sini. */
+const HOME_KEYS_HIDDEN_FROM_SISWA = ["borrow","locker","cctv"];
+
 const defaultHomeSettings = [
     { key:"report",    title:"Sampaikan Kondisi",      icon:"📢", description:"Laporkan fasilitas yang rusak atau bermasalah.", visible:true, priority:true,  order:1 },
     { key:"borrow",    title:"Peminjaman Sarana",      icon:"🖥️", description:"Pinjam dan kembalikan iPad/laptop untuk kebutuhan jam pelajaran.", visible:true, priority:true,  order:2 },
@@ -11518,7 +11524,13 @@ function renderHome(){
 
             const card = cardMap[item.key];
 
-            card.style.display = item.visible ? "block" : "none";
+            const hiddenForSiswa =
+                currentUser &&
+                currentUser.role === "SISWA" &&
+                HOME_KEYS_HIDDEN_FROM_SISWA.includes(item.key);
+
+            card.style.display =
+                (item.visible && !hiddenForSiswa) ? "block" : "none";
 
             grid.appendChild(card);
 
