@@ -1135,6 +1135,70 @@ tr:hover td{
     }
 }
 
+/* =========================================================
+   LATAR BERANDA (HERO SLIDES: FOTO / VIDEO / KATA-KATA)
+========================================================= */
+.home-hero{
+    position:relative;
+    width:100%;
+    height:230px;
+    border-radius:14px;
+    overflow:hidden;
+    margin-bottom:18px;
+    background:linear-gradient(135deg,#084298,#0d6efd);
+}
+.home-hero-slides{
+    position:absolute;
+    inset:0;
+}
+.home-hero-slide{
+    position:absolute;
+    inset:0;
+    opacity:0;
+    transition:opacity .9s ease;
+}
+.home-hero-slide.active{
+    opacity:1;
+}
+.home-hero-slide img,
+.home-hero-slide video,
+.home-hero-slide iframe{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    border:none;
+    display:block;
+}
+.home-hero-overlay{
+    position:absolute;
+    left:0;
+    right:0;
+    bottom:0;
+    padding:16px 20px;
+    background:linear-gradient(to top,rgba(0,0,0,.62),rgba(0,0,0,0));
+    color:#fff;
+}
+.home-hero-quote{
+    font-size:15px;
+    font-weight:bold;
+    margin:0 0 3px 0;
+    display:none;
+}
+.home-hero-author{
+    font-size:12px;
+    opacity:.85;
+    display:none;
+}
+.hero-thumb{
+    background-size:cover;
+    background-position:center;
+}
+@media(max-width:800px){
+    .home-hero{
+        height:170px;
+    }
+}
+
 </style>
 </head>
 
@@ -1425,6 +1489,14 @@ tr:hover td{
              HOME
         ================================================= -->
         <section id="page-home" class="page active">
+
+            <div id="homeHeroBanner" class="home-hero" style="display:none;">
+                <div id="homeHeroSlides" class="home-hero-slides"></div>
+                <div class="home-hero-overlay">
+                    <p id="homeHeroQuoteText" class="home-hero-quote"></p>
+                    <small id="homeHeroQuoteAuthor" class="home-hero-author"></small>
+                </div>
+            </div>
 
             <div class="page-header">
                 <h1>Selamat Datang di SIB CARE</h1>
@@ -3064,9 +3136,132 @@ tr:hover td{
 
             </div>
 
+            <div class="card" style="margin-top:20px;">
+
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px;">
+                    <div>
+                        <h2>🖼️ Latar Beranda (Foto / Video / Kata-kata)</h2>
+                        <p style="color:var(--muted);font-size:13px;margin-top:5px;">
+                            Tambahkan foto, video, atau kata-kata yang tampil
+                            bergantian di bagian atas Beranda — langsung dari
+                            aplikasi ini, tanpa mengubah kode HTML.
+                        </p>
+                    </div>
+
+                    <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:bold;cursor:pointer;">
+                        <input type="checkbox" id="heroEnabledToggle" onchange="toggleHeroEnabled()">
+                        Aktifkan Latar Beranda
+                    </label>
+                </div>
+
+                <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:15px;">
+
+                    <label style="font-size:13px;">Durasi tiap slide:</label>
+
+                    <input type="number" id="heroAutoplaySeconds" class="form-control"
+                           style="width:90px;" min="3" max="30" value="6"
+                           onchange="updateHeroAutoplay()">
+
+                    <span style="font-size:13px;color:var(--muted);">detik</span>
+
+                    <button class="btn btn-primary btn-sm" style="margin-left:auto;"
+                            onclick="openHeroSlideForm()">
+                        + Tambah Slide
+                    </button>
+
+                </div>
+
+                <div id="heroSlidesList" class="home-settings-list"></div>
+
+                <div style="margin-top:15px;padding:12px;border-radius:9px;background:var(--secondary);font-size:13px;color:var(--muted);">
+                    <strong style="color:var(--dark);">ℹ️ Catatan:</strong>
+                    Foto bisa ditempel dari link (misalnya hasil pencarian Google)
+                    atau diunggah langsung dari HP/komputer. Video hanya lewat link
+                    (YouTube atau link video langsung), karena aplikasi ini belum
+                    tersambung ke penyimpanan file video. Semua tersimpan ke Firebase,
+                    jadi langsung berlaku untuk semua pengguna.
+                </div>
+
+            </div>
+
         </section>
 
     </main>
+
+</div>
+
+
+<!-- =========================================================
+     HERO SLIDE FORM MODAL (LATAR BERANDA)
+========================================================= -->
+<div id="heroSlideFormModal" class="modal">
+
+    <div class="modal-content" style="max-width:480px;">
+
+        <div class="modal-header">
+            <h2 id="heroSlideFormTitle">Tambah Slide</h2>
+            <div class="close" onclick="closeModal('heroSlideFormModal')">×</div>
+        </div>
+
+        <form id="heroSlideForm" onsubmit="submitHeroSlideForm(event)">
+
+            <div class="form-group">
+                <label>Jenis Slide</label>
+                <select id="heroSlideTypeInput" class="form-control"
+                        onchange="toggleHeroSlideTypeFields()">
+                    <option value="image">🖼️ Foto</option>
+                    <option value="video">🎬 Video (link)</option>
+                </select>
+            </div>
+
+            <div id="heroImageFields">
+
+                <div class="form-group">
+                    <label>Link Foto (contoh: hasil cari Google, tempel link gambar)</label>
+                    <input type="url" id="heroSlideImageUrlInput" class="form-control"
+                           placeholder="https://...">
+                </div>
+
+                <div class="form-group">
+                    <label>Atau unggah foto dari HP/komputer</label>
+                    <input type="file" id="heroSlideImageUpload" class="form-control" accept="image/*">
+                    <small style="color:var(--muted);">
+                        Kalau diisi, foto yang diunggah ini yang dipakai (bukan link di atas).
+                    </small>
+                </div>
+
+            </div>
+
+            <div id="heroVideoFields" style="display:none;">
+
+                <div class="form-group">
+                    <label>Link Video (YouTube atau link video langsung)</label>
+                    <input type="url" id="heroSlideVideoUrlInput" class="form-control"
+                           placeholder="https://youtube.com/... atau https://.../video.mp4">
+                </div>
+
+            </div>
+
+            <div class="form-group">
+                <label>Kata-kata / Kutipan (opsional)</label>
+                <textarea id="heroSlideQuoteInput" class="form-control" rows="2"
+                          placeholder="Contoh: Sekolah yang nyaman dimulai dari sarana yang terawat."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Sumber / Nama (opsional)</label>
+                <input type="text" id="heroSlideAuthorInput" class="form-control"
+                       placeholder="Contoh: Kepala Sekolah">
+            </div>
+
+            <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('heroSlideFormModal')">Batal</button>
+                <button type="submit" class="btn btn-primary">Simpan</button>
+            </div>
+
+        </form>
+
+    </div>
 
 </div>
 
@@ -4442,6 +4637,41 @@ const defaultHomeSettings = [
 
 let homeSettings = defaultHomeSettings.map(item=>({...item}));
 
+/* =========================================================
+   LATAR BERANDA (HERO SLIDES: FOTO / VIDEO / KATA-KATA)
+========================================================= */
+let heroSettings = { enabled:false, autoplaySeconds:6, slides:[] };
+
+let heroRotateTimer = null;
+let heroActiveIndex = 0;
+let editingHeroSlideId = null;
+
+function normalizeHeroSettings(data){
+
+    const base = data && typeof data === "object" ? data : {};
+    const rawSlides = Array.isArray(base.slides) ? base.slides : [];
+
+    return {
+        enabled: base.enabled === true,
+        autoplaySeconds:
+            Number(base.autoplaySeconds) > 0
+                ? Number(base.autoplaySeconds)
+                : 6,
+        slides: rawSlides
+            .map((s,index)=>({
+                id: s.id || ("hero_"+Date.now()+"_"+index),
+                type: s.type === "video" ? "video" : "image",
+                imageUrl: s.imageUrl || "",
+                videoUrl: s.videoUrl || "",
+                quoteText: s.quoteText || "",
+                quoteAuthor: s.quoteAuthor || "",
+                order: Number(s.order) || (index+1)
+            }))
+            .sort((a,b)=>a.order-b.order)
+    };
+
+}
+
 let firebaseReady = false;
 
 const LOGO_DATA_URI = "data:image/jpeg;base64,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";
@@ -5152,6 +5382,28 @@ function listenToData(){
                 homeSettings = defaultHomeSettings.map(item=>({...item}));
                 refreshHomeSettingsUI();
                 renderHome();
+            }
+        );
+
+    db.collection("appSettings")
+        .doc("hero")
+        .onSnapshot(
+            snapshot=>{
+
+                heroSettings =
+                    snapshot.exists
+                        ? normalizeHeroSettings(snapshot.data())
+                        : { enabled:false, autoplaySeconds:6, slides:[] };
+
+                refreshHeroSettingsUI();
+                renderHeroBanner();
+
+            },
+            error=>{
+                console.error("appSettings/hero:",error);
+                heroSettings = { enabled:false, autoplaySeconds:6, slides:[] };
+                refreshHeroSettingsUI();
+                renderHeroBanner();
             }
         );
 
@@ -11747,6 +11999,475 @@ async function resetHomeSettings(){
 
 
 /* =========================================================
+   LATAR BERANDA (HERO SLIDES) — ADMIN
+========================================================= */
+
+function refreshHeroSettingsUI(){
+
+    const enabledToggle = document.getElementById("heroEnabledToggle");
+    if(enabledToggle){
+        enabledToggle.checked = heroSettings.enabled === true;
+    }
+
+    const autoplayInput = document.getElementById("heroAutoplaySeconds");
+    if(autoplayInput){
+        autoplayInput.value = heroSettings.autoplaySeconds;
+    }
+
+    const container = document.getElementById("heroSlidesList");
+
+    if(!container){
+        return;
+    }
+
+    if(!heroSettings.slides.length){
+        container.innerHTML =
+            '<p style="color:var(--muted);font-size:13px;">Belum ada slide. Klik "+ Tambah Slide" untuk menambahkan foto, video, atau kata-kata.</p>';
+        return;
+    }
+
+    container.innerHTML = heroSettings.slides.map((slide,index)=>{
+
+        const first = index === 0;
+        const last = index === heroSettings.slides.length-1;
+
+        const thumbStyle =
+            slide.type === "image" && slide.imageUrl
+                ? `background-image:url('${slide.imageUrl.replace(/'/g,"%27")}');`
+                : "";
+
+        const label =
+            slide.type === "video"
+                ? "🎬 Video"
+                : (slide.quoteText ? "🖼️ Foto + Kata-kata" : "🖼️ Foto");
+
+        const subtitle =
+            slide.quoteText
+                ? slide.quoteText
+                : (slide.type === "video" ? (slide.videoUrl || "Belum ada link video") : "Tanpa kata-kata");
+
+        return `
+            <div class="home-setting-item">
+
+                <div class="home-setting-icon hero-thumb" style="${thumbStyle}">
+                    ${slide.type === "video" ? "🎬" : (slide.imageUrl ? "" : "🖼️")}
+                </div>
+
+                <div class="home-setting-info">
+                    <strong>${escapeHTML(label)}</strong>
+                    <small>${escapeHTML(subtitle)}</small>
+                </div>
+
+                <div class="home-setting-actions">
+                    <span class="home-order-badge">${index+1}</span>
+
+                    <button class="btn btn-secondary btn-sm"
+                            onclick="moveHeroSlide('${slide.id}',-1)"
+                            ${first ? "disabled" : ""}
+                            title="Naikkan posisi">↑</button>
+
+                    <button class="btn btn-secondary btn-sm"
+                            onclick="moveHeroSlide('${slide.id}',1)"
+                            ${last ? "disabled" : ""}
+                            title="Turunkan posisi">↓</button>
+
+                    <button class="btn btn-secondary btn-sm"
+                            onclick="openHeroSlideForm('${slide.id}')">
+                        ✏️ Ubah
+                    </button>
+
+                    <button class="btn btn-danger btn-sm"
+                            onclick="deleteHeroSlide('${slide.id}')">
+                        🗑️
+                    </button>
+                </div>
+
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+function openHeroSlideForm(id){
+
+    if(!currentUser || currentUser.role !== "ADMIN_SARPRAS"){
+        showToast("Hanya Admin Sarpras yang dapat mengubah Latar Beranda.");
+        return;
+    }
+
+    editingHeroSlideId = id || null;
+
+    const slide =
+        id
+            ? heroSettings.slides.find(s=>s.id===id)
+            : null;
+
+    document.getElementById("heroSlideFormTitle").textContent =
+        slide ? "Ubah Slide" : "Tambah Slide";
+
+    document.getElementById("heroSlideTypeInput").value =
+        slide ? slide.type : "image";
+
+    document.getElementById("heroSlideImageUrlInput").value =
+        slide && slide.type === "image" ? slide.imageUrl : "";
+
+    document.getElementById("heroSlideVideoUrlInput").value =
+        slide && slide.type === "video" ? slide.videoUrl : "";
+
+    document.getElementById("heroSlideQuoteInput").value =
+        slide ? slide.quoteText : "";
+
+    document.getElementById("heroSlideAuthorInput").value =
+        slide ? slide.quoteAuthor : "";
+
+    document.getElementById("heroSlideImageUpload").value = "";
+
+    toggleHeroSlideTypeFields();
+
+    document.getElementById("heroSlideFormModal").classList.add("show");
+
+}
+
+function toggleHeroSlideTypeFields(){
+
+    const type = document.getElementById("heroSlideTypeInput").value;
+
+    document.getElementById("heroImageFields").style.display =
+        type === "image" ? "block" : "none";
+
+    document.getElementById("heroVideoFields").style.display =
+        type === "video" ? "block" : "none";
+
+}
+
+async function submitHeroSlideForm(event){
+
+    event.preventDefault();
+
+    if(!currentUser || currentUser.role !== "ADMIN_SARPRAS"){
+        showToast("Hanya Admin Sarpras yang dapat mengubah Latar Beranda.");
+        return;
+    }
+
+    const type = document.getElementById("heroSlideTypeInput").value;
+
+    let imageUrl =
+        document.getElementById("heroSlideImageUrlInput").value.trim();
+
+    const uploadFile =
+        document.getElementById("heroSlideImageUpload").files[0];
+
+    if(type === "image" && uploadFile){
+
+        try{
+            imageUrl = await compressImage(uploadFile);
+        }catch(error){
+            console.error("compress hero image:",error);
+            showToast("Gagal memproses foto yang diunggah.");
+            return;
+        }
+
+    }
+
+    const videoUrl =
+        document.getElementById("heroSlideVideoUrlInput").value.trim();
+
+    const quoteText =
+        document.getElementById("heroSlideQuoteInput").value.trim();
+
+    const quoteAuthor =
+        document.getElementById("heroSlideAuthorInput").value.trim();
+
+    if(type === "image" && !imageUrl){
+        showToast("Isi link foto atau unggah foto terlebih dahulu.");
+        return;
+    }
+
+    if(type === "video" && !videoUrl){
+        showToast("Isi link video terlebih dahulu.");
+        return;
+    }
+
+    const slides = heroSettings.slides.slice();
+
+    if(editingHeroSlideId){
+
+        const idx = slides.findIndex(s=>s.id===editingHeroSlideId);
+
+        if(idx > -1){
+            slides[idx] = {
+                ...slides[idx],
+                type, imageUrl, videoUrl, quoteText, quoteAuthor
+            };
+        }
+
+    }else{
+
+        slides.push({
+            id:"hero_"+Date.now()+"_"+Math.floor(Math.random()*1000),
+            type, imageUrl, videoUrl, quoteText, quoteAuthor,
+            order: slides.length+1
+        });
+
+    }
+
+    heroSettings = normalizeHeroSettings({...heroSettings, slides});
+
+    const saved = await persistHeroSettings();
+
+    if(saved){
+        closeModal("heroSlideFormModal");
+    }
+
+}
+
+async function deleteHeroSlide(id){
+
+    if(!currentUser || currentUser.role !== "ADMIN_SARPRAS"){
+        return;
+    }
+
+    if(!confirm("Hapus slide ini dari Latar Beranda?")){
+        return;
+    }
+
+    const slides =
+        heroSettings.slides.filter(s=>s.id!==id);
+
+    heroSettings = normalizeHeroSettings({...heroSettings, slides});
+
+    await persistHeroSettings(false);
+
+}
+
+async function moveHeroSlide(id,direction){
+
+    if(!currentUser || currentUser.role !== "ADMIN_SARPRAS"){
+        return;
+    }
+
+    const slides = heroSettings.slides.slice();
+
+    const index = slides.findIndex(s=>s.id===id);
+    const target = index + direction;
+
+    if(index<0 || target<0 || target>=slides.length){
+        return;
+    }
+
+    const temp = slides[index];
+    slides[index] = slides[target];
+    slides[target] = temp;
+
+    heroSettings = normalizeHeroSettings({
+        ...heroSettings,
+        slides: slides.map((s,i)=>({...s,order:i+1}))
+    });
+
+    await persistHeroSettings(false);
+
+}
+
+async function toggleHeroEnabled(){
+
+    if(!currentUser || currentUser.role !== "ADMIN_SARPRAS"){
+        showToast("Hanya Admin Sarpras yang dapat mengubah Latar Beranda.");
+        refreshHeroSettingsUI();
+        return;
+    }
+
+    heroSettings.enabled =
+        document.getElementById("heroEnabledToggle").checked;
+
+    await persistHeroSettings(false);
+
+}
+
+async function updateHeroAutoplay(){
+
+    if(!currentUser || currentUser.role !== "ADMIN_SARPRAS"){
+        return;
+    }
+
+    const value =
+        Number(document.getElementById("heroAutoplaySeconds").value);
+
+    heroSettings.autoplaySeconds =
+        value > 0 ? value : 6;
+
+    await persistHeroSettings(false);
+
+}
+
+async function persistHeroSettings(showMessage=true){
+
+    if(!currentUser || currentUser.role !== "ADMIN_SARPRAS"){
+        showToast("Hanya Admin Sarpras yang dapat mengubah Latar Beranda.");
+        return false;
+    }
+
+    try{
+
+        await db.collection("appSettings")
+            .doc("hero")
+            .set({
+                enabled: heroSettings.enabled === true,
+                autoplaySeconds: heroSettings.autoplaySeconds,
+                slides: heroSettings.slides,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedBy: currentUser.name || "Admin Sarpras"
+            },{merge:true});
+
+        refreshHeroSettingsUI();
+        renderHeroBanner();
+
+        if(showMessage){
+            showToast("Latar Beranda berhasil disimpan.");
+        }
+
+        return true;
+
+    }catch(error){
+
+        console.error("save hero settings:",error);
+
+        showToast("Latar Beranda belum tersimpan. Periksa koneksi Firebase dan Security Rules.");
+
+        return false;
+    }
+
+}
+
+
+/* =========================================================
+   LATAR BERANDA (HERO SLIDES) — TAMPILAN BERANDA
+========================================================= */
+
+function toHeroVideoEmbedUrl(url){
+
+    if(!url){
+        return { isYoutube:false, url:"" };
+    }
+
+    const ytMatch =
+        url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([\w-]{6,})/);
+
+    if(ytMatch){
+        return {
+            isYoutube:true,
+            url:`https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&mute=1&loop=1&playlist=${ytMatch[1]}&controls=0&rel=0`
+        };
+    }
+
+    return { isYoutube:false, url:url };
+
+}
+
+function updateHeroOverlayText(){
+
+    const slide = (heroSettings.slides || [])[heroActiveIndex];
+
+    const quoteEl = document.getElementById("homeHeroQuoteText");
+    const authorEl = document.getElementById("homeHeroQuoteAuthor");
+
+    if(!quoteEl || !authorEl){
+        return;
+    }
+
+    if(slide && slide.quoteText){
+        quoteEl.textContent = slide.quoteText;
+        authorEl.textContent = slide.quoteAuthor || "";
+        quoteEl.style.display = "block";
+        authorEl.style.display = slide.quoteAuthor ? "block" : "none";
+    }else{
+        quoteEl.textContent = "";
+        authorEl.textContent = "";
+        quoteEl.style.display = "none";
+        authorEl.style.display = "none";
+    }
+
+}
+
+function renderHeroBanner(){
+
+    clearInterval(heroRotateTimer);
+    heroRotateTimer = null;
+
+    const banner = document.getElementById("homeHeroBanner");
+    const slidesContainer = document.getElementById("homeHeroSlides");
+
+    if(!banner || !slidesContainer){
+        return;
+    }
+
+    const slides = heroSettings.slides || [];
+
+    if(!heroSettings.enabled || !slides.length){
+        banner.style.display = "none";
+        slidesContainer.innerHTML = "";
+        return;
+    }
+
+    banner.style.display = "block";
+
+    slidesContainer.innerHTML = slides.map((slide,index)=>{
+
+        let media = "";
+
+        if(slide.type === "video"){
+
+            const embed = toHeroVideoEmbedUrl(slide.videoUrl);
+
+            media =
+                embed.isYoutube
+                    ? `<iframe src="${embed.url}" allow="autoplay;encrypted-media" allowfullscreen loading="lazy"></iframe>`
+                    : `<video src="${escapeHTML(slide.videoUrl)}" autoplay muted loop playsinline></video>`;
+
+        }else if(slide.imageUrl){
+
+            media = `<img src="${slide.imageUrl}" alt="" loading="lazy">`;
+
+        }
+
+        return `<div class="home-hero-slide ${index===0 ? "active" : ""}" data-index="${index}">${media}</div>`;
+
+    }).join("");
+
+    heroActiveIndex = 0;
+
+    updateHeroOverlayText();
+
+    if(slides.length > 1){
+
+        const intervalMs =
+            Math.max(3, heroSettings.autoplaySeconds || 6) * 1000;
+
+        heroRotateTimer = setInterval(()=>{
+
+            const slideEls =
+                slidesContainer.querySelectorAll(".home-hero-slide");
+
+            if(!slideEls.length){
+                return;
+            }
+
+            slideEls[heroActiveIndex].classList.remove("active");
+
+            heroActiveIndex = (heroActiveIndex + 1) % slideEls.length;
+
+            slideEls[heroActiveIndex].classList.add("active");
+
+            updateHeroOverlayText();
+
+        }, intervalMs);
+
+    }
+
+}
+
+
+/* =========================================================
    MASTER
 ========================================================= */
 
@@ -13702,6 +14423,9 @@ function refreshAll(){
 
     renderHome();
     refreshHomeSettingsUI();
+
+    renderHeroBanner();
+    refreshHeroSettingsUI();
 
     renderHomeGallery();
 
