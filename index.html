@@ -5541,7 +5541,10 @@ function gbGuest(soft){
     r.style.setProperty("--ink2", gbInk(s.b));
     const tabs = `${gbVisible().map(x => `<button type="button" class="gb-tab ${x.id === s.id ? "on" : ""}" role="tab" aria-selected="${x.id === s.id}" data-gb="t" data-id="${gbe(x.id)}">${gbe(x.emoji)} ${gbe(x.name)}</button>`).join("")}`;
     const hero = `<h1>${gbe(s.h)}</h1><p>${gbe(s.s)}</p>`;
-    if(soft && gbId("gbFlow")){ gbId("gbTabs").innerHTML = tabs; gbId("gbHero").innerHTML = hero; gbId("gbWallTitle").textContent = s.w; gbWall(); return; }
+    if(soft && gbId("gbFlow")){ gbId("gbTabs").innerHTML = tabs; gbId("gbHero").innerHTML = hero; gbId("gbWallTitle").textContent = s.w; gbWall();
+        if(!G.cat && !G.done) gbFlow();
+        else if(G.cat && !gbCat(G.cat)){ G.cat = null; gbFlow(); }
+        return; }
     r.innerHTML = `${G.err ? `<p class="gb-err" role="alert">${gbe(G.err)}</p>` : ""}<div class="gb-tabs" id="gbTabs" role="tablist">${tabs}</div>
     <div class="gb-hero" id="gbHero">${hero}</div>
     <div class="gb-grid"><div class="card" id="gbFlow"></div><div class="card"><h2 id="gbWallTitle" style="margin-bottom:12px">${gbe(s.w)}</h2><div class="gb-wall" id="gbWall" aria-live="polite"></div></div></div>`;
