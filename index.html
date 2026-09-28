@@ -1199,6 +1199,39 @@ tr:hover td{
     }
 }
 
+
+/* =========================================================
+   BUKU TAMU
+========================================================= */
+@media(min-width:761px){.role-grid{grid-template-columns:repeat(2,1fr)}}
+body.role-tamu .sidebar{display:none}
+body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
+#gbGuestRoot{--a:#0d6efd;--b:#0aa2c0;--ink:#fff}
+.gb-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px}
+.gb-tab{border:1px solid var(--border);background:#fff;border-radius:99px;padding:8px 14px;font-size:13px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.gb-tab.on{background:var(--a);color:var(--ink);border-color:transparent;font-weight:bold}
+.gb-hero{border-radius:var(--radius);padding:28px;margin-bottom:18px;color:var(--ink);background:linear-gradient(120deg,var(--a),var(--b))}
+.gb-hero h1{font-size:clamp(22px,4vw,34px);line-height:1.15;margin-bottom:8px}
+.gb-hero p{max-width:52ch;opacity:.92}
+.gb-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:18px;align-items:start}
+@media(max-width:820px){.gb-grid{grid-template-columns:1fr}}
+.gb-cats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.gb-cat{border:1px solid var(--border);background:#fff;border-radius:12px;padding:14px;text-align:left;cursor:pointer;font-family:inherit;transition:transform .15s,border-color .15s}
+.gb-cat:hover{border-color:var(--a);transform:translateY(-2px)}
+.gb-cat b{display:block;font-size:22px;margin-bottom:4px}.gb-cat span{font-size:13px;font-weight:bold}
+.gb-cat i{display:block;font-style:normal;color:var(--muted);font-size:11px;margin-top:2px}
+.gb-wall{display:grid;gap:10px;max-height:520px;overflow:auto}
+.gb-msg{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--light);font-size:14px;overflow-wrap:anywhere}
+.gb-msg small{display:flex;justify-content:space-between;gap:8px;margin-bottom:5px;color:var(--muted)}
+.gb-done{text-align:center;padding:14px 0}.gb-done b{font-size:44px;display:block}
+.gb-err{color:var(--danger);font-size:13px;margin-top:8px}
+.gb-hint{color:var(--muted);font-size:12px;margin:4px 0 12px}
+.gb-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:14px 0}
+.gb-stat{border:1px solid var(--border);border-radius:12px;padding:12px}.gb-stat b{font-size:22px;display:block}.gb-stat span{font-size:12px;color:var(--muted)}
+.gb-row{display:flex;gap:10px;flex-wrap:wrap}.gb-row>*{flex:1;min-width:140px}
+.gb-ce{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px}
+.gb-dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:3px;vertical-align:middle}
+.gb-tab:focus-visible,.gb-cat:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 </style>
 </head>
 
@@ -1238,6 +1271,12 @@ tr:hover td{
                      onclick="selectRole('siswa')">
                     <div class="icon">🎓</div>
                     <strong>Siswa</strong>
+                </div>
+
+                <div class="role-card" id="roleTamu"
+                     onclick="selectRole('tamu')">
+                    <div class="icon">📖</div>
+                    <strong>Tamu</strong>
                 </div>
 
             </div>
@@ -1291,6 +1330,12 @@ tr:hover td{
                     🎓 Tidak perlu password, langsung klik "Masuk ke SIB CARE".
                 </div>
 
+            </div>
+
+            <div class="password-box" id="tamuPasswordBox">
+                <div class="form-group" style="background:var(--secondary);border-radius:10px;padding:12px 14px;color:var(--primary-dark);font-size:13px;font-weight:bold;">
+                    📖 Tidak perlu password, klik "Masuk" untuk mengisi Buku Tamu.
+                </div>
             </div>
 
             <div id="loginError" class="login-error">
@@ -1474,6 +1519,12 @@ tr:hover td{
                  data-page="home-settings"
                  onclick="showPage('home-settings')">
                 🏠 Pengaturan Beranda
+            </div>
+
+            <div class="nav-item"
+                 data-page="guestbook-admin"
+                 onclick="showPage('guestbook-admin')">
+                📖 Buku Tamu
             </div>
 
         </div>
@@ -3184,6 +3235,21 @@ tr:hover td{
 
             </div>
 
+        </section>
+
+    
+        <!-- BUKU TAMU: tampilan peran Tamu -->
+        <section id="page-guestbook" class="page">
+            <div id="gbGuestRoot"></div>
+        </section>
+
+        <!-- BUKU TAMU: pengelolaan Admin -->
+        <section id="page-guestbook-admin" class="page">
+            <div class="page-header">
+                <h1>📖 Buku Tamu</h1>
+                <p>Kelola sesi, teks, kategori, dan daftar tamu. Perubahan langsung tampil di menu Tamu.</p>
+            </div>
+            <div id="gbAdminRoot"></div>
         </section>
 
     </main>
@@ -5412,6 +5478,225 @@ function listenToData(){
 
 
 /* =========================================================
+   BUKU TAMU  (peran Tamu + pengelolaan oleh Admin)
+   Koleksi Firestore:
+   - guestbook_sessions        sesi tematik (Admin tulis)
+   - guestbook_settings/main   teks & kategori yang bisa diedit Admin
+   - guestbook_entries         data lengkap tamu (hanya Admin baca)
+   - guestbook_wall            pesan publik tanpa detail pribadi
+========================================================= */
+const TAMU_AUTO_ACCESS_CODE = "tamu-akses-publik-2026";
+const GB_TXT = {pick:"Kamu datang sebagai siapa?",back:"‹ Ganti kategori",lname:"Nama",err:"Isi nama dulu, ya.",send:"Kirim ke Buku Tamu",thT:"Terima kasih sudah berkunjung!",thS:"Pesanmu sudah muncul di dinding ucapan.",again:"Isi untuk tamu lain",empty:"Belum ada pesan. Jadilah yang pertama.",wait:"Tunggu sebentar sebelum mengirim lagi."};
+const GB_CATS = [
+ {id:"ind",e:"🙋",n:"Individu / Orang Tua",d:"Kunjungan pribadi",f:[{l:"Nama siswa yang dikunjungi",t:"text"}]},
+ {id:"alu",e:"🎓",n:"Alumni",d:"Lulusan sekolah",f:[{l:"Angkatan",t:"number"},{l:"Kampus / profesi sekarang",t:"text"}]},
+ {id:"org",e:"🏛️",n:"Organisasi / Instansi",d:"Rombongan lembaga",f:[{l:"Nama lembaga",t:"text"},{l:"Jumlah rombongan",t:"number"}]},
+ {id:"mit",e:"🤝",n:"Mitra / Vendor",d:"Kerja sama & layanan",f:[{l:"Perusahaan",t:"text"},{l:"Bertemu dengan siapa",t:"text"}]},
+ {id:"sis",e:"🧑‍🏫",n:"Siswa / Guru",d:"Warga sekolah",f:[{l:"Kelas / unit",t:"text"}]}];
+const GB_UMUM = {id:"umum",name:"Umum",emoji:"🏫",h:"Selamat datang di Sekolah Indonesia Bangkok",s:"Tinggalkan jejakmu di buku tamu kami. Hanya butuh 30 detik.",q:"Pesan atau kesan singkat",w:"Dinding Ucapan",a:"#0d6efd",b:"#0aa2c0",on:true};
+const G = {ses:[],ent:[],wall:[],set:{},t:"umum",cat:null,done:false,tab:"ses",edit:null,draft:null,f:"all",err:"",unsub:[],last:0};
+const gbe = escapeHTML;
+const gbId = id => document.getElementById(id);
+const gbTx = () => Object.assign({}, GB_TXT, G.set.texts || {});
+const gbCats = () => Array.isArray(G.set.cats) && G.set.cats.length ? G.set.cats : GB_CATS;
+const gbCat = id => gbCats().find(c => c.id === id);
+const gbCol = v => /^#[0-9a-f]{6}$/i.test(v) ? v : "#0d6efd";
+const gbInk = h => { h = gbCol(h); const n = i => parseInt(h.substr(i, 2), 16); return (n(1)*299 + n(3)*587 + n(5)*114)/1000 > 150 ? "#0b1226" : "#ffffff"; };
+const gbToday = () => new Date(Date.now() - new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const gbWhen = t => new Date(t).toLocaleString("id-ID", {dateStyle:"short", timeStyle:"short"});
+const gbSessions = () => [Object.assign({}, GB_UMUM, G.ses.find(s => s.id === "umum") || {})].concat(G.ses.filter(s => s.id !== "umum").sort((x,y) => (y.from||"").localeCompare(x.from||"")));
+const gbVisible = () => { const d = gbToday(); return gbSessions().filter(s => s.id === "umum" || (s.on !== false && (!s.from || d >= s.from) && (!s.to || d <= s.to))); };
+const gbCur = () => gbVisible().find(s => s.id === G.t) || gbSessions()[0];
+const gbSname = id => (gbSessions().find(s => s.id === id) || {name:"(sesi dihapus)"}).name;
+const gbVal = id => { const el = gbId(id); return el ? el.value.trim() : ""; };
+const gbFText = f => (f || []).map(x => x.l + (x.t === "number" ? "|angka" : "")).join("\n");
+const gbParseF = s => s.split("\n").map(x => x.trim()).filter(Boolean).map(x => { const m = x.match(/^(.*?)\s*\|\s*(angka|number)$/i); return {l:(m ? m[1] : x).slice(0,60), t:m ? "number" : "text"}; });
+
+function gbStart(){
+    gbStop();
+    const w = (name, cb, ref) => G.unsub.push((ref || db.collection(name)).onSnapshot(
+        s => { G.err = ""; cb(s.docs.map(d => ({id:d.id, ...d.data()}))); },
+        e => { console.error(name, e); G.err = "Data buku tamu tidak dapat dimuat. Periksa aturan Firestore."; gbRender(); }));
+    w("guestbook_sessions", a => { G.ses = a; gbRender(true); });
+    w("guestbook_settings", a => { G.set = a.find(x => x.id === "main") || {}; gbRender(true); });
+    w("guestbook_wall", a => { G.wall = a; gbWall(); }, db.collection("guestbook_wall").orderBy("ts","desc").limit(150));
+    if(isAdmin()) w("guestbook_entries", a => { G.ent = a; gbRender(true); }, db.collection("guestbook_entries").orderBy("ts","desc").limit(1000));
+}
+function gbStop(){
+    G.unsub.forEach(f => f());
+    Object.assign(G, {unsub:[], ses:[], ent:[], wall:[], set:{}, cat:null, done:false, edit:null, draft:null, t:"umum", err:""});
+}
+function gbRender(soft){
+    if(!currentUser) return;
+    if(currentUser.role === "TAMU") gbGuest(soft);
+    else if(isAdmin() && !G.edit && G.tab !== "teks") gbAdmin();
+    else if(isAdmin() && G.err) gbAdmin();
+}
+
+/* ---------- TAMU ---------- */
+function gbGuest(soft){
+    const r = gbId("gbGuestRoot"); if(!r) return;
+    const s = gbCur();
+    r.style.setProperty("--a", gbCol(s.a)); r.style.setProperty("--b", gbCol(s.b)); r.style.setProperty("--ink", gbInk(s.a));
+    r.style.setProperty("--ink2", gbInk(s.b));
+    const tabs = `${gbVisible().map(x => `<button type="button" class="gb-tab ${x.id === s.id ? "on" : ""}" role="tab" aria-selected="${x.id === s.id}" data-gb="t" data-id="${gbe(x.id)}">${gbe(x.emoji)} ${gbe(x.name)}</button>`).join("")}`;
+    const hero = `<h1>${gbe(s.h)}</h1><p>${gbe(s.s)}</p>`;
+    if(soft && gbId("gbFlow")){ gbId("gbTabs").innerHTML = tabs; gbId("gbHero").innerHTML = hero; gbId("gbWallTitle").textContent = s.w; gbWall(); return; }
+    r.innerHTML = `${G.err ? `<p class="gb-err" role="alert">${gbe(G.err)}</p>` : ""}<div class="gb-tabs" id="gbTabs" role="tablist">${tabs}</div>
+    <div class="gb-hero" id="gbHero">${hero}</div>
+    <div class="gb-grid"><div class="card" id="gbFlow"></div><div class="card"><h2 id="gbWallTitle" style="margin-bottom:12px">${gbe(s.w)}</h2><div class="gb-wall" id="gbWall" aria-live="polite"></div></div></div>`;
+    gbFlow(); gbWall();
+}
+function gbFlow(){
+    const f = gbId("gbFlow"); if(!f) return;
+    const s = gbCur(), T = gbTx();
+    if(G.done){ f.innerHTML = `<div class="gb-done"><b>✅</b><h2>${gbe(T.thT)}</h2><p style="color:var(--muted);margin:8px 0 14px">${gbe(T.thS)}</p><button type="button" class="btn btn-primary" style="width:100%" data-gb="again">${gbe(T.again)}</button></div>`; return; }
+    if(!G.cat){ f.innerHTML = `<h2 style="margin-bottom:14px">${gbe(T.pick)}</h2><div class="gb-cats">${gbCats().map(c => `<button type="button" class="gb-cat" data-gb="cat" data-id="${gbe(c.id)}"><b>${gbe(c.e)}</b><span>${gbe(c.n)}</span><i>${gbe(c.d)}</i></button>`).join("")}</div>`; return; }
+    const c = gbCat(G.cat); if(!c){ G.cat = null; return gbFlow(); }
+    f.innerHTML = `<button type="button" class="btn btn-secondary btn-sm" data-gb="cats">${gbe(T.back)}</button> <span class="badge badge-primary">${gbe(c.e)} ${gbe(c.n)}</span>
+    <form id="gbF" novalidate style="margin-top:12px"><div class="form-group"><label for="gbN">${gbe(T.lname)}</label><input class="form-control" id="gbN" autocomplete="name" maxlength="80"></div>
+    ${(c.f || []).map((x,i) => `<div class="form-group"><label for="gbX${i}">${gbe(x.l)}</label><input class="form-control" id="gbX${i}" type="${x.t === "number" ? "number" : "text"}" ${x.t === "number" ? 'inputmode="numeric" min="0" max="99999"' : 'maxlength="80"'}></div>`).join("")}
+    <div class="form-group"><label for="gbM">${gbe(s.q)}</label><textarea class="form-control" id="gbM" rows="3" maxlength="400"></textarea></div>
+    <p class="gb-err" id="gbEr" role="alert" hidden></p><button class="btn btn-primary" type="submit" style="width:100%">${gbe(T.send)}</button></form>`;
+}
+function gbWall(){
+    const w = gbId("gbWall"); if(!w) return;
+    const s = gbCur(), T = gbTx();
+    const l = G.wall.filter(e => e.sid === s.id && !e.hide && e.m).sort((x,y) => y.ts - x.ts).slice(0,60);
+    w.innerHTML = l.length ? l.map(e => `<div class="gb-msg"><small><strong>${gbe(e.n)}</strong><span class="badge badge-secondary">${gbe(e.ce)} ${gbe(e.cn)}</span></small>${gbe(e.m)}</div>`).join("") : `<div class="gb-msg">${gbe(T.empty)}</div>`;
+}
+function gbSubmit(){
+    const T = gbTx(), er = gbId("gbEr"), n = gbVal("gbN");
+    const fail = t => { er.textContent = t; er.hidden = false; };
+    if(!n){ fail(T.err); gbId("gbN").focus(); return; }
+    if(Date.now() - G.last < 10000){ fail(T.wait); return; }
+    const c = gbCat(G.cat) || {}, s = gbCur(), ts = Date.now(), id = "e" + ts + Math.random().toString(36).slice(2,6), m = gbVal("gbM");
+    const x = (c.f || []).map((f,i) => ({l:f.l, v:gbVal("gbX"+i)})).filter(o => o.v);
+    const base = {id, sid:s.id, cn:c.n || "", ce:c.e || "", n, m, ts, hide:false};
+    const btn = gbId("gbF").querySelector("[type=submit]"); btn.disabled = true;
+    const b = db.batch();
+    b.set(db.collection("guestbook_entries").doc(id), Object.assign({}, base, {cid:c.id || "", x}));
+    if(m) b.set(db.collection("guestbook_wall").doc(id), base);
+    b.commit().then(() => { G.last = Date.now(); G.done = true; gbFlow(); })
+     .catch(err => { console.error(err); fail("Gagal mengirim. Periksa koneksi lalu coba lagi."); btn.disabled = false; });
+}
+
+/* ---------- ADMIN ---------- */
+const gbIn = (id, l, v, ml = 120) => `<div class="form-group"><label for="${id}">${l}</label><input class="form-control" id="${id}" value="${gbe(v)}" maxlength="${ml}"></div>`;
+function gbAdmin(){
+    const r = gbId("gbAdminRoot"); if(!r || !isAdmin()) return;
+    const tabs = [["ses","Sesi"],["tamu","Daftar Tamu"],["teks","Teks & Kategori"]];
+    r.innerHTML = `${G.err ? `<p class="gb-err" role="alert">${gbe(G.err)}</p>` : ""}<div class="gb-tabs">${tabs.map(t => `<button type="button" class="btn btn-sm ${G.tab === t[0] ? "btn-primary" : "btn-secondary"}" data-gb="tab" data-id="${t[0]}">${t[1]}</button>`).join("")}</div>${G.tab === "ses" ? gbSesTab() : G.tab === "tamu" ? gbTamuTab() : gbTeksTab()}`;
+}
+function gbSesTab(){
+    const rows = gbSessions().map(s => `<tr><td><span class="gb-dot" style="background:${gbCol(s.a)}"></span><span class="gb-dot" style="background:${gbCol(s.b)}"></span>${gbe(s.emoji)} ${gbe(s.name)}${s.on === false ? ' <span class="badge badge-secondary">nonaktif</span>' : ""}</td><td>${s.id === "umum" ? "Selalu aktif" : gbe((s.from || "…") + " s.d. " + (s.to || "…"))}</td><td>${G.ent.filter(x => x.sid === s.id).length}</td><td><button type="button" class="btn btn-secondary btn-sm" data-gb="edit" data-id="${gbe(s.id)}">Ubah</button>${s.id !== "umum" ? ` <button type="button" class="btn btn-secondary btn-sm" data-gb="on" data-id="${gbe(s.id)}">${s.on === false ? "Aktifkan" : "Nonaktifkan"}</button> <button type="button" class="btn btn-danger btn-sm" data-gb="sdel" data-id="${gbe(s.id)}">Hapus</button>` : ""}</td></tr>`).join("");
+    const list = `<div class="card"><h2 style="margin-bottom:12px">Sesi buku tamu</h2><div class="table-wrap"><table><thead><tr><th>Sesi</th><th>Periode</th><th>Tamu</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div><button type="button" class="btn btn-primary" style="margin-top:14px" data-gb="new">+ Buat sesi tematik</button></div>`;
+    const v = G.edit; if(!v) return list;
+    return list + `<form class="card" id="gbSF" novalidate><h2 style="margin-bottom:12px">${v.isNew ? "Sesi baru" : "Ubah sesi"}</h2>
+    <div class="gb-row"><div style="flex:3">${gbIn("f_name","Nama sesi (contoh: Market Day)",v.name,40)}</div><div>${gbIn("f_emoji","Emoji",v.emoji,4)}</div></div>
+    ${gbIn("f_h","Judul sambutan",v.h)}${gbIn("f_s","Kalimat pendukung",v.s,200)}${gbIn("f_q","Pertanyaan khusus untuk tamu",v.q)}${gbIn("f_w","Judul dinding ucapan",v.w,40)}
+    <div class="gb-row"><div class="form-group"><label for="f_a">Warna utama</label><input class="form-control" id="f_a" type="color" value="${gbCol(v.a)}"></div><div class="form-group"><label for="f_b">Warna kedua</label><input class="form-control" id="f_b" type="color" value="${gbCol(v.b)}"></div></div>
+    ${v.id === "umum" ? "" : `<div class="gb-row"><div class="form-group"><label for="f_from">Mulai</label><input class="form-control" id="f_from" type="date" value="${gbe(v.from || "")}"></div><div class="form-group"><label for="f_to">Selesai</label><input class="form-control" id="f_to" type="date" value="${gbe(v.to || "")}"></div></div>`}
+    <button class="btn btn-primary" type="submit">Simpan sesi</button> <button class="btn btn-secondary" type="button" data-gb="cancel">Batal</button></form>`;
+}
+function gbTamuTab(){
+    const l = G.ent.filter(e => G.f === "all" || e.sid === G.f).sort((x,y) => y.ts - x.ts);
+    const det = e => (e.x || []).map(o => gbe(o.l + ": " + o.v)).join(" · ");
+    return `<div class="card"><div class="gb-row" style="max-width:460px;align-items:center"><select class="form-control" id="gbFs" aria-label="Filter sesi"><option value="all">Semua sesi</option>${gbSessions().map(s => `<option value="${gbe(s.id)}" ${G.f === s.id ? "selected" : ""}>${gbe(s.name)}</option>`).join("")}</select><button type="button" class="btn btn-success btn-sm" data-gb="csv" style="flex:0 0 auto">Unduh CSV</button></div>
+    <div class="gb-stats"><div class="gb-stat"><b>${l.length}</b><span>Total tamu</span></div>${gbCats().map(c => `<div class="gb-stat"><b>${l.filter(e => e.cid === c.id).length}</b><span>${gbe(c.n)}</span></div>`).join("")}</div>
+    <div class="table-wrap"><table><thead><tr><th>Waktu</th><th>Nama</th><th>Kategori</th><th>Sesi</th><th>Detail & pesan</th><th>Aksi</th></tr></thead><tbody>${l.map(e => `<tr><td>${gbWhen(e.ts)}</td><td>${gbe(e.n)}</td><td>${gbe(e.ce)} ${gbe(e.cn)}</td><td>${gbe(gbSname(e.sid))}</td><td>${det(e)}<br><span style="color:var(--muted)">${gbe(e.m)}</span></td><td><button type="button" class="btn btn-secondary btn-sm" data-gb="hide" data-id="${gbe(e.id)}">${e.hide ? "Tampilkan" : "Sembunyikan"}</button> <button type="button" class="btn btn-danger btn-sm" data-gb="edel" data-id="${gbe(e.id)}">Hapus</button></td></tr>`).join("") || `<tr><td colspan="6" style="color:var(--muted)">Belum ada tamu.</td></tr>`}</tbody></table></div></div>`;
+}
+function gbTeksTab(){
+    if(!G.draft) G.draft = gbCats().map(c => ({id:c.id, e:c.e, n:c.n, d:c.d, f:(c.f || []).map(x => ({l:x.l, t:x.t}))}));
+    const T = gbTx();
+    const lab = {pick:"Pertanyaan pilih kategori",back:"Tombol kembali",lname:"Label kolom Nama",err:"Pesan jika nama kosong",send:"Tombol kirim",thT:"Judul setelah terkirim",thS:"Kalimat setelah terkirim",again:"Tombol isi lagi",empty:"Teks saat dinding kosong",wait:"Pesan jika kirim terlalu cepat"};
+    return `<form class="card" id="gbTF" novalidate><h2>Teks halaman Tamu</h2><p class="gb-hint">Semua tulisan yang dilihat tamu bisa diubah di sini. Judul sambutan, warna, dan pertanyaan per sesi diubah di tab Sesi.</p>
+    <div class="gb-row">${Object.keys(lab).map(k => gbIn("gbT_" + k, lab[k], T[k])).join("")}</div>
+    <h2 style="margin-top:18px">Kategori tamu</h2><p class="gb-hint">Kolom tambahan: satu baris untuk satu kolom. Tulis <b>|angka</b> di akhir baris untuk kolom angka (contoh: Angkatan|angka).</p>
+    ${G.draft.map((c,i) => `<div class="gb-ce"><div class="gb-row"><div class="form-group" style="flex:0 0 90px;min-width:90px"><label>Emoji</label><input class="form-control" data-ci="${i}" data-k="e" value="${gbe(c.e)}" maxlength="4"></div><div class="form-group" style="flex:3"><label>Nama kategori</label><input class="form-control" data-ci="${i}" data-k="n" value="${gbe(c.n)}" maxlength="40"></div><div class="form-group" style="flex:3"><label>Keterangan singkat</label><input class="form-control" data-ci="${i}" data-k="d" value="${gbe(c.d)}" maxlength="50"></div></div>
+    <div class="form-group"><label>Kolom tambahan</label><textarea class="form-control" rows="3" data-ci="${i}" data-k="f">${gbe(gbFText(c.f))}</textarea></div><button type="button" class="btn btn-danger btn-sm" data-gb="cdel" data-id="${i}">Hapus kategori</button></div>`).join("")}
+    <button type="button" class="btn btn-secondary btn-sm" data-gb="cadd">+ Tambah kategori</button>
+    <div style="margin-top:16px"><button class="btn btn-primary" type="submit">Simpan teks & kategori</button> <button type="button" class="btn btn-secondary" data-gb="treset">Kembalikan bawaan</button></div></form>`;
+}
+function gbSync(){ document.querySelectorAll("#gbTF [data-ci]").forEach(el => { const c = G.draft[+el.dataset.ci], k = el.dataset.k; if(c) c[k] = k === "f" ? gbParseF(el.value) : el.value; }); }
+function gbSaveTexts(){
+    gbSync();
+    const cats = G.draft.map((c,i) => ({id:c.id || "c" + Date.now() + i, e:(c.e || "").trim() || "📌", n:(c.n || "").trim(), d:(c.d || "").trim(), f:c.f}));
+    if(!cats.length || cats.some(c => !c.n)){ showToast("Setiap kategori harus punya nama (minimal 1 kategori)."); return; }
+    const texts = {}; Object.keys(GB_TXT).forEach(k => { texts[k] = gbVal("gbT_" + k) || GB_TXT[k]; });
+    G.draft = null; G.set = Object.assign({}, G.set, {texts, cats});
+    db.collection("guestbook_settings").doc("main").set({id:"main", texts, cats}, {merge:true})
+      .then(() => showToast("Teks & kategori disimpan.")).catch(e => { console.error(e); showToast("Gagal menyimpan."); });
+    gbAdmin();
+}
+function gbSaveSession(){
+    const e = G.edit, name = gbVal("f_name");
+    if(!name){ gbId("f_name").focus(); showToast("Nama sesi wajib diisi."); return; }
+    const from = gbVal("f_from"), to = gbVal("f_to");
+    if(from && to && from > to){ showToast("Tanggal selesai harus setelah tanggal mulai."); return; }
+    const o = {id:e.isNew ? "s" + Date.now() : e.id, name, emoji:gbVal("f_emoji") || "📖", h:gbVal("f_h") || name, s:gbVal("f_s"), q:gbVal("f_q") || GB_UMUM.q, w:gbVal("f_w") || GB_UMUM.w, a:gbCol(gbVal("f_a")), b:gbCol(gbVal("f_b")), from, to, on:e.on !== false};
+    db.collection("guestbook_sessions").doc(o.id).set(o).then(() => showToast("Sesi disimpan.")).catch(x => { console.error(x); showToast("Gagal menyimpan."); });
+    G.edit = null; gbAdmin();
+}
+function gbCsv(){
+    const q = v => { v = String(v ?? ""); if(/^[=+\-@\t\r]/.test(v)) v = "'" + v; return '"' + v.replace(/"/g, '""') + '"'; };
+    const rows = [["Waktu","Sesi","Kategori","Nama","Detail","Pesan"]].concat(G.ent.filter(e => G.f === "all" || e.sid === G.f).sort((x,y) => x.ts - y.ts).map(e => [gbWhen(e.ts), gbSname(e.sid), e.cn, e.n, (e.x || []).map(o => o.l + ": " + o.v).join(" | "), e.m]));
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + rows.map(r => r.map(q).join(",")).join("\n")], {type:"text/csv"}));
+    a.download = "buku-tamu.csv"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function gbAction(a, id){
+    const guestActs = ["t","cat","cats","again"];
+    if(!guestActs.includes(a) && !isAdmin()) return;
+    const S = "guestbook_sessions", E = "guestbook_entries", W = "guestbook_wall", fail = x => { console.error(x); showToast("Aksi gagal. Coba lagi."); };
+    if(a === "t"){ G.t = id; G.cat = null; G.done = false; gbGuest(); }
+    else if(a === "cat"){ G.cat = id; gbFlow(); const n = gbId("gbN"); if(n) n.focus(); }
+    else if(a === "cats"){ G.cat = null; gbFlow(); }
+    else if(a === "again"){ G.done = false; G.cat = null; gbFlow(); }
+    else if(a === "tab"){ G.tab = id; G.edit = null; G.draft = null; gbAdmin(); }
+    else if(a === "new"){ G.edit = {isNew:true, name:"", emoji:"🎉", h:"", s:"", q:GB_UMUM.q, w:GB_UMUM.w, a:"#ff5d6c", b:"#f5b83d"}; gbAdmin(); }
+    else if(a === "edit"){ G.edit = Object.assign({}, gbSessions().find(s => s.id === id)); gbAdmin(); }
+    else if(a === "cancel"){ G.edit = null; gbAdmin(); }
+    else if(a === "on"){ const s = gbSessions().find(x => x.id === id); db.collection(S).doc(id).set(Object.assign({}, s, {on:s.on === false})).catch(fail); }
+    else if(a === "sdel"){ if(confirm("Hapus sesi ini? Data tamunya tetap tersimpan.")) db.collection(S).doc(id).delete().catch(fail); }
+    else if(a === "hide"){ const e = G.ent.find(x => x.id === id); if(!e) return; const h = !e.hide, b = db.batch();
+        b.update(db.collection(E).doc(id), {hide:h});
+        if(e.m) b.set(db.collection(W).doc(id), {id, sid:e.sid, cn:e.cn || "", ce:e.ce || "", n:e.n, m:e.m, ts:e.ts, hide:h}); b.commit().catch(fail); }
+    else if(a === "edel"){ if(confirm("Hapus data tamu ini secara permanen?")){ const b = db.batch(); b.delete(db.collection(E).doc(id)); b.delete(db.collection(W).doc(id)); b.commit().catch(fail); } }
+    else if(a === "csv") gbCsv();
+    else if(a === "cadd"){ gbSync(); G.draft.push({id:"", e:"📌", n:"", d:"", f:[]}); gbAdmin(); }
+    else if(a === "cdel"){ gbSync(); if(G.draft.length < 2){ showToast("Minimal harus ada 1 kategori."); return; } G.draft.splice(+id, 1); gbAdmin(); }
+    else if(a === "treset"){ if(confirm("Kembalikan semua teks dan kategori ke bawaan?")){ G.draft = null; G.set = Object.assign({}, G.set, {texts:{}, cats:null});
+        db.collection("guestbook_settings").doc("main").set({id:"main", texts:firebase.firestore.FieldValue.delete(), cats:firebase.firestore.FieldValue.delete()}, {merge:true}).then(() => showToast("Dikembalikan ke bawaan.")).catch(fail); gbAdmin(); } }
+}
+document.addEventListener("click", ev => {
+    const b = ev.target.closest("[data-gb]"); if(!b || !currentUser) return;
+    gbAction(b.dataset.gb, b.dataset.id);
+});
+document.addEventListener("change", ev => { if(ev.target.id === "gbFs" && isAdmin()){ G.f = ev.target.value; gbAdmin(); } });
+document.addEventListener("submit", ev => {
+    const id = ev.target.id;
+    if(id !== "gbF" && id !== "gbSF" && id !== "gbTF") return;
+    ev.preventDefault();
+    if(id === "gbF") gbSubmit();
+    else if(!isAdmin()) return;
+    else if(id === "gbSF") gbSaveSession();
+    else gbSaveTexts();
+});
+
+/* Login Tamu: bila akun belum ada di Firebase Authentication, dibuat otomatis sekali. */
+async function gbSignIn(role, account, password){
+    try{
+        return await firebaseAuth.signInWithEmailAndPassword(account.email, password);
+    }catch(e){
+        if(role === "tamu" && ["auth/user-not-found","auth/invalid-credential","auth/invalid-login-credentials"].includes(e.code)){
+            return await firebaseAuth.createUserWithEmailAndPassword(account.email, password);
+        }
+        throw e;
+    }
+}
+
+
+/* =========================================================
    LOGIN ROLE
 ========================================================= */
 
@@ -5426,7 +5711,7 @@ function selectRole(role){
         });
 
 
-    ["adminPasswordBox","guruPasswordBox","siswaPasswordBox"]
+    ["adminPasswordBox","guruPasswordBox","siswaPasswordBox","tamuPasswordBox"]
         .forEach(id=>{
             document
                 .getElementById(id)
@@ -5466,6 +5751,11 @@ function selectRole(role){
 
     }
 
+    if(role === "tamu"){
+        document.getElementById("roleTamu").classList.add("selected");
+        document.getElementById("tamuPasswordBox").classList.add("show");
+    }
+
     document
         .getElementById("loginError")
         .style.display="none";
@@ -5488,6 +5778,11 @@ const ROLE_ACCOUNTS = {
         email:"siswa@sibcare-app.internal",
         name:"Siswa",
         role:"SISWA"
+    },
+    tamu:{
+        email:"tamu@sibcare-app.internal",
+        name:"Tamu",
+        role:"TAMU"
     }
 };
 
@@ -5517,9 +5812,9 @@ async function login(){
 
     let password;
 
-    if(selectedRole === "siswa"){
+    if(selectedRole === "siswa" || selectedRole === "tamu"){
 
-        password = SISWA_AUTO_ACCESS_CODE;
+        password = selectedRole === "tamu" ? TAMU_AUTO_ACCESS_CODE : SISWA_AUTO_ACCESS_CODE;
 
     }else{
 
@@ -5557,10 +5852,7 @@ async function login(){
     try{
 
         const credential =
-            await firebaseAuth.signInWithEmailAndPassword(
-                account.email,
-                password
-            );
+            await gbSignIn(selectedRole, account, password);
 
         currentUser = {
             name:account.name,
@@ -5570,7 +5862,12 @@ async function login(){
 
         firebaseReady = true;
 
-        listenToData();
+        if(account.role === "TAMU"){
+            gbStart();
+        }else{
+            if(account.role === "ADMIN_SARPRAS") gbStart();
+            listenToData();
+        }
 
     }catch(error){
 
@@ -5666,6 +5963,13 @@ async function login(){
     }
 
 
+    document.body.classList.toggle("role-tamu", currentUser.role === "TAMU");
+
+    if(currentUser.role === "TAMU"){
+        showPage("guestbook");
+        return;
+    }
+
     showPage("home");
 
     refreshAll();
@@ -5685,6 +5989,10 @@ function logout(){
 
     firebaseReady = false;
 
+    gbStop();
+
+    document.body.classList.remove("role-tamu");
+
     currentUser = null;
 
     selectedRole = null;
@@ -5703,7 +6011,7 @@ function logout(){
             card.classList.remove("selected");
         });
 
-    ["adminPasswordBox","guruPasswordBox","siswaPasswordBox"]
+    ["adminPasswordBox","guruPasswordBox","siswaPasswordBox","tamuPasswordBox"]
         .forEach(id=>{
             document
                 .getElementById(id)
@@ -5721,6 +6029,15 @@ function showPage(page){
 
     if(page === "home-settings" && (!currentUser || currentUser.role !== "ADMIN_SARPRAS")){
         showToast("Menu Pengaturan Beranda hanya dapat diakses Admin Sarpras.");
+        page = "home";
+    }
+
+    if(currentUser && currentUser.role === "TAMU"){
+        page = "guestbook";
+    }
+
+    if(page === "guestbook-admin" && !isAdmin()){
+        showToast("Menu Buku Tamu hanya dapat diakses Admin Sarpras.");
         page = "home";
     }
 
@@ -5750,7 +6067,14 @@ function showPage(page){
         });
 
 
+    if(currentUser && currentUser.role === "TAMU"){
+        gbRender();
+        return;
+    }
+
     refreshAll();
+
+    if(page === "guestbook-admin") gbAdmin();
 
 }
 
