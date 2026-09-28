@@ -1232,6 +1232,9 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
 .gb-ce{border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px}
 .gb-dot{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:3px;vertical-align:middle}
 .gb-tab:focus-visible,.gb-cat:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+.bm-chips{display:flex;gap:6px;flex-wrap:wrap}
+.bm-bar{display:flex;gap:6px;flex-wrap:wrap}
 </style>
 </head>
 
@@ -1581,8 +1584,7 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
                         Peminjaman Sarana
                     </h2>
                     <p style="color:var(--muted);font-size:13px;">
-                        Pinjam dan kembalikan iPad/laptop untuk
-                        kebutuhan jam pelajaran.
+                        Pinjam dan kembalikan sarana, ruangan, dan barang sekolah.
                     </p>
                 </div>
 
@@ -1948,18 +1950,18 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
             <div class="page-header">
                 <h1>Peminjaman Sarana</h1>
                 <p>
-                    Sirkulasi peminjaman iPad / laptop untuk
-                    kebutuhan pembelajaran di jam pelajaran.
+                    Sirkulasi peminjaman sarana, ruangan, dan barang sekolah
+                    untuk kebutuhan pembelajaran maupun kegiatan.
                 </p>
             </div>
 
             <div class="grid grid-3" style="margin-bottom:18px;">
 
                 <div class="card stat-card">
-                    <div class="stat-icon">💻</div>
+                    <div class="stat-icon">📦</div>
                     <div>
                         <h3 id="borrowStatTotal">0</h3>
-                        <p>Total Perangkat</p>
+                        <p>Total Barang / Ruangan</p>
                     </div>
                 </div>
 
@@ -2004,34 +2006,32 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
                         </div>
 
                         <div class="form-group">
-                            <label>Kelas</label>
+                            <label>Kelas (opsional)</label>
                             <input
                                 type="text"
                                 id="borrowClass"
                                 class="form-control"
                                 placeholder="Contoh: VII-A"
-                                required
                             >
                         </div>
 
                         <div class="form-group">
-                            <label>Mata Pelajaran</label>
+                            <label>Mata Pelajaran / Kegiatan (opsional)</label>
                             <input
                                 type="text"
                                 id="borrowSubject"
                                 class="form-control"
                                 placeholder="Contoh: IPA"
-                                required
                             >
                         </div>
 
                         <div class="form-group">
-                            <label>Jam Pelajaran</label>
+                            <label>Jam / Waktu Pemakaian</label>
                             <input
                                 type="text"
                                 id="borrowPeriod"
                                 class="form-control"
-                                placeholder="Contoh: Jam ke-3 (08.30-09.15)"
+                                placeholder="Contoh: Jam ke-3 (08.30-09.15) atau 13.00-15.00"
                                 required
                             >
                         </div>
@@ -2055,8 +2055,8 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
                         <div class="borrow-picker-row">
 
                             <div class="form-group">
-                                <label>Jenis Perangkat</label>
-                                <select id="borrowType" class="form-control"></select>
+                                <label>Kategori</label>
+                                <select id="borrowType" class="form-control" onchange="renderBorrowCart()"></select>
                             </div>
 
                             <div class="form-group">
@@ -2081,7 +2081,7 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
                         <div class="borrow-picker-row">
 
                             <div class="form-group">
-                                <label>Atau pilih unit tertentu</label>
+                                <label>Atau pilih barang / ruangan tertentu</label>
                                 <select id="borrowDevice" class="form-control"></select>
                             </div>
 
@@ -2124,14 +2124,14 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
             <div class="card" style="margin-bottom:18px;">
 
                 <h2 style="margin-bottom:15px;">
-                    📱 Sedang Dipinjam
+                    📦 Sedang Dipinjam
                 </h2>
 
                 <div class="table-wrap">
                     <table>
                         <thead>
                             <tr>
-                                <th>Perangkat</th>
+                                <th>Barang / Ruangan</th>
                                 <th>Peminjam</th>
                                 <th>Kelas / Mapel</th>
                                 <th>Jam Pelajaran</th>
@@ -2156,7 +2156,7 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
                     <table>
                         <thead>
                             <tr>
-                                <th>Perangkat</th>
+                                <th>Barang / Ruangan</th>
                                 <th>Peminjam</th>
                                 <th>Kelas / Mapel</th>
                                 <th>Jam Pelajaran</th>
@@ -2902,21 +2902,17 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
 
             <div class="card">
 
-                <div style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                ">
-                    <h2>💻 Perangkat (iPad / Laptop)</h2>
-
-                    <button
-                        class="btn btn-primary btn-sm"
-                        onclick="openMasterForm('device')">
-                        + Tambah
-                    </button>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <h2>📦 Barang & Ruangan yang Dapat Dipinjam</h2>
+                    <div class="bm-bar">
+                        <button class="btn btn-primary btn-sm" onclick="openMasterForm('device')">+ Tambah</button>
+                        <button class="btn btn-primary btn-sm" onclick="openBulkDeviceModal()">➕ Tambah Banyak</button>
+                        <button class="btn btn-secondary btn-sm" onclick="openBorrowCatModal()">🏷️ Kategori</button>
+                        <button class="btn btn-secondary btn-sm" onclick="importRoomsAsBorrowable()">🏫 Impor Ruangan</button>
+                    </div>
                 </div>
-
-                <br>
+                <input id="masterDevSearch" class="form-control" style="max-width:300px;margin:12px 0 10px;" placeholder="🔍 Cari kode atau nama…"
+                       oninput="bmSearch=this.value;renderMasterDevices()">
                 <div id="masterDevices"></div>
             </div>
 
@@ -3027,7 +3023,7 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
             <div class="page-header">
                 <h1>Rekap Peminjaman Sarana</h1>
                 <p>
-                    Rekap peminjaman iPad/laptop berdasarkan
+                    Rekap peminjaman sarana, ruangan, dan barang berdasarkan
                     periode harian, bulanan, atau tahunan —
                     dapat diunduh dalam berbagai format.
                 </p>
@@ -3649,12 +3645,52 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
 <!-- =========================================================
      RETURN BORROW MODAL
 ========================================================= -->
+<datalist id="borrowCatSuggest"></datalist>
+
+<div id="borrowCatModal" class="modal">
+    <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header">
+            <h2>🏷️ Kategori Peminjaman</h2>
+            <div class="close" onclick="closeModal('borrowCatModal')">×</div>
+        </div>
+        <div id="borrowCatList"></div>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+            <input id="borrowCatNew" class="form-control" maxlength="40" placeholder="Kategori baru, contoh: Proyektor"
+                   onkeydown="if(event.key==='Enter'){event.preventDefault();addBorrowCategory()}">
+            <button type="button" class="btn btn-primary" onclick="addBorrowCategory()">Tambah</button>
+        </div>
+    </div>
+</div>
+
+<div id="borrowBulkModal" class="modal">
+    <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header">
+            <h2>➕ Tambah Banyak Sekaligus</h2>
+            <div class="close" onclick="closeModal('borrowBulkModal')">×</div>
+        </div>
+        <form id="bulkForm" onsubmit="submitBulkDevices(event)" oninput="updateBulkPreview()">
+            <div class="form-group"><label>Kategori</label>
+                <input id="bulkType" class="form-control" list="borrowCatSuggest" maxlength="40" placeholder="Pilih atau ketik kategori baru" required></div>
+            <div class="form-group"><label>Nama dasar</label>
+                <input id="bulkName" class="form-control" maxlength="60" placeholder="Contoh: Kursi Lipat" required></div>
+            <div class="grid grid-2">
+                <div class="form-group"><label>Awalan kode</label>
+                    <input id="bulkPrefix" class="form-control" maxlength="20" placeholder="KURSI" required></div>
+                <div class="form-group"><label>Jumlah (maks. 200)</label>
+                    <input id="bulkQty" type="number" class="form-control" min="1" max="200" value="10" required></div>
+            </div>
+            <p id="bulkPreview" style="color:var(--muted);font-size:13px;margin-bottom:12px;"></p>
+            <button type="submit" class="btn btn-primary" style="width:100%;">Buat Item</button>
+        </form>
+    </div>
+</div>
+
 <div id="returnBorrowModal" class="modal">
 
     <div class="modal-content" style="max-width:420px;">
 
         <div class="modal-header">
-            <h2>Kembalikan Perangkat</h2>
+            <h2>Kembalikan Barang / Ruangan</h2>
             <div class="close"
                  onclick="closeModal('returnBorrowModal')">
                 ×
@@ -4691,7 +4727,7 @@ const HOME_KEYS_HIDDEN_FROM_SISWA = ["borrow","locker","cctv"];
 
 const defaultHomeSettings = [
     { key:"report",    title:"Sampaikan Kondisi",      icon:"📢", description:"Laporkan fasilitas yang rusak atau bermasalah.", visible:true, priority:true,  order:1 },
-    { key:"borrow",    title:"Peminjaman Sarana",      icon:"🖥️", description:"Pinjam dan kembalikan iPad/laptop untuk kebutuhan jam pelajaran.", visible:true, priority:true,  order:2 },
+    { key:"borrow",    title:"Peminjaman Sarana",      icon:"🖥️", description:"Pinjam dan kembalikan sarana, ruangan, dan barang sekolah.", visible:true, priority:true,  order:2 },
     { key:"condition", title:"Kondisi Sekolah",       icon:"🏫", description:"Lihat kondisi ruangan dan sarana prasarana terkini.", visible:true, priority:true,  order:3 },
     { key:"denah",     title:"Denah Sekolah",         icon:"🗺️", description:"Jelajahi denah dan lokasi ruangan sekolah.", visible:true, priority:false, order:4 },
     { key:"myreports",  title:"Pemantauan Progres",      icon:"🔄", description:"Pantau perkembangan laporan yang telah Anda sampaikan.", visible:true, priority:false, order:5 },
@@ -5117,6 +5153,8 @@ function seedCollectionIfEmpty(collectionName, defaultData){
 ========================================================= */
 
 function listenToData(){
+
+    listenBorrowCats();
 
     db.collection("rooms")
         .onSnapshot(
@@ -5696,6 +5734,181 @@ async function gbSignIn(role, account, password){
         }
         throw e;
     }
+}
+
+
+/* =========================================================
+   PEMINJAMAN: KATEGORI FLEKSIBEL & KELOLA BARANG (ADMIN)
+   Kategori disimpan di appSettings/borrow sehingga Admin
+   dapat menambah/mengubahnya langsung dari web.
+========================================================= */
+const DEFAULT_BORROW_CATS = ["iPad","Laptop","Ruangan","Proyektor","Meja","Kursi","Alat Tulis","Lainnya"];
+let borrowCats = null;
+let bmFilter = "", bmSearch = "", bmChipList = [], bmCatList = [];
+
+function getBorrowCategories(){
+    const set = new Set(borrowCats || DEFAULT_BORROW_CATS);
+    devices.forEach(d => { if(d.type) set.add(d.type); });
+    return [...set].sort((a,b) => a.localeCompare(b,"id"));
+}
+function listenBorrowCats(){
+    db.collection("appSettings").doc("borrow").onSnapshot(
+        snap => {
+            const d = snap.exists ? snap.data() : null;
+            borrowCats = d && Array.isArray(d.cats) ? d.cats : null;
+            refreshAll();
+        },
+        error => console.error("appSettings/borrow:", error)
+    );
+}
+async function saveBorrowCats(list){
+    borrowCats = [...new Set(list.map(x => String(x).trim()).filter(Boolean))];
+    await db.collection("appSettings").doc("borrow").set({cats:borrowCats});
+}
+async function ensureBorrowCategory(name){
+    if(!name) return;
+    if(borrowCats ? borrowCats.includes(name) : DEFAULT_BORROW_CATS.includes(name)) return;
+    await saveBorrowCats(getBorrowCategories().concat([name]));
+}
+function fillBorrowCatSuggest(){
+    const dl = document.getElementById("borrowCatSuggest");
+    if(!dl) return;
+    const s = new Set(getBorrowCategories());
+    facilityConditions.forEach(f => { if(f.category) s.add(f.category); });
+    dl.innerHTML = [...s].sort((a,b) => a.localeCompare(b,"id")).map(c => `<option value="${escapeHTML(c)}">`).join("");
+}
+function deviceLoanState(d, activeIds){
+    return activeIds.has(d.id) ? "Dipinjam" : (d.status || "Baik");
+}
+function renderMasterDevices(){
+    const box = document.getElementById("masterDevices");
+    if(!box) return;
+    fillBorrowCatSuggest();
+    const activeIds = new Set(borrowings.filter(b => b.status === "Dipinjam").map(b => b.deviceId));
+    const total = {}, free = {};
+    devices.forEach(d => {
+        const t = deviceTypeOf(d);
+        total[t] = (total[t] || 0) + 1;
+        if(d.status === "Baik" && !activeIds.has(d.id)) free[t] = (free[t] || 0) + 1;
+    });
+    bmChipList = Object.keys(total).sort((a,b) => a.localeCompare(b,"id"));
+    if(bmFilter && !total[bmFilter]) bmFilter = "";
+    const q = bmSearch.trim().toLowerCase();
+    const list = devices
+        .filter(d => (!bmFilter || deviceTypeOf(d) === bmFilter) && (!q || (d.id + " " + d.name).toLowerCase().includes(q)))
+        .sort((a,b) => deviceTypeOf(a).localeCompare(deviceTypeOf(b),"id") || String(a.id).localeCompare(String(b.id),"id",{numeric:true}));
+    const chip = (label, on, idx) => `<button type="button" class="btn btn-sm ${on ? "btn-primary" : "btn-secondary"}" onclick="setBmFilter(${idx})">${label}</button>`;
+    const chips = chip(`Semua · ${devices.length}`, !bmFilter, -1) + bmChipList.map((t,i) => chip(`${escapeHTML(t)} · ${free[t] || 0}/${total[t]}`, bmFilter === t, i)).join("");
+    const rows = list.map(d => {
+        const st = deviceLoanState(d, activeIds);
+        const badge = st === "Dipinjam" ? `<span class="badge badge-warning">Dipinjam</span>` : statusBadgeSimple(st);
+        return `<tr><td><strong>${escapeHTML(d.id)}</strong></td><td>${escapeHTML(d.name)}</td><td>${escapeHTML(deviceTypeOf(d))}</td><td>${badge}</td>
+        <td style="white-space:nowrap"><button class="btn btn-secondary btn-sm" title="Ubah" onclick="openMasterForm('device','${escapeHTML(d.id)}')">✏️</button>
+        <button class="btn btn-danger btn-sm" title="Hapus" onclick="deleteMasterItem('device','${escapeHTML(d.id)}')">🗑️</button></td></tr>`;
+    }).join("");
+    box.innerHTML = `<div class="bm-chips">${chips}</div><small style="color:var(--muted);display:block;margin:6px 0 8px">Angka pada kategori = tersedia / total. Menampilkan ${list.length} dari ${devices.length} item.</small>
+    <div class="table-wrap"><table><thead><tr><th>Kode</th><th>Nama</th><th>Kategori</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${rows || `<tr><td colspan="5" style="color:var(--muted)">Belum ada data. Klik "+ Tambah" atau "Tambah Banyak".</td></tr>`}</tbody></table></div>`;
+    if(document.getElementById("borrowCatModal").classList.contains("show")) renderBorrowCatModal();
+}
+function setBmFilter(i){ bmFilter = i < 0 ? "" : bmChipList[i]; renderMasterDevices(); }
+
+/* ---------- Kelola kategori ---------- */
+function openBorrowCatModal(){
+    if(!isAdmin()) return;
+    renderBorrowCatModal();
+    document.getElementById("borrowCatModal").classList.add("show");
+}
+function renderBorrowCatModal(){
+    bmCatList = getBorrowCategories();
+    const n = c => devices.filter(d => deviceTypeOf(d) === c).length;
+    document.getElementById("borrowCatList").innerHTML = bmCatList.map((c,i) => `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #eee">
+        <div><strong>${escapeHTML(c)}</strong> <small style="color:var(--muted)">· ${n(c)} item</small></div>
+        <div style="white-space:nowrap"><button class="btn btn-secondary btn-sm" onclick="renameBorrowCategory(${i})">✏️</button>
+        <button class="btn btn-danger btn-sm" ${n(c) ? 'disabled title="Masih dipakai item"' : ""} onclick="deleteBorrowCategory(${i})">🗑️</button></div></div>`).join("");
+}
+async function addBorrowCategory(){
+    if(!isAdmin()) return;
+    const inp = document.getElementById("borrowCatNew"), name = inp.value.trim();
+    if(!name) return;
+    if(getBorrowCategories().some(c => c.toLowerCase() === name.toLowerCase())){ showToast("Kategori sudah ada."); return; }
+    try{ await saveBorrowCats(getBorrowCategories().concat([name])); inp.value = ""; renderBorrowCatModal(); showToast("Kategori ditambahkan."); }
+    catch(e){ console.error(e); showToast("Gagal menyimpan kategori."); }
+}
+async function renameBorrowCategory(i){
+    if(!isAdmin()) return;
+    const old = bmCatList[i], name = (prompt("Nama baru untuk kategori \"" + old + "\":", old) || "").trim();
+    if(!name || name === old) return;
+    if(getBorrowCategories().some(c => c.toLowerCase() === name.toLowerCase())){ showToast("Nama kategori sudah dipakai."); return; }
+    try{
+        const batch = db.batch();
+        devices.filter(d => deviceTypeOf(d) === old).forEach(d => batch.update(db.collection("devices").doc(d.id), {type:name}));
+        await batch.commit();
+        await saveBorrowCats(getBorrowCategories().filter(c => c !== old).concat([name]));
+        showToast("Kategori diubah.");
+    }catch(e){ console.error(e); showToast("Gagal mengubah kategori."); }
+}
+async function deleteBorrowCategory(i){
+    if(!isAdmin()) return;
+    const name = bmCatList[i];
+    if(devices.some(d => deviceTypeOf(d) === name)){ showToast("Kategori masih dipakai item."); return; }
+    if(!confirm("Hapus kategori \"" + name + "\"?")) return;
+    try{ await saveBorrowCats(getBorrowCategories().filter(c => c !== name)); }
+    catch(e){ console.error(e); showToast("Gagal menghapus kategori."); }
+}
+
+/* ---------- Tambah banyak sekaligus ---------- */
+function bulkPrefix(){ return document.getElementById("bulkPrefix").value.toUpperCase().replace(/[^A-Z0-9-]/g,"").replace(/-+$/,""); }
+function bulkStart(prefix){
+    const re = new RegExp("^" + prefix + "-(\\d+)$");
+    return devices.reduce((m,d) => { const x = re.exec(d.id); return x ? Math.max(m, +x[1]) : m; }, 0) + 1;
+}
+function updateBulkPreview(){
+    const p = bulkPrefix(), q = Math.min(200, Math.max(1, parseInt(document.getElementById("bulkQty").value,10) || 1));
+    const el = document.getElementById("bulkPreview");
+    if(!p){ el.textContent = "Isi awalan kode untuk melihat pratinjau."; return; }
+    const s = bulkStart(p), f = n => p + "-" + String(n).padStart(3,"0");
+    el.textContent = "Akan dibuat " + q + " item: " + f(s) + (q > 1 ? " … " + f(s + q - 1) : "");
+}
+function openBulkDeviceModal(){
+    if(!isAdmin()) return;
+    document.getElementById("bulkForm").reset();
+    document.getElementById("bulkType").value = bmFilter;
+    updateBulkPreview();
+    document.getElementById("borrowBulkModal").classList.add("show");
+}
+async function submitBulkDevices(event){
+    event.preventDefault();
+    if(!isAdmin()) return;
+    const type = document.getElementById("bulkType").value.trim(), name = document.getElementById("bulkName").value.trim(), p = bulkPrefix();
+    const qty = Math.min(200, Math.max(1, parseInt(document.getElementById("bulkQty").value,10) || 1));
+    if(!type || !name || !p){ showToast("Kategori, nama, dan awalan kode wajib diisi."); return; }
+    try{
+        const batch = db.batch(), s = bulkStart(p);
+        for(let i = 0; i < qty; i++){
+            const n = s + i, id = p + "-" + String(n).padStart(3,"0");
+            batch.set(db.collection("devices").doc(id), {id, name: name + " " + n, type, status:"Baik"});
+        }
+        await batch.commit();
+        await ensureBorrowCategory(type);
+        closeModal("borrowBulkModal");
+        showToast(qty + " item berhasil ditambahkan.");
+    }catch(e){ console.error(e); showToast("Gagal menambahkan item."); }
+}
+
+/* ---------- Impor dari Data Ruangan ---------- */
+async function importRoomsAsBorrowable(){
+    if(!isAdmin()) return;
+    const have = new Set(devices.map(d => d.id));
+    const todo = rooms.filter(r => !have.has("RM-" + r.id));
+    if(!todo.length){ showToast("Semua ruangan sudah ada di daftar peminjaman."); return; }
+    if(!confirm("Tambahkan " + todo.length + " ruangan dari Data Ruangan sebagai item yang dapat dipinjam?")) return;
+    try{
+        const batch = db.batch();
+        todo.forEach(r => batch.set(db.collection("devices").doc("RM-" + r.id), {id:"RM-" + r.id, name:r.name, type:"Ruangan", status:"Baik"}));
+        await batch.commit();
+        await ensureBorrowCategory("Ruangan");
+        showToast(todo.length + " ruangan ditambahkan.");
+    }catch(e){ console.error(e); showToast("Gagal mengimpor ruangan."); }
 }
 
 
@@ -6316,7 +6529,7 @@ function addDeviceToCart(deviceId){
     const id = deviceId || (select ? select.value : "");
 
     if(!id){
-        showToast("Pilih unit perangkat terlebih dahulu.");
+        showToast("Pilih barang / ruangan terlebih dahulu.");
         return;
     }
 
@@ -6354,7 +6567,7 @@ function addTypeToCart(){
     let qty = parseInt(qtyInput ? qtyInput.value : "1", 10);
 
     if(!type){
-        showToast("Pilih jenis perangkat terlebih dahulu.");
+        showToast("Pilih kategori terlebih dahulu.");
         return;
     }
 
@@ -6506,12 +6719,12 @@ function renderBorrowCart(){
 
         });
 
-        const types = Object.keys(stock).sort();
+        const types = Object.keys(stock).sort((a,b)=>a.localeCompare(b,"id"));
 
         const previous = typeSelect.value;
 
         typeSelect.innerHTML =
-            `<option value="">Pilih jenis perangkat</option>` +
+            `<option value="">Pilih kategori</option>` +
             types.map(type=>
                 `<option value="${escapeHTML(type)}">
                     ${escapeHTML(type)} (tersedia ${stock[type]})
@@ -6532,10 +6745,12 @@ function renderBorrowCart(){
 
     if(deviceSelect){
 
-        const selectable = getSelectableDevices();
+        const pickedType = typeSelect ? typeSelect.value : "";
+        const selectable = getSelectableDevices()
+            .filter(d=>!pickedType || deviceTypeOf(d) === pickedType);
 
         deviceSelect.innerHTML =
-            `<option value="">Pilih unit perangkat</option>` +
+            `<option value="">Pilih barang / ruangan</option>` +
             selectable.map(d=>
                 `<option value="${escapeHTML(d.id)}">
                     ${escapeHTML(d.id)} - ${escapeHTML(d.name)}
@@ -6952,12 +7167,8 @@ async function submitBorrow(event){
         document.getElementById("borrowPurpose").value.trim();
 
 
-    if(!borrowerName ||
-       !className ||
-       !subject ||
-       !period){
-
-        showToast("Lengkapi data peminjaman.");
+    if(!borrowerName || !period){
+            showToast("Lengkapi nama peminjam dan jam / waktu pemakaian.");
 
         return;
     }
@@ -7018,8 +7229,8 @@ async function submitBorrow(event){
                 borrowerRole:currentUser.role,
                 borrowerUid:currentUser.uid || null,
 
-                className:className,
-                subject:subject,
+                className:className || "-",
+                subject:subject || "-",
                 period:period,
                 purpose:purpose,
 
@@ -12888,39 +13099,7 @@ function renderMaster(){
         `).join("");
 
 
-    document.getElementById("masterDevices").innerHTML =
-        devices.map(device=>`
-            <div style="
-                padding:9px 0;
-                border-bottom:1px solid #eee;
-                display:flex;
-                justify-content:space-between;
-                align-items:center;
-                gap:8px;
-            ">
-                <div>
-                    <strong>${escapeHTML(device.id)}</strong>
-                    <br>
-                    <small style="color:#6c757d;">
-                        ${escapeHTML(device.name)}
-                        · ${escapeHTML(device.type || "")}
-                    </small>
-                </div>
-                <div style="display:flex;gap:5px;align-items:center;flex-shrink:0;">
-                    ${statusBadgeSimple(device.status)}
-                    <button
-                        class="btn btn-secondary btn-sm"
-                        onclick="openMasterForm('device','${device.id}')">
-                        ✏️
-                    </button>
-                    <button
-                        class="btn btn-danger btn-sm"
-                        onclick="deleteMasterItem('device','${device.id}')">
-                        🗑️
-                    </button>
-                </div>
-            </div>
-        `).join("");
+    renderMasterDevices();
 
 }
 
@@ -13059,7 +13238,7 @@ function openMasterForm(type, id){
                     type="text"
                     id="masterDeviceId"
                     class="form-control"
-                    placeholder="Contoh: IPAD-04"
+                    placeholder="Contoh: KURSI-001"
                     value="${item ? escapeHTML(item.id) : ""}"
                     ${id ? "disabled" : ""}
                     required
@@ -13067,24 +13246,22 @@ function openMasterForm(type, id){
             </div>
 
             <div class="form-group">
-                <label>Nama Perangkat</label>
+                <label>Nama Barang / Ruangan</label>
                 <input
                     type="text"
                     id="masterDeviceName"
                     class="form-control"
-                    placeholder="Contoh: iPad Air 4"
+                    placeholder="Contoh: Kursi Lipat 1 / Aula"
                     value="${item ? escapeHTML(item.name) : ""}"
                     required
                 >
             </div>
 
             <div class="form-group">
-                <label>Tipe</label>
-                <select id="masterDeviceType" class="form-control" required>
-                    <option value="iPad" ${item && item.type==="iPad" ? "selected" : ""}>iPad</option>
-                    <option value="Laptop" ${item && item.type==="Laptop" ? "selected" : ""}>Laptop</option>
-                    <option value="Lainnya" ${item && item.type==="Lainnya" ? "selected" : ""}>Lainnya</option>
-                </select>
+                <label>Kategori</label>
+                    <input type="text" id="masterDeviceType" class="form-control" list="borrowCatSuggest" maxlength="40"
+                        placeholder="Pilih atau ketik kategori baru"
+                        value="${escapeHTML(item ? (item.type || "") : bmFilter)}" required>
             </div>
 
             <div class="form-group">
@@ -13195,13 +13372,18 @@ async function submitMasterForm(event){
                     .value.trim();
 
             const deviceType =
-                document.getElementById("masterDeviceType").value;
+                document.getElementById("masterDeviceType").value.trim();
 
             const deviceStatus =
                 document.getElementById("masterDeviceStatus").value;
 
-            if(!deviceId || !deviceName){
-                showToast("Kode dan nama perangkat wajib diisi.");
+            if(!deviceId || !deviceName || !deviceType){
+                showToast("Kode, nama, dan kategori wajib diisi.");
+                return;
+            }
+
+            if(deviceId.includes("/")){
+                showToast("Kode tidak boleh mengandung tanda /.");
                 return;
             }
 
@@ -13212,6 +13394,7 @@ async function submitMasterForm(event){
                 showToast("Kode perangkat sudah digunakan.");
                 return;
             }
+            await ensureBorrowCategory(deviceType);
 
             await db.collection("devices")
                 .doc(masterFormEditingId || deviceId)
