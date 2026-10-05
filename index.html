@@ -4693,6 +4693,16 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const firebaseAuth = firebase.auth();
 
+/*
+   SIB CARE AUTH SAFETY
+   - Login tidak disimpan permanen di browser.
+   - Saat tombol Keluar ditekan, Firebase benar-benar signOut dulu.
+   - Jika browser menampilkan halaman lama dari cache/back-forward cache,
+     halaman dipaksa kembali ke login.
+*/
+firebaseAuth.setPersistence(firebase.auth.Auth.Persistence.SESSION)
+    .catch(error => console.warn("Auth persistence:", error));
+
 
 /* =========================================================
    KONFIGURASI PERAN
@@ -6381,44 +6391,62 @@ async function login(){
    LOGOUT
 ========================================================= */
 
-function logout(){
+async function logout(){
 
-    firebaseAuth.signOut().catch(error=>{
+    try{ gbStop(); }catch(error){ console.warn("gbStop:", error); }
+
+    try{
+        await firebaseAuth.signOut();
+    }catch(error){
         console.error("signOut:", error);
-    });
+    }
 
     firebaseReady = false;
-
-    gbStop();
-
     document.body.classList.remove("role-tamu");
-
     currentUser = null;
-
     selectedRole = null;
 
-    document.getElementById("adminPassword").value="";
+    const adminPassword = document.getElementById("adminPassword");
+    const guruPassword = document.getElementById("guruPassword");
+    if(adminPassword) adminPassword.value="";
+    if(guruPassword) guruPassword.value="";
 
-    document.getElementById("guruPassword").value="";
+    const loginError = document.getElementById("loginError");
+    if(loginError){
+        loginError.textContent="";
+        loginError.style.display="none";
+    }
 
     document.getElementById("loginPage").style.display="flex";
-
     document.getElementById("app").style.display="none";
 
-    document
-        .querySelectorAll(".role-card")
-        .forEach(card=>{
-            card.classList.remove("selected");
-        });
+    document.querySelectorAll(".role-card")
+        .forEach(card=>card.classList.remove("selected"));
 
     ["adminPasswordBox","guruPasswordBox","siswaPasswordBox","tamuPasswordBox"]
         .forEach(id=>{
-            document
-                .getElementById(id)
-                .classList.remove("show");
+            const el=document.getElementById(id);
+            if(el) el.classList.remove("show");
         });
 
+    const loginBtn=document.querySelector(".login-card .btn-primary");
+    if(loginBtn){
+        loginBtn.disabled=false;
+        loginBtn.textContent="🔐 Masuk ke SIB CARE";
+    }
 }
+
+/* Cegah browser Back/Forward Cache menampilkan dashboard lama setelah logout. */
+window.addEventListener("pageshow", function(){
+    if(!firebaseAuth.currentUser){
+        const loginPage=document.getElementById("loginPage");
+        const app=document.getElementById("app");
+        if(loginPage) loginPage.style.display="flex";
+        if(app) app.style.display="none";
+        currentUser=null;
+        selectedRole=null;
+    }
+});
 
 
 /* =========================================================
