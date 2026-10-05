@@ -46,37 +46,133 @@ body{
 }
 
 /* =========================================================
-   LOGIN
+   LOGIN — SIB CARE BLUE GLASS / FUTURE
 ========================================================= */
 .login-page{
     min-height:100vh;
     display:flex;
     align-items:center;
     justify-content:center;
-    background:linear-gradient(135deg,#084298,#0d6efd);
-    padding:20px;
+    position:relative;
+    overflow:hidden;
+    isolation:isolate;
+    padding:24px;
+    background:
+        radial-gradient(circle at 18% 15%, rgba(80,190,255,.42), transparent 28%),
+        radial-gradient(circle at 82% 82%, rgba(0,119,255,.32), transparent 30%),
+        linear-gradient(135deg,#031b45 0%,#0757a6 48%,#0b8fd8 100%);
+}
+
+.login-page::before{
+    content:"";
+    position:absolute;
+    inset:-25%;
+    z-index:-3;
+    background:
+        radial-gradient(circle at 25% 45%, rgba(255,255,255,.10), transparent 16%),
+        radial-gradient(circle at 72% 25%, rgba(95,214,255,.15), transparent 18%),
+        radial-gradient(circle at 52% 82%, rgba(255,255,255,.08), transparent 20%);
+    animation:sibAurora 12s ease-in-out infinite alternate;
+}
+
+.login-page::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:-1;
+    opacity:.13;
+    background-image:
+        linear-gradient(rgba(255,255,255,.22) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.22) 1px, transparent 1px);
+    background-size:42px 42px;
+    mask-image:linear-gradient(to bottom,transparent,black 20%,black 80%,transparent);
+}
+
+@keyframes sibAurora{
+    from{transform:translate3d(-2%,0,0) scale(1)}
+    to{transform:translate3d(3%,-2%,0) scale(1.08)}
+}
+
+/* Bola-bola dekoratif */
+.login-page .sib-orb{
+    position:absolute;
+    z-index:-2;
+    border-radius:50%;
+    pointer-events:none;
+    background:
+        radial-gradient(circle at 30% 24%,rgba(255,255,255,.75),rgba(255,255,255,.18) 28%,rgba(49,177,255,.12) 58%,rgba(0,72,170,.12) 100%);
+    border:1px solid rgba(255,255,255,.18);
+    box-shadow:
+        inset -24px -28px 55px rgba(0,36,112,.25),
+        inset 16px 12px 35px rgba(255,255,255,.18),
+        0 25px 70px rgba(0,15,60,.25);
+    animation:sibFloat 9s ease-in-out infinite;
+}
+
+.login-page .orb-1{width:230px;height:230px;left:-75px;top:7%;animation-delay:-2s}
+.login-page .orb-2{width:105px;height:105px;left:24%;top:4%;animation-delay:-5s}
+.login-page .orb-3{width:58px;height:58px;right:17%;top:16%;animation-delay:-1s}
+.login-page .orb-4{width:265px;height:265px;right:-85px;bottom:-35px;animation-delay:-4s}
+.login-page .orb-5{width:145px;height:145px;left:8%;bottom:-55px;animation-delay:-7s}
+.login-page .orb-6{width:74px;height:74px;right:3%;top:36%;animation-delay:-3s}
+
+@keyframes sibFloat{
+    0%,100%{transform:translate3d(0,0,0) scale(1)}
+    50%{transform:translate3d(0,-18px,0) scale(1.035)}
 }
 
 .login-card{
+    position:relative;
     width:100%;
-    max-width:470px;
-    background:white;
-    border-radius:22px;
-    padding:35px;
-    box-shadow:0 20px 60px rgba(0,0,0,.2);
+    max-width:475px;
+    padding:34px 32px 30px;
+    border-radius:34px;
+    border:1px solid rgba(255,255,255,.42);
+    background:
+        linear-gradient(145deg,rgba(255,255,255,.25),rgba(255,255,255,.09));
+    box-shadow:
+        0 35px 90px rgba(0,10,50,.34),
+        inset 0 1px 0 rgba(255,255,255,.48),
+        inset 0 0 40px rgba(255,255,255,.05);
+    backdrop-filter:blur(24px) saturate(140%);
+    -webkit-backdrop-filter:blur(24px) saturate(140%);
+    color:#fff;
+}
+
+.login-card::before{
+    content:"";
+    position:absolute;
+    inset:10px;
+    border-radius:27px;
+    border:1px solid rgba(255,255,255,.12);
+    pointer-events:none;
+}
+
+.login-card::after{
+    content:"";
+    position:absolute;
+    width:150px;
+    height:150px;
+    right:-72px;
+    top:-65px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.36),rgba(52,188,255,.05) 55%,transparent 70%);
+    pointer-events:none;
 }
 
 .login-logo{
     text-align:center;
-    margin-bottom:25px;
+    margin-bottom:22px;
+    position:relative;
+    z-index:1;
 }
 
 .login-logo .logo-circle{
-    width:75px;
-    height:75px;
-    border-radius:50%;
-    background:white;
-    color:var(--primary);
+    width:82px;
+    height:82px;
+    border-radius:24px;
+    background:rgba(255,255,255,.90);
+    color:#0869c7;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -84,7 +180,10 @@ body{
     font-size:34px;
     font-weight:bold;
     overflow:hidden;
-    box-shadow:0 2px 10px rgba(0,0,0,.15);
+    border:1px solid rgba(255,255,255,.8);
+    box-shadow:
+        0 12px 35px rgba(0,18,70,.24),
+        inset 0 1px 0 rgba(255,255,255,.95);
 }
 
 .login-logo .logo-circle img{
@@ -94,54 +193,80 @@ body{
 }
 
 .login-logo h1{
-    margin-top:15px;
-    color:var(--primary-dark);
+    margin-top:16px;
+    color:#fff;
+    font-size:35px;
+    letter-spacing:-1px;
+    text-shadow:0 4px 18px rgba(0,20,70,.25);
 }
 
 .login-logo p{
-    color:var(--muted);
-    font-size:14px;
+    color:rgba(255,255,255,.78);
+    font-size:12px;
+    line-height:1.55;
+    max-width:350px;
+    margin:7px auto 0;
+}
+
+.login-card > div:nth-child(2){
+    position:relative;
+    z-index:2;
+}
+
+.login-card > div:nth-child(2) > label{
+    color:rgba(255,255,255,.92);
+    font-size:13px;
 }
 
 .role-grid{
     display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:12px;
-    margin-top:25px;
+    grid-template-columns:repeat(2,1fr);
+    gap:11px;
+    margin-top:12px;
 }
 
 .role-card{
-    border:2px solid var(--border);
-    border-radius:14px;
-    padding:18px 8px;
+    min-height:104px;
+    border:1px solid rgba(255,255,255,.24);
+    border-radius:18px;
+    padding:15px 8px;
     text-align:center;
     cursor:pointer;
-    transition:.2s;
+    transition:.22s ease;
+    color:#fff;
+    background:rgba(255,255,255,.08);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
 }
 
 .role-card:hover{
-    border-color:var(--primary);
-    background:var(--secondary);
-    transform:translateY(-2px);
+    border-color:rgba(255,255,255,.65);
+    background:rgba(255,255,255,.16);
+    transform:translateY(-3px);
+    box-shadow:0 12px 28px rgba(0,25,80,.15);
 }
 
 .role-card.selected{
-    border-color:var(--primary);
-    background:var(--secondary);
+    border-color:rgba(255,255,255,.88);
+    background:linear-gradient(145deg,rgba(255,255,255,.24),rgba(91,201,255,.18));
+    box-shadow:
+        0 0 0 2px rgba(75,195,255,.16),
+        0 14px 30px rgba(0,25,80,.20);
 }
 
 .role-card .icon{
-    font-size:30px;
+    font-size:29px;
     margin-bottom:8px;
+    filter:drop-shadow(0 4px 8px rgba(0,0,0,.16));
 }
 
 .role-card strong{
     display:block;
-    font-size:13px;
+    font-size:12px;
+    color:#fff;
 }
 
 .password-box{
-    margin-top:20px;
+    margin-top:17px;
     display:none;
 }
 
@@ -151,22 +276,74 @@ body{
 
 .password-box label{
     display:block;
+    color:rgba(255,255,255,.92);
     font-weight:bold;
     margin-bottom:7px;
+    font-size:13px;
+}
+
+.login-card .form-control{
+    border:1px solid rgba(255,255,255,.48);
+    background:rgba(255,255,255,.90);
+    border-radius:14px;
+    min-height:50px;
+    color:#153c70;
+    box-shadow:0 8px 22px rgba(0,20,70,.10);
+}
+
+.login-card .form-control:focus{
+    border-color:#fff;
+    box-shadow:0 0 0 4px rgba(96,207,255,.16);
+}
+
+.login-card .password-box .form-group > div{
+    background:rgba(255,255,255,.13)!important;
+    color:#fff!important;
+    border:1px solid rgba(255,255,255,.15);
 }
 
 .login-error{
-    margin-top:15px;
-    padding:10px 12px;
-    border-radius:8px;
-    background:#ffe8e8;
-    color:#b02a37;
+    margin-top:14px;
+    padding:11px 13px;
+    border-radius:12px;
+    background:rgba(255,85,95,.17);
+    border:1px solid rgba(255,160,165,.34);
+    color:#fff;
     display:none;
+    font-size:13px;
+}
+
+.login-card .btn-primary{
+    height:54px;
+    border-radius:16px;
+    background:linear-gradient(135deg,#fff,#dff6ff);
+    color:#0758a6;
+    box-shadow:0 14px 28px rgba(0,19,70,.20);
     font-size:14px;
+}
+
+.login-card .btn-primary:hover{
+    background:#fff;
+    color:#064b91;
+    transform:translateY(-2px);
+}
+
+@media(max-width:520px){
+    .login-page{padding:16px}
+    .login-card{
+        padding:27px 20px 24px;
+        border-radius:29px;
+    }
+    .login-logo h1{font-size:31px}
+    .role-card{min-height:96px}
+    .login-page .orb-1{width:160px;height:160px;left:-70px}
+    .login-page .orb-4{width:190px;height:190px;right:-70px}
 }
 
 /* =========================================================
    APP
+========================================================= */
+
 ========================================================= */
 #app{
     display:none;
@@ -1245,6 +1422,13 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
 ========================================================= -->
 <div id="loginPage" class="login-page">
 
+    <div class="sib-orb orb-1"></div>
+    <div class="sib-orb orb-2"></div>
+    <div class="sib-orb orb-3"></div>
+    <div class="sib-orb orb-4"></div>
+    <div class="sib-orb orb-5"></div>
+    <div class="sib-orb orb-6"></div>
+
     <div class="login-card">
 
         <div class="login-logo">
@@ -1254,7 +1438,7 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
         </div>
 
         <div>
-            <label style="font-weight:bold;">Pilih Peran</label>
+            <label style="font-weight:bold;">Pilih Peran Anda</label>
 
             <div class="role-grid">
 
