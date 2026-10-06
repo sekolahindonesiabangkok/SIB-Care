@@ -14,6 +14,13 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+<script>
+/* SIB CARE Personalisasi: terapkan tema tersimpan sebelum halaman dirender */
+(function(){try{var r=document.documentElement,g=function(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}};
+var p=g("sibcare_theme_user")||g("sibcare_theme_school")||{};var t=p.theme||"sib",m=p.mode||"light",s=p.style||"standard";
+if(m==="auto")m=(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";
+r.setAttribute("data-theme",t);r.setAttribute("data-mode",m);r.setAttribute("data-style",s);}catch(e){}})();
+</script>
 <style>
 *{
     box-sizing:border-box;
@@ -1412,6 +1419,106 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
 
 .bm-chips{display:flex;gap:6px;flex-wrap:wrap}
 .bm-bar{display:flex;gap:6px;flex-wrap:wrap}
+
+/* =========================================================
+   🎨 PERSONALISASI SIB CARE (tema · mode · gaya)
+   Hanya menambah variabel & override; tidak mengubah data/Firebase.
+   Default (SIB Blue + Terang + Standard) = tampilan asli.
+========================================================= */
+:root{--sib-sidebar:#10284d;--sib-surface:#fff;--sib-text:#263238;--sib-glow:13,110,253;--sib-bg1:#dbeafe;--sib-bg2:#f5f9ff}
+html[data-theme="sib"]{--primary:#0d6efd;--primary-dark:#084298;--secondary:#eaf3ff;--sib-sidebar:#10284d;--light:#f5f7fb;--sib-glow:13,110,253;--sib-bg1:#dbeafe;--sib-bg2:#f5f9ff}
+html[data-theme="sib"][data-mode="dark"]{--primary:#3d8bfd;--primary-dark:#9ec5fe;--secondary:#14284d;--sib-sidebar:#0a1a33;--sib-bg1:#0b1730;--sib-bg2:#12264a}
+html[data-theme="ocean"]{--primary:#0891b2;--primary-dark:#155e75;--secondary:#e0f7fa;--sib-sidebar:#0c3a4d;--light:#eef9fb;--sib-glow:8,145,178;--sib-bg1:#cffafe;--sib-bg2:#f0fdff}
+html[data-theme="ocean"][data-mode="dark"]{--primary:#22b8d6;--primary-dark:#a5e8f5;--secondary:#0f2f3a;--sib-sidebar:#06222d;--sib-bg1:#062330;--sib-bg2:#0b3a4a}
+html[data-theme="nature"]{--primary:#2e9d5b;--primary-dark:#14532d;--secondary:#e6f6ec;--sib-sidebar:#123524;--light:#f3f9f4;--sib-glow:46,157,91;--sib-bg1:#d5f2e0;--sib-bg2:#f4fbf6}
+html[data-theme="nature"][data-mode="dark"]{--primary:#4cc17c;--primary-dark:#a7e8c0;--secondary:#132b1e;--sib-sidebar:#0a2016;--sib-bg1:#08201a;--sib-bg2:#10361f}
+html[data-theme="sunset"]{--primary:#f97316;--primary-dark:#9a3412;--secondary:#fff1e6;--sib-sidebar:#3b1a12;--light:#fff8f3;--sib-glow:249,115,22;--sib-bg1:#ffe4cc;--sib-bg2:#fff8f1}
+html[data-theme="sunset"][data-mode="dark"]{--primary:#fb923c;--primary-dark:#fdba74;--secondary:#3a1f10;--sib-sidebar:#25110b;--sib-bg1:#2a140a;--sib-bg2:#3d1d10}
+html[data-theme="purple"]{--primary:#7c3aed;--primary-dark:#4c1d95;--secondary:#f1e9ff;--sib-sidebar:#2a1457;--light:#f7f4fd;--sib-glow:124,58,237;--sib-bg1:#e9dcff;--sib-bg2:#f9f6ff}
+html[data-theme="purple"][data-mode="dark"]{--primary:#a07bf5;--primary-dark:#d8c8ff;--secondary:#25194a;--sib-sidebar:#190c38;--sib-bg1:#1a0f38;--sib-bg2:#2a1a5a}
+
+/* Halaman login TIDAK ikut berubah */
+#loginPage{--primary:#0d6efd;--primary-dark:#084298;--secondary:#eaf3ff;--light:#f5f7fb;--border:#e1e6ef;--dark:#172033;--muted:#6c757d;--radius:14px}
+
+#app .sidebar{background:var(--sib-sidebar)}
+#app .nav-item:hover,#app .nav-item.active{background:var(--primary)}
+.btn-theme{background:var(--secondary);color:var(--primary-dark)}
+.btn-theme:hover{filter:brightness(.96)}
+
+/* ---------- MODE GELAP ---------- */
+html[data-mode="dark"]{--light:#0f172a;--border:#2b3a57;--dark:#e5e9f2;--muted:#a3b0c6;--sib-surface:#172033;--sib-text:#e5e9f2;--shadow:0 8px 25px rgba(0,0,0,.35);color-scheme:dark}
+html[data-mode="dark"] #app{color:var(--sib-text);background:var(--light);min-height:100vh}
+html[data-mode="dark"] body.role-tamu{background:var(--light)}
+html[data-mode="dark"] #app .topbar,
+html[data-mode="dark"] #app .brand-logo,
+html[data-mode="dark"] #app .card,
+html[data-mode="dark"] #app .modal-content,
+html[data-mode="dark"] #app .detail-item,
+html[data-mode="dark"] #app .progress-content,
+html[data-mode="dark"] #app .gallery-card,
+html[data-mode="dark"] #app .gallery-image-wrap,
+html[data-mode="dark"] #app .recap-box,
+html[data-mode="dark"] #app .home-setting-item,
+html[data-mode="dark"] #app #gbGuestRoot,
+html[data-mode="dark"] #app .gb-tab,
+html[data-mode="dark"] #app .gb-cat,
+html[data-mode="dark"] #app [style*="background:#fff"],
+html[data-mode="dark"] #app [style*="background: #fff"],
+html[data-mode="dark"] #app [style*="background:white"],
+html[data-mode="dark"] #app [style*="background: white"],
+html[data-mode="dark"] #sibThemeModal .modal-content{background:var(--sib-surface);color:var(--sib-text)}
+html[data-mode="dark"] #app .form-control,
+html[data-mode="dark"] #app input,
+html[data-mode="dark"] #app select,
+html[data-mode="dark"] #app textarea{background:#0f172a;color:var(--sib-text);border-color:var(--border)}
+html[data-mode="dark"] #app th{background:#1d2a45;color:#c3cde0}
+html[data-mode="dark"] #app tr:hover td{background:#1d2a45}
+html[data-mode="dark"] #app .btn-secondary,
+html[data-mode="dark"] #app .close,
+html[data-mode="dark"] #sibThemeModal .close{background:#2b3a57;color:var(--sib-text)}
+html[data-mode="dark"] #app .card h1,html[data-mode="dark"] #app .card h2,html[data-mode="dark"] #app .card h3,html[data-mode="dark"] #app .card h4,
+html[data-mode="dark"] #app .modal-content h1,html[data-mode="dark"] #app .modal-content h2,html[data-mode="dark"] #app .modal-content h3,html[data-mode="dark"] #app .modal-content h4{color:var(--sib-text)}
+html[data-mode="dark"] #app .brand small,html[data-mode="dark"] #app .muted{color:var(--muted)}
+
+/* ---------- GAYA ---------- */
+html[data-style="minimal"]{--radius:6px;--shadow:none}
+html[data-style="minimal"] #app .card{box-shadow:none}
+html[data-style="minimal"] #app .topbar{box-shadow:none}
+html[data-style="minimal"] #app .btn,html[data-style="minimal"] #app button{border-radius:4px}
+html[data-style="minimal"] #app .nav-item{border-radius:4px}
+
+html[data-style="glass"]{--radius:18px}
+html[data-style="glass"] #app{background:linear-gradient(135deg,var(--sib-bg1),var(--sib-bg2));background-attachment:fixed;min-height:100vh}
+html[data-style="glass"] #app .topbar,
+html[data-style="glass"] #app .card,
+html[data-style="glass"] #app .modal-content{background:rgba(255,255,255,.58);-webkit-backdrop-filter:blur(14px) saturate(1.4);backdrop-filter:blur(14px) saturate(1.4);border:1px solid rgba(255,255,255,.65);box-shadow:0 8px 32px rgba(var(--sib-glow),.14)}
+html[data-style="glass"] #app .sidebar{-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+html[data-style="glass"][data-mode="dark"] #app .topbar,
+html[data-style="glass"][data-mode="dark"] #app .card,
+html[data-style="glass"][data-mode="dark"] #app .modal-content{background:rgba(23,32,51,.58);border-color:rgba(255,255,255,.12)}
+
+html[data-style="future"]{--radius:18px}
+html[data-style="future"] #app{background:radial-gradient(circle at 15% 10%,rgba(var(--sib-glow),.14),transparent 35%),radial-gradient(circle at 90% 90%,rgba(var(--sib-glow),.10),transparent 35%),var(--light)}
+html[data-style="future"] #app .card{border:1px solid rgba(var(--sib-glow),.40);box-shadow:0 0 0 1px rgba(var(--sib-glow),.06),0 0 22px rgba(var(--sib-glow),.20)}
+html[data-style="future"] #app .topbar{border-bottom:2px solid rgba(var(--sib-glow),.55);box-shadow:0 4px 22px rgba(var(--sib-glow),.25)}
+html[data-style="future"] #app .btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dark));box-shadow:0 0 14px rgba(var(--sib-glow),.45)}
+html[data-style="future"] #app .nav-item.active{box-shadow:0 0 16px rgba(var(--sib-glow),.55)}
+html[data-style="future"] #app .modal-content{border:1px solid rgba(var(--sib-glow),.5);box-shadow:0 0 34px rgba(var(--sib-glow),.35)}
+
+/* ---------- PANEL PERSONALISASI ---------- */
+#sibThemeModal .modal-content{max-width:620px}
+.tp-sec{margin-bottom:18px}
+.tp-sec h3{font-size:14px;margin-bottom:10px;color:var(--primary-dark)}
+html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
+.tp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.tp-opt{display:flex;align-items:center;gap:9px;padding:10px 12px;border:2px solid var(--border);border-radius:12px;background:transparent;color:inherit;cursor:pointer;font-size:13px;font-weight:bold;text-align:left}
+.tp-opt:hover{border-color:var(--primary)}
+.tp-opt.on{border-color:var(--primary);background:var(--secondary)}
+.tp-sw{width:22px;height:22px;border-radius:50%;flex:none;border:2px solid rgba(255,255,255,.8);box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+.tp-note{font-size:12px;color:var(--muted);margin-top:8px}
+.tp-admin{border:1px dashed var(--primary);border-radius:12px;padding:14px;display:none}
+.tp-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+@media(max-width:600px){#app .topbar .btn-theme span{display:none}}
 </style>
 </head>
 
@@ -1559,6 +1666,11 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
             <div class="user-badge" id="currentUserBadge">
                 -
             </div>
+
+            <button class="btn btn-theme btn-sm" id="btnPersonalisasi"
+                    onclick="sibThemeOpen()" title="Personalisasi SIB CARE">
+                🎨 <span>Personalisasi</span>
+            </button>
 
             <button class="btn btn-secondary btn-sm"
                     onclick="logout()">
@@ -15202,6 +15314,112 @@ setTimeout(()=>{
 
 },500);
 
+</script>
+
+
+<!-- 🎨 PERSONALISASI SIB CARE -->
+<div id="sibThemeModal" class="modal" onclick="if(event.target===this)sibThemeClose()">
+  <div class="modal-content">
+    <div class="modal-header"><h2>🎨 Personalisasi SIB CARE</h2><div class="close" onclick="sibThemeClose()">✕</div></div>
+    <div class="tp-sec"><h3>1. Tema</h3><div class="tp-grid"><button type="button" class="tp-opt" data-theme="sib" onclick="sibThemeSet('theme','sib')"><i class="tp-sw" style="background:#0d6efd"></i>🔵 SIB Blue</button><button type="button" class="tp-opt" data-theme="ocean" onclick="sibThemeSet('theme','ocean')"><i class="tp-sw" style="background:#0891b2"></i>🌊 Ocean</button><button type="button" class="tp-opt" data-theme="nature" onclick="sibThemeSet('theme','nature')"><i class="tp-sw" style="background:#2e9d5b"></i>🟢 Nature Green</button><button type="button" class="tp-opt" data-theme="sunset" onclick="sibThemeSet('theme','sunset')"><i class="tp-sw" style="background:#f97316"></i>🟠 Sunset</button><button type="button" class="tp-opt" data-theme="purple" onclick="sibThemeSet('theme','purple')"><i class="tp-sw" style="background:#7c3aed"></i>🟣 Purple</button></div></div>
+    <div class="tp-sec"><h3>2. Mode</h3><div class="tp-grid"><button type="button" class="tp-opt" data-mode="light" onclick="sibThemeSet('mode','light')">☀️ Terang</button><button type="button" class="tp-opt" data-mode="dark" onclick="sibThemeSet('mode','dark')">🌙 Gelap</button><button type="button" class="tp-opt" data-mode="auto" onclick="sibThemeSet('mode','auto')">🌓 Otomatis</button></div>
+      <div class="tp-note" id="tpModeNote"></div></div>
+    <div class="tp-sec"><h3>3. Gaya</h3><div class="tp-grid"><button type="button" class="tp-opt" data-style="standard" onclick="sibThemeSet('style','standard')">▭ Standard</button><button type="button" class="tp-opt" data-style="glass" onclick="sibThemeSet('style','glass')">🪟 Glass</button><button type="button" class="tp-opt" data-style="future" onclick="sibThemeSet('style','future')">✨ Future</button><button type="button" class="tp-opt" data-style="minimal" onclick="sibThemeSet('style','minimal')">▫️ Minimal</button></div></div>
+    <div class="tp-note" id="tpSource"></div>
+    <div class="tp-row"><button type="button" class="btn btn-secondary" onclick="sibThemeReset()">↩️ Kembali ke bawaan sekolah</button>
+      <button type="button" class="btn btn-primary" onclick="sibThemeClose()">Selesai</button></div>
+    <div class="tp-sec tp-admin" id="tpAdmin" style="margin-top:18px">
+      <h3>🛠️ Admin: Tema default sekolah</h3>
+      <div class="tp-note" style="margin-top:0">Pengguna yang belum memilih tema sendiri akan memakai default ini. Pengguna tetap bebas mengubah tampilan untuk dirinya sendiri.</div>
+      <div class="tp-note" id="tpSchoolNow"></div>
+      <div class="tp-row"><button type="button" class="btn btn-primary" onclick="sibThemeSaveSchool()">💾 Jadikan pilihan saat ini sebagai default sekolah</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   🎨 PERSONALISASI SIB CARE — logika tema
+   - Preferensi pengguna: localStorage "sibcare_theme_user"
+   - Default sekolah: Firestore appSettings/theme (dibaca semua, ditulis Admin)
+   - Cadangan default sekolah di browser: "sibcare_theme_school"
+   Urutan: pilihan pengguna > default sekolah > SIB Blue/Terang/Standard
+========================================================= */
+(function(){
+  var KU="sibcare_theme_user",KS="sibcare_theme_school";
+  var BASE={theme:"sib",mode:"light",style:"standard"};
+  var TH=["sib","ocean","nature","sunset","purple"],MO=["light","dark","auto"],ST=["standard","glass","future","minimal"];
+  var mq=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
+  var user=null,school=null,unsub=null;
+
+  function rd(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}}
+  function wr(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+  function rm(k){try{localStorage.removeItem(k)}catch(e){}}
+  function clean(o){if(!o)return null;var r={};
+    if(TH.indexOf(o.theme)>-1)r.theme=o.theme;
+    if(MO.indexOf(o.mode)>-1)r.mode=o.mode;
+    if(ST.indexOf(o.style)>-1)r.style=o.style;
+    return Object.keys(r).length?r:null}
+  function eff(){var s=school||{},u=user||{};
+    return {theme:u.theme||s.theme||BASE.theme,mode:u.mode||s.mode||BASE.mode,style:u.style||s.style||BASE.style}}
+  function apply(){var e=eff(),m=e.mode;
+    if(m==="auto")m=(mq&&mq.matches)?"dark":"light";
+    var r=document.documentElement;
+    r.setAttribute("data-theme",e.theme);r.setAttribute("data-mode",m);r.setAttribute("data-style",e.style);
+    var mc=document.querySelector('meta[name="theme-color"]');
+    if(!mc){mc=document.createElement("meta");mc.name="theme-color";document.head.appendChild(mc)}
+    try{mc.content=getComputedStyle(r).getPropertyValue("--sib-sidebar").trim()||"#10284d"}catch(x){}
+    paint(e)}
+  function paint(e){
+    var q=function(s){return document.querySelectorAll(s)};
+    ["theme","mode","style"].forEach(function(g){
+      q('#sibThemeModal [data-'+g+']').forEach(function(b){b.classList.toggle("on",b.getAttribute("data-"+g)===e[g])})});
+    var n=document.getElementById("tpModeNote");
+    if(n)n.textContent=e.mode==="auto"?"Saat ini perangkat Anda memakai mode "+((mq&&mq.matches)?"gelap":"terang")+".":"";
+    var s=document.getElementById("tpSource");
+    if(s)s.textContent=user?"Memakai pilihan pribadi Anda (tersimpan di browser ini).":"Memakai tema default sekolah.";
+    var sn=document.getElementById("tpSchoolNow");
+    if(sn){var d=Object.assign({},BASE,school||{});sn.textContent="Default sekolah saat ini: "+d.theme+" · "+d.mode+" · "+d.style}}
+
+  window.sibThemeSet=function(g,v){
+    user=Object.assign({},user||{});user[g]=v;
+    // simpan lengkap agar pilihan pengguna tidak berubah bila default sekolah berganti
+    var e=eff();user={theme:user.theme||e.theme,mode:user.mode||e.mode,style:user.style||e.style};
+    user[g]=v;wr(KU,user);apply()};
+  window.sibThemeReset=function(){user=null;rm(KU);apply()};
+  window.sibThemeOpen=function(){
+    var a=document.getElementById("tpAdmin");
+    var isAdmin=(typeof currentUser!=="undefined"&&currentUser&&currentUser.role==="ADMIN_SARPRAS");
+    if(a)a.style.display=isAdmin?"block":"none";
+    document.getElementById("sibThemeModal").classList.add("show");apply()};
+  window.sibThemeClose=function(){document.getElementById("sibThemeModal").classList.remove("show")};
+  window.sibThemeSaveSchool=async function(){
+    if(typeof currentUser==="undefined"||!currentUser||currentUser.role!=="ADMIN_SARPRAS"){alert("Hanya Admin yang dapat mengatur tema default sekolah.");return}
+    var e=eff(),data={theme:e.theme,mode:e.mode,style:e.style};
+    try{
+      await db.collection("appSettings").doc("theme").set(Object.assign({updatedAt:Date.now()},data),{merge:true});
+      school=data;wr(KS,school);user=null;rm(KU);apply();
+      alert("✅ Tema default sekolah tersimpan.")
+    }catch(err){console.error("simpan tema sekolah:",err);alert("Gagal menyimpan tema default sekolah. Pastikan Anda login sebagai Admin dan aturan Firestore mengizinkan appSettings.")}};
+
+  function listenSchool(){
+    if(unsub||typeof db==="undefined")return;
+    try{unsub=db.collection("appSettings").doc("theme").onSnapshot(function(s){
+      var d=s.exists?clean(s.data()):null;school=d;if(d)wr(KS,d);else rm(KS);apply()},
+      function(err){unsub=null;console.warn("appSettings/theme:",err&&err.code)})}catch(e){unsub=null}}
+
+  user=clean(rd(KU));school=clean(rd(KS));
+  if(mq){var f=function(){if(eff().mode==="auto")apply()};
+    mq.addEventListener?mq.addEventListener("change",f):mq.addListener&&mq.addListener(f)}
+  document.addEventListener("keydown",function(e){if(e.key==="Escape")sibThemeClose()});
+  function init(){
+    apply();
+    var app=document.getElementById("app");
+    if(app){var chk=function(){if(app.style.display!=="none")listenSchool()};
+      new MutationObserver(chk).observe(app,{attributes:true,attributeFilter:["style"]});chk()}
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+})();
 </script>
 
 </body>
