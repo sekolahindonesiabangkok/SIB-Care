@@ -220,7 +220,7 @@ body{
 
 .role-grid{
     display:grid;
-    grid-template-columns:repeat(2,1fr);
+    grid-template-columns:repeat(3,1fr);
     gap:11px;
     margin-top:12px;
 }
@@ -1380,7 +1380,7 @@ tr:hover td{
 /* =========================================================
    BUKU TAMU
 ========================================================= */
-@media(min-width:761px){.role-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:761px){.role-grid{grid-template-columns:repeat(3,1fr)}}
 body.role-tamu .sidebar{display:none}
 body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
 #gbGuestRoot{--a:#0d6efd;--b:#0aa2c0;--ink:#fff}
@@ -1442,12 +1442,6 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
 
             <div class="role-grid">
 
-                <div class="role-card" id="roleAdmin"
-                     onclick="selectRole('admin')">
-                    <div class="icon">👨‍💼</div>
-                    <strong>Admin Sarpras</strong>
-                </div>
-
                 <div class="role-card" id="roleGuru"
                      onclick="selectRole('guru')">
                     <div class="icon">👩‍🏫</div>
@@ -1468,7 +1462,7 @@ body.role-tamu .main{margin-left:0;max-width:1100px;margin-right:auto}
 
             </div>
 
-            <div class="password-box" id="adminPasswordBox">
+            <div class="password-box" id="adminPasswordBox" style="display:none!important">
 
                 <div class="form-group">
                     <label for="adminPassword">
@@ -6129,17 +6123,7 @@ function selectRole(role){
         });
 
 
-    if(role === "admin"){
-
-        document
-            .getElementById("roleAdmin")
-            .classList.add("selected");
-
-        document
-            .getElementById("adminPasswordBox")
-            .classList.add("show");
-
-    }else if(role === "guru"){
+    if(role === "guru"){
 
         document
             .getElementById("roleGuru")
@@ -6205,64 +6189,70 @@ const SISWA_AUTO_ACCESS_CODE = "siswa-akses-publik-2026";
 async function login(){
 
     if(!selectedRole){
-
         document.getElementById("loginError").textContent =
             "Silakan pilih peran terlebih dahulu.";
-
         document.getElementById("loginError").style.display="block";
-
         return;
     }
 
-
     const passwordFieldMap = {
-        admin:"adminPassword",
         guru:"guruPassword"
     };
 
     let password;
 
     if(selectedRole === "siswa" || selectedRole === "tamu"){
-
-        password = selectedRole === "tamu" ? TAMU_AUTO_ACCESS_CODE : SISWA_AUTO_ACCESS_CODE;
-
+        password = selectedRole === "tamu"
+            ? TAMU_AUTO_ACCESS_CODE
+            : SISWA_AUTO_ACCESS_CODE;
     }else{
-
-        password =
-            document
-                .getElementById(passwordFieldMap[selectedRole])
-                .value;
+        password = document
+            .getElementById(passwordFieldMap[selectedRole])
+            .value;
 
         if(!password){
-
             document.getElementById("loginError").textContent =
                 "Silakan masukkan password/kode akses.";
-
             document.getElementById("loginError").style.display="block";
-
             return;
         }
-
     }
 
-
-    const loginBtn =
-        document.querySelector(
-            ".login-card .btn-primary"
-        );
-
+    const loginBtn = document.querySelector(".login-card .btn-primary");
     if(loginBtn){
         loginBtn.disabled = true;
         loginBtn.textContent = "Memeriksa...";
     }
 
-
-    const account = ROLE_ACCOUNTS[selectedRole];
+    let account = ROLE_ACCOUNTS[selectedRole];
+    let loginRole = selectedRole;
 
     try{
+        let credential;
 
-        const credential =
-            await gbSignIn(selectedRole, account, password);
+        try{
+            // Login normal untuk Guru/Staf, Siswa, dan Tamu.
+            credential = await gbSignIn(loginRole, account, password);
+        }catch(primaryError){
+            /*
+              ADMIN TIDAK DITAMPILKAN DI HALAMAN DEPAN.
+              Jika memilih Guru/Staf tetapi password tidak cocok dengan
+              akun Guru/Staf, sistem mencoba password yang sama ke akun
+              Admin. Jadi Admin memakai password berbeda, tetapi tidak
+              mempunyai tombol/kartu khusus di halaman login.
+            */
+            if(loginRole === "guru" &&
+               ["auth/wrong-password","auth/invalid-credential",
+                "auth/invalid-login-credentials","auth/user-not-found"].includes(primaryError.code)){
+
+                const adminAccount = ROLE_ACCOUNTS.admin;
+                credential = await gbSignIn("admin", adminAccount, password);
+                account = adminAccount;
+                loginRole = "admin";
+            }else{
+                throw primaryError;
+            }
+        }
 
         currentUser = {
             name:account.name,
@@ -6280,112 +6270,60 @@ async function login(){
         }
 
     }catch(error){
-
         console.error(error);
 
         let message = "Password/kode akses tidak benar.";
-
-        if(
-            error.code === "auth/network-request-failed"
-        ){
+        if(error.code === "auth/network-request-failed"){
             message = "Koneksi Firebase belum tersedia. Coba lagi.";
-        }else if(
-            error.code === "auth/too-many-requests"
-        ){
+        }else if(error.code === "auth/too-many-requests"){
             message = "Terlalu banyak percobaan. Coba lagi nanti.";
-        }else if(
-            error.code === "auth/user-not-found" ||
-            error.code === "auth/configuration-not-found"
-        ){
-            message =
-                "Akun peran ini belum dibuat di Firebase Authentication.";
+        }else if(error.code === "auth/user-not-found" ||
+                 error.code === "auth/configuration-not-found"){
+            message = "Akun peran ini belum dibuat di Firebase Authentication.";
         }
 
         document.getElementById("loginError").textContent = message;
-
         document.getElementById("loginError").style.display="block";
 
         if(loginBtn){
             loginBtn.disabled = false;
             loginBtn.textContent = "🔐 Masuk ke SIB CARE";
         }
-
         return;
-
     }
-
 
     document.getElementById("loginPage").style.display="none";
-
     document.getElementById("app").style.display="block";
-
-    document.getElementById("currentUserBadge").textContent =
-        currentUser.name;
-
+    document.getElementById("currentUserBadge").textContent = currentUser.name;
 
     if(currentUser.role === "ADMIN_SARPRAS"){
-
         document.getElementById("adminNav").style.display="block";
-
         document.getElementById("galleryAddBtn").style.display="inline-flex";
-
         document.getElementById("conditionAddBtn").style.display="inline-flex";
-
-        document.getElementById("cctvAddBtn").style.display="inline-flex";
-
-        document.getElementById("lockerAssignBtn").style.display="inline-flex";
-
     }else{
-
         document.getElementById("adminNav").style.display="none";
-
         document.getElementById("galleryAddBtn").style.display="none";
-
         document.getElementById("conditionAddBtn").style.display="none";
-
-        document.getElementById("cctvAddBtn").style.display="none";
-
-        document.getElementById("lockerAssignBtn").style.display="none";
-
     }
 
+    if(currentUser.role === "GURU_STAF"){
+        document.body.classList.add("role-guru");
+    }else{
+        document.body.classList.remove("role-guru");
+    }
 
     if(currentUser.role === "SISWA"){
-
-        document.getElementById("navBorrow").style.display="none";
-
-        document.getElementById("homeBorrowCard").style.display="none";
-
-        document.getElementById("navCctv").style.display="none";
-
-        document.getElementById("navLocker").style.display="none";
-
+        document.body.classList.add("role-siswa");
     }else{
-
-        document.getElementById("navBorrow").style.display="flex";
-
-        document.getElementById("homeBorrowCard").style.display="block";
-
-        document.getElementById("navCctv").style.display="flex";
-
-        document.getElementById("navLocker").style.display="flex";
-
+        document.body.classList.remove("role-siswa");
     }
-
-
-    document.body.classList.toggle("role-tamu", currentUser.role === "TAMU");
 
     if(currentUser.role === "TAMU"){
-        showPage("guestbook");
-        return;
+        document.body.classList.add("role-tamu");
     }
 
-    showPage("home");
-
-    refreshAll();
-
+    showPage(currentUser.role === "TAMU" ? "guestbook" : "home");
 }
-
 
 /* =========================================================
    LOGOUT
