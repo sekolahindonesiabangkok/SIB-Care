@@ -659,6 +659,31 @@ tr:hover td{
 }
 
 /* =========================================================
+   NOTIFIKASI INTERNAL SIB CARE
+   Lapisan tambahan; tidak mengubah layout halaman utama.
+========================================================= */
+.notification-wrap{position:relative;display:inline-flex;align-items:center;flex:none}
+.btn-notification{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:42px;height:36px;padding:0 10px;border:1px solid var(--border);border-radius:9px;background:var(--white);color:var(--dark);cursor:pointer;font-size:18px}
+.btn-notification:hover{background:var(--light);border-color:var(--primary)}
+.notification-count{position:absolute;top:-7px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:20px;background:var(--danger);color:#fff;font-size:10px;font-weight:bold;line-height:18px;text-align:center;border:2px solid #fff;display:none}
+.notification-count.show{display:block}
+.notification-panel{position:absolute;top:calc(100% + 10px);right:0;width:360px;max-width:min(360px,calc(100vw - 24px));max-height:min(68vh,560px);overflow:auto;background:var(--white);color:var(--dark);border:1px solid var(--border);border-radius:14px;box-shadow:0 16px 42px rgba(15,35,70,.20);z-index:1200;display:none}
+.notification-panel.show{display:block}
+.notification-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 15px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--white);z-index:1}
+.notification-panel-head strong{font-size:14px}
+.notification-panel-head button{border:0;background:transparent;color:var(--primary);font-size:11px;font-weight:bold;cursor:pointer;padding:4px}
+.notification-item{display:flex;gap:10px;padding:13px 15px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
+.notification-item:hover{background:var(--light)}
+.notification-item.unread{background:var(--secondary)}
+.notification-item-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:none;background:var(--light);font-size:17px}
+.notification-item-copy{min-width:0;flex:1}
+.notification-item-copy strong{display:block;font-size:12px;line-height:1.4;margin-bottom:4px}
+.notification-item-copy p{font-size:12px;line-height:1.45;margin:0;color:var(--muted);overflow-wrap:anywhere}
+.notification-item-copy small{display:block;margin-top:6px;font-size:10px;color:var(--muted)}
+.notification-empty{padding:28px 18px;text-align:center;color:var(--muted);font-size:12px}
+@media(max-width:520px){.notification-panel{right:-54px}.btn-notification{padding:0 8px}}
+
+/* =========================================================
    BADGES
 ========================================================= */
 .badge{
@@ -1662,6 +1687,23 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
         </div>
 
         <div class="user-info">
+
+            <div class="notification-wrap" id="notificationWrap">
+                <button type="button" class="btn-notification" id="notificationBell"
+                        onclick="toggleNotifications()" aria-label="Buka notifikasi" title="Notifikasi">
+                    🔔
+                    <span class="notification-count" id="notificationCount">0</span>
+                </button>
+                <div class="notification-panel" id="notificationPanel" aria-label="Daftar notifikasi">
+                    <div class="notification-panel-head">
+                        <strong>Notifikasi</strong>
+                        <button type="button" onclick="markAllNotificationsRead()">Tandai semua dibaca</button>
+                    </div>
+                    <div id="notificationList">
+                        <div class="notification-empty">Memuat notifikasi...</div>
+                    </div>
+                </div>
+            </div>
 
             <div class="user-badge" id="currentUserBadge">
                 -
@@ -4996,6 +5038,12 @@ const defaultReports = [
 let currentUser = null;
 let selectedRole = null;
 
+/* Notifikasi internal: state terpisah agar tidak mengubah alur data lama. */
+let notificationUnsubscribe = null;
+let userNotifications = [];
+let notificationSnapshotReady = false;
+let notificationKnownIds = new Set();
+
 let rooms = [];
 let locations = [];
 let categories = [];
@@ -5325,6 +5373,158 @@ function currentYear(){
     return String(new Date().getFullYear());
 }
 
+
+/* =========================================================
+   NOTIFIKASI INTERNAL — FIRESTORE PERSISTEN
+   - Notifikasi admin menggunakan recipientKey berbasis peran.
+   - Notifikasi pelapor ditujukan ke UID Firebase masing-masing.
+   - Gagal menyimpan notifikasi tidak membatalkan aktivitas utama.
+========================================================= */
+function notificationKeyForUser(user){
+    if(!user) return "";
+    if(user.role === "ADMIN_SARPRAS") return "role:ADMIN_SARPRAS";
+    if(!user.uid) return "";
+    return "user:" + user.uid;
+}
+
+async function createSibNotification(data){
+    try{
+        if(!data || !data.recipientKey) return false;
+        const docRef = db.collection("notifications").doc();
+        await docRef.set({
+            id:docRef.id,
+            recipientKey:data.recipientKey,
+            recipientRole:data.recipientRole || "",
+            type:data.type || "info",
+            title:String(data.title || "Pemberitahuan"),
+            message:String(data.message || ""),
+            reportId:data.reportId || null,
+            targetPage:data.targetPage || "home",
+            read:false,
+            createdAt:new Date().toISOString()
+        });
+        return true;
+    }catch(error){
+        console.warn("Notifikasi SIB CARE tidak dapat disimpan:",error);
+        return false;
+    }
+}
+
+function startNotificationListener(){
+    stopNotificationListener();
+    if(!currentUser || currentUser.role === "TAMU"){
+        const wrap=document.getElementById("notificationWrap");
+        if(wrap) wrap.style.display="none";
+        return;
+    }
+    const recipientKey=notificationKeyForUser(currentUser);
+    if(!recipientKey) return;
+    const wrap=document.getElementById("notificationWrap");
+    if(wrap) wrap.style.display="inline-flex";
+    notificationSnapshotReady=false;
+    notificationKnownIds=new Set();
+    userNotifications=[];
+    renderNotifications();
+    notificationUnsubscribe=db.collection("notifications")
+        .where("recipientKey","==",recipientKey)
+        .onSnapshot(snapshot=>{
+            const next=snapshot.docs.map(doc=>({id:doc.id,...doc.data()}));
+            if(notificationSnapshotReady){
+                next.forEach(item=>{
+                    if(!notificationKnownIds.has(item.id) && !item.read){
+                        showToast("Notifikasi baru: "+(item.title || "Pemberitahuan"));
+                    }
+                });
+            }
+            userNotifications=next.sort((a,b)=>String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+            notificationKnownIds=new Set(userNotifications.map(item=>item.id));
+            notificationSnapshotReady=true;
+            renderNotifications();
+        },error=>{
+            console.error("notifications:",error);
+            const list=document.getElementById("notificationList");
+            if(list) list.innerHTML='<div class="notification-empty">Notifikasi belum dapat dimuat. Periksa aturan akses Firestore.</div>';
+        });
+}
+
+function stopNotificationListener(){
+    if(typeof notificationUnsubscribe === "function"){
+        try{notificationUnsubscribe();}catch(error){console.warn("stop notifications:",error);}
+    }
+    notificationUnsubscribe=null;
+    userNotifications=[];
+    notificationSnapshotReady=false;
+    notificationKnownIds=new Set();
+    renderNotifications();
+}
+
+function renderNotifications(){
+    const count=document.getElementById("notificationCount");
+    const list=document.getElementById("notificationList");
+    if(!count || !list) return;
+    const unread=userNotifications.filter(item=>!item.read).length;
+    count.textContent=unread>99 ? "99+" : String(unread);
+    count.classList.toggle("show",unread>0);
+    if(!userNotifications.length){
+        list.innerHTML='<div class="notification-empty">Belum ada notifikasi.</div>';
+        return;
+    }
+    list.innerHTML=userNotifications.map(item=>{
+        const icon=item.type==="report-new" ? "📢" : item.type==="report-status" ? "🔄" : item.type==="borrow-damaged" ? "⚠️" : "🔔";
+        const date=item.createdAt ? new Date(item.createdAt) : null;
+        const dateLabel=date && !Number.isNaN(date.getTime()) ? date.toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}) : "";
+        return `<div class="notification-item ${item.read ? "" : "unread"}" role="button" tabindex="0" onclick="openSibNotification('${escapeHTML(item.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSibNotification('${escapeHTML(item.id)}')}">
+            <div class="notification-item-icon">${icon}</div>
+            <div class="notification-item-copy"><strong>${escapeHTML(item.title||"Pemberitahuan")}</strong><p>${escapeHTML(item.message||"")}</p><small>${escapeHTML(dateLabel)}${item.read ? " · Dibaca" : " · Belum dibaca"}</small></div>
+        </div>`;
+    }).join("");
+}
+
+function toggleNotifications(){
+    const panel=document.getElementById("notificationPanel");
+    if(!panel) return;
+    panel.classList.toggle("show");
+    renderNotifications();
+}
+
+async function markSibNotificationRead(id){
+    const item=userNotifications.find(notification=>notification.id===id);
+    if(!item || item.read) return;
+    try{
+        await db.collection("notifications").doc(id).update({read:true,readAt:new Date().toISOString()});
+    }catch(error){
+        console.warn("Tidak dapat menandai notifikasi sebagai dibaca:",error);
+    }
+}
+
+async function markAllNotificationsRead(){
+    const unread=userNotifications.filter(item=>!item.read);
+    if(!unread.length){showToast("Semua notifikasi sudah dibaca.");return;}
+    try{
+        const batch=db.batch();
+        unread.forEach(item=>batch.update(db.collection("notifications").doc(item.id),{read:true,readAt:new Date().toISOString()}));
+        await batch.commit();
+        showToast("Semua notifikasi ditandai sudah dibaca.");
+    }catch(error){
+        console.error("mark all notifications:",error);
+        showToast("Notifikasi belum dapat diperbarui. Periksa aturan akses Firestore.");
+    }
+}
+
+async function openSibNotification(id){
+    const item=userNotifications.find(notification=>notification.id===id);
+    if(!item) return;
+    await markSibNotificationRead(id);
+    const panel=document.getElementById("notificationPanel");
+    if(panel) panel.classList.remove("show");
+    const page=item.targetPage || (currentUser && currentUser.role==="ADMIN_SARPRAS" ? "dashboard" : "myreports");
+    showPage(page);
+    if(item.reportId){
+        setTimeout(()=>{
+            try{showReportDetail(item.reportId);}catch(error){console.warn("Buka detail laporan dari notifikasi:",error);}
+        },80);
+    }
+}
 
 function showToast(message){
 
@@ -6407,6 +6607,7 @@ async function login(){
     document.getElementById("loginPage").style.display="none";
     document.getElementById("app").style.display="block";
     document.getElementById("currentUserBadge").textContent = currentUser.name;
+    startNotificationListener();
 
     if(currentUser.role === "ADMIN_SARPRAS"){
         document.getElementById("adminNav").style.display="block";
@@ -6444,6 +6645,9 @@ async function login(){
 async function logout(){
 
     try{ gbStop(); }catch(error){ console.warn("gbStop:", error); }
+    stopNotificationListener();
+    const notificationPanel=document.getElementById("notificationPanel");
+    if(notificationPanel) notificationPanel.classList.remove("show");
 
     try{
         await firebaseAuth.signOut();
@@ -7655,8 +7859,16 @@ async function submitReturnBorrow(event){
 
         await batch.commit();
 
-
         if(condition === "Rusak"){
+            const damagedNames=targets.map(item=>(item.deviceName || item.deviceId || "Barang")).join(", ");
+            await createSibNotification({
+                recipientKey:"role:ADMIN_SARPRAS",
+                recipientRole:"ADMIN_SARPRAS",
+                type:"borrow-damaged",
+                title:"Barang dikembalikan dalam kondisi rusak",
+                message:targets.length+" unit perlu ditindaklanjuti: "+damagedNames+".",
+                targetPage:"condition"
+            });
 
             showToast(
                 targets.length+" unit dikembalikan. Status diubah menjadi Rusak, mohon ditindaklanjuti Admin Sarpras."
@@ -7897,6 +8109,15 @@ async function submitReport(event){
             .doc(id)
             .set(report);
 
+        await createSibNotification({
+            recipientKey:"role:ADMIN_SARPRAS",
+            recipientRole:"ADMIN_SARPRAS",
+            type:"report-new",
+            title:"Pengaduan sarana baru",
+            message:currentUser.name+" melaporkan "+category+" di "+room+" — "+location+".",
+            reportId:id,
+            targetPage:"dashboard"
+        });
 
         closeModal("reportModal");
 
@@ -8445,6 +8666,8 @@ async function updateReportProgress(id){
 
     };
 
+    const reportBeforeUpdate=reports.find(report=>report.id===id);
+    const previousReportStatus=reportBeforeUpdate ? reportBeforeUpdate.status : null;
 
     try{
 
@@ -8467,6 +8690,18 @@ async function updateReportProgress(id){
 
             });
 
+        const updatedReport=reports.find(report=>report.id===id) || reportBeforeUpdate;
+        if(updatedReport && updatedReport.reporterUid && previousReportStatus!==status){
+            await createSibNotification({
+                recipientKey:"user:"+updatedReport.reporterUid,
+                recipientRole:updatedReport.reporterRole || "",
+                type:"report-status",
+                title:"Status pengaduan diperbarui",
+                message:"Laporan "+id+" kini berstatus "+status+".",
+                reportId:id,
+                targetPage:"myreports"
+            });
+        }
 
         showToast(
             "Progres berhasil diperbarui dan ditampilkan kepada pelapor."
