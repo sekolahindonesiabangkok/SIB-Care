@@ -1544,6 +1544,17 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
 .tp-admin{border:1px dashed var(--primary);border-radius:12px;padding:14px;display:none}
 .tp-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 @media(max-width:600px){#app .topbar .btn-theme span{display:none}}
+@media print{
+    body{background:#fff!important}
+    body *{visibility:hidden!important}
+    #page-journal,#page-journal *{visibility:visible!important}
+    #page-journal{display:block!important;position:absolute;left:0;top:0;width:100%;padding:0;margin:0}
+    #page-journal .card{box-shadow:none!important;border:1px solid #bbb!important;break-inside:avoid}
+    #page-journal form,#page-journal .btn,#page-journal button,#journalAdminPanel,#page-journal .form-group,#page-journal .page-header p,#journalAccessNote{display:none!important}
+    #page-journal .table-wrap{overflow:visible!important}
+    #page-journal table{font-size:9px!important}
+    #page-journal th,#page-journal td{font-size:8px!important;padding:4px!important;color:#000!important}
+}
 </style>
 </head>
 
@@ -1801,6 +1812,10 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
             🔎 Barang Hilang & Temuan
         </div>
 
+
+        <div class="nav-item" id="navJournal" data-page="journal" onclick="showPage('journal')" style="display:none;">
+            📘 Jurnal Mengajar
+        </div>
 
         <div id="adminNav">
 
@@ -3565,7 +3580,109 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
 
         </section>
 
-    
+
+
+        <!-- =================================================
+             JURNAL MENGAJAR DIGITAL
+        ================================================= -->
+        <section id="page-journal" class="page">
+            <div class="page-header">
+                <h1>📘 Jurnal Mengajar Digital</h1>
+                <p>Catat pembelajaran, refleksikan proses, dan tingkatkan kualitas pembelajaran.</p>
+            </div>
+
+            <div class="grid grid-3" style="margin-bottom:18px;">
+                <div class="card stat-card"><div class="stat-icon">📝</div><div><h3 id="journalStatTotal">0</h3><p>Total jurnal pada filter</p></div></div>
+                <div class="card stat-card"><div class="stat-icon">📅</div><div><h3 id="journalStatMonth">0</h3><p>Jurnal bulan ini</p></div></div>
+                <div class="card stat-card"><div class="stat-icon">👩‍🏫</div><div><h3 id="journalStatTeachers">0</h3><p>Guru terdaftar</p></div></div>
+            </div>
+
+            <div class="card" style="margin-bottom:18px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+                    <div><h2 style="font-size:18px;">✏️ Isi Jurnal Mengajar</h2><p style="font-size:12px;color:var(--muted);margin-top:4px;">Isi jurnal setelah kegiatan pembelajaran selesai.</p></div>
+                    <button class="btn btn-secondary" type="button" onclick="journalResetForm()">Bersihkan Form</button>
+                </div>
+                <form id="journalForm" onsubmit="journalSave(event)">
+                    <input type="hidden" id="journalEditId">
+                    <div class="grid grid-3">
+                        <div class="form-group"><label for="journalTeacher">Nama Guru *</label><select id="journalTeacher" class="form-control" required></select></div>
+                        <div class="form-group"><label for="journalDate">Hari/Tanggal *</label><input id="journalDate" class="form-control" type="date" required></div>
+                        <div class="form-group"><label for="journalSchedule">Gunakan Jadwal (opsional)</label><select id="journalSchedule" class="form-control" onchange="journalApplySchedule()"><option value="">Pilih jadwal untuk mengisi otomatis</option></select></div>
+                        <div class="form-group"><label for="journalSubject">Mata Pelajaran *</label><input id="journalSubject" class="form-control" list="journalSubjectOptions" required placeholder="Contoh: Bahasa Indonesia"><datalist id="journalSubjectOptions"></datalist></div>
+                        <div class="form-group"><label for="journalClass">Kelas *</label><input id="journalClass" class="form-control" required placeholder="Contoh: X A"></div>
+                        <div class="form-group"><label for="journalPeriod">Jam ke-</label><input id="journalPeriod" class="form-control" placeholder="Contoh: 1–2"></div>
+                    </div>
+                    <div class="form-group"><label for="journalMaterial">Materi / Tujuan Pembelajaran *</label><textarea id="journalMaterial" class="form-control" required placeholder="Tuliskan materi, tujuan, atau capaian pembelajaran yang dibahas."></textarea></div>
+                    <div class="grid grid-3">
+                        <div class="form-group"><label for="journalObstacle">Kendala</label><textarea id="journalObstacle" class="form-control" placeholder="Kendala yang ditemukan (jika ada)."></textarea></div>
+                        <div class="form-group"><label for="journalFollowup">Tindak Lanjut</label><textarea id="journalFollowup" class="form-control" placeholder="Langkah perbaikan atau tindak lanjut."></textarea></div>
+                        <div class="form-group"><label for="journalReflection">Refleksi Guru</label><textarea id="journalReflection" class="form-control" placeholder="Apa yang berjalan baik dan apa yang perlu ditingkatkan?"></textarea></div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                        <button class="btn btn-primary" type="submit">💾 Simpan Jurnal</button>
+                        <span id="journalFormHint" style="font-size:12px;color:var(--muted);">Data disimpan ke Firebase.</span>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card" style="margin-bottom:18px;">
+                <h2 style="font-size:18px;margin-bottom:14px;">🔎 Riwayat dan Rekap Jurnal</h2>
+                <div class="grid grid-3">
+                    <div class="form-group"><label for="journalFilterTeacher">Filter Guru</label><select id="journalFilterTeacher" class="form-control" onchange="journalRender()"><option value="">Semua guru</option></select></div>
+                    <div class="form-group"><label for="journalFilterFrom">Dari Tanggal</label><input id="journalFilterFrom" class="form-control" type="date" onchange="journalRender()"></div>
+                    <div class="form-group"><label for="journalFilterTo">Sampai Tanggal</label><input id="journalFilterTo" class="form-control" type="date" onchange="journalRender()"></div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+                    <button class="btn btn-success" type="button" onclick="journalExportExcel()">📥 Ekspor Excel</button>
+                    <button class="btn btn-secondary" type="button" onclick="journalPrint()">🖨️ Cetak / Simpan PDF</button>
+                    <button class="btn btn-secondary" type="button" onclick="journalClearFilters()">Reset Filter</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>No.</th><th>Tanggal</th><th>Guru</th><th>Kelas</th><th>Jam</th><th>Mata Pelajaran</th><th>Materi / Tujuan</th><th>Kendala</th><th>Tindak Lanjut</th><th>Refleksi</th><th>Aksi</th></tr></thead>
+                        <tbody id="journalRows"><tr><td colspan="11" style="text-align:center;color:var(--muted);">Memuat jurnal...</td></tr></tbody>
+                    </table>
+                </div>
+                <p id="journalAccessNote" style="font-size:12px;color:var(--muted);margin-top:12px;"></p>
+            </div>
+
+            <div id="journalAdminPanel" class="card" style="display:none;">
+                <h2 style="font-size:18px;margin-bottom:6px;">⚙️ Pengaturan Jurnal — Admin</h2>
+                <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Admin dapat mengelola daftar guru dan jadwal pelajaran langsung dari aplikasi.</p>
+                <div class="grid grid-2">
+                    <div style="border:1px solid var(--border);border-radius:12px;padding:15px;">
+                        <h3 style="font-size:15px;margin-bottom:12px;">👩‍🏫 Data Guru</h3>
+                        <form id="journalTeacherForm" onsubmit="journalSaveTeacher(event)">
+                            <input type="hidden" id="journalTeacherEditId">
+                            <div class="form-group"><label for="journalTeacherName">Nama Guru *</label><input id="journalTeacherName" class="form-control" required placeholder="Nama lengkap guru"></div>
+                            <div class="form-group"><label for="journalTeacherSubject">Mata Pelajaran Utama</label><input id="journalTeacherSubject" class="form-control" placeholder="Contoh: IPS"></div>
+                            <div class="form-group"><label for="journalTeacherActive">Status</label><select id="journalTeacherActive" class="form-control"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-primary" type="submit">Simpan Guru</button><button class="btn btn-secondary" type="button" onclick="journalTeacherReset()">Bersihkan</button></div>
+                        </form>
+                        <div class="table-wrap" style="margin-top:14px;"><table><thead><tr><th>Nama</th><th>Mata Pelajaran</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="journalTeacherRows"></tbody></table></div>
+                    </div>
+                    <div style="border:1px solid var(--border);border-radius:12px;padding:15px;">
+                        <h3 style="font-size:15px;margin-bottom:12px;">🗓️ Jadwal Pelajaran</h3>
+                        <form id="journalScheduleForm" onsubmit="journalSaveSchedule(event)">
+                            <input type="hidden" id="journalScheduleEditId">
+                            <div class="form-group"><label for="journalScheduleTeacher">Guru *</label><select id="journalScheduleTeacher" class="form-control" required></select></div>
+                            <div class="form-group"><label for="journalScheduleSubject">Mata Pelajaran *</label><input id="journalScheduleSubject" class="form-control" required placeholder="Mata pelajaran"></div>
+                            <div class="grid grid-2">
+                                <div class="form-group"><label for="journalScheduleClass">Kelas *</label><input id="journalScheduleClass" class="form-control" required placeholder="Contoh: VII A"></div>
+                                <div class="form-group"><label for="journalScheduleDay">Hari *</label><select id="journalScheduleDay" class="form-control" required><option>Senin</option><option>Selasa</option><option>Rabu</option><option>Kamis</option><option>Jumat</option><option>Sabtu</option><option>Minggu</option></select></div>
+                            </div>
+                            <div class="grid grid-2">
+                                <div class="form-group"><label for="journalSchedulePeriod">Jam ke-</label><input id="journalSchedulePeriod" class="form-control" placeholder="Contoh: 1–2"></div>
+                                <div class="form-group"><label for="journalScheduleRoom">Ruang (opsional)</label><input id="journalScheduleRoom" class="form-control" placeholder="Contoh: VII A"></div>
+                            </div>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-primary" type="submit">Simpan Jadwal</button><button class="btn btn-secondary" type="button" onclick="journalScheduleReset()">Bersihkan</button></div>
+                        </form>
+                        <div class="table-wrap" style="margin-top:14px;"><table><thead><tr><th>Hari</th><th>Jam</th><th>Kelas</th><th>Guru / Mapel</th><th>Aksi</th></tr></thead><tbody id="journalScheduleRows"></tbody></table></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- BUKU TAMU: tampilan peran Tamu -->
         <section id="page-guestbook" class="page">
             <div id="gbGuestRoot"></div>
@@ -5036,6 +5153,11 @@ const defaultReports = [
 ========================================================= */
 
 let currentUser = null;
+let journalTeachers = [];
+let journalSchedules = [];
+let teachingJournals = [];
+let journalListenersStarted = false;
+let journalUnsubs = [];
 let selectedRole = null;
 
 /* Notifikasi internal: state terpisah agar tidak mengubah alur data lama. */
@@ -5655,6 +5777,7 @@ function seedCollectionIfEmpty(collectionName, defaultData){
 function listenToData(){
 
     listenBorrowCats();
+    journalStartListeners();
 
     db.collection("rooms")
         .onSnapshot(
@@ -6609,6 +6732,9 @@ async function login(){
     document.getElementById("currentUserBadge").textContent = currentUser.name;
     startNotificationListener();
 
+    const journalNav = document.getElementById("navJournal");
+    if(journalNav) journalNav.style.display = ["ADMIN_SARPRAS","GURU_STAF"].includes(currentUser.role) ? "flex" : "none";
+
     if(currentUser.role === "ADMIN_SARPRAS"){
         document.getElementById("adminNav").style.display="block";
         document.getElementById("galleryAddBtn").style.display="inline-flex";
@@ -6644,6 +6770,7 @@ async function login(){
 
 async function logout(){
 
+    try{ journalStopListeners(); }catch(error){ console.warn("journalStopListeners:", error); }
     try{ gbStop(); }catch(error){ console.warn("gbStop:", error); }
     stopNotificationListener();
     const notificationPanel=document.getElementById("notificationPanel");
@@ -6708,6 +6835,11 @@ window.addEventListener("pageshow", function(){
 ========================================================= */
 
 function showPage(page){
+
+    if(page === "journal" && (!currentUser || !["ADMIN_SARPRAS","GURU_STAF"].includes(currentUser.role))){
+        showToast("Jurnal Mengajar hanya dapat diakses Guru/Staf dan Admin.");
+        page = "home";
+    }
 
     if(page === "home-settings" && (!currentUser || currentUser.role !== "ADMIN_SARPRAS")){
         showToast("Menu Pengaturan Beranda hanya dapat diakses Admin Sarpras.");
@@ -15423,6 +15555,268 @@ function renderStatistics(){
 
 
 /* =========================================================
+   JURNAL MENGAJAR DIGITAL
+   Koleksi terpisah: sibTeachers, sibSchedules, teachingJournals.
+   Tidak mengubah koleksi sarana prasarana yang sudah ada.
+========================================================= */
+function journalStartListeners(){
+    if(journalListenersStarted || !currentUser || currentUser.role === "TAMU" || currentUser.role === "SISWA") return;
+    journalListenersStarted = true;
+    journalUnsubs.push(db.collection("sibTeachers").onSnapshot(snapshot=>{
+        journalTeachers = snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).sort((a,b)=>(a.name||"").localeCompare(b.name||"","id"));
+        journalFillTeacherOptions();
+        journalRender();
+    },error=>{console.error("sibTeachers:",error);showToast("Data guru belum dapat dimuat. Periksa aturan akses Firestore.");}));
+    journalUnsubs.push(db.collection("sibSchedules").onSnapshot(snapshot=>{
+        journalSchedules = snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).sort((a,b)=>((a.dayOrder||0)-(b.dayOrder||0)) || (a.period||"").localeCompare(b.period||""));
+        journalFillScheduleOptions();
+        journalRender();
+    },error=>{console.error("sibSchedules:",error);showToast("Jadwal belum dapat dimuat. Periksa aturan akses Firestore.");}));
+    journalUnsubs.push(db.collection("teachingJournals").onSnapshot(snapshot=>{
+        teachingJournals = snapshot.docs.map(doc=>({id:doc.id,...doc.data()})).sort((a,b)=>(b.date||"").localeCompare(a.date||"") || (b.createdAt||"").localeCompare(a.createdAt||""));
+        journalRender();
+    },error=>{console.error("teachingJournals:",error);showToast("Jurnal belum dapat dimuat. Periksa aturan akses Firestore.");}));
+}
+function journalStopListeners(){
+    journalUnsubs.forEach(unsub=>{try{unsub();}catch(e){console.warn("journal unsubscribe:",e);}});
+    journalUnsubs=[];
+    journalListenersStarted=false;
+    journalTeachers=[];journalSchedules=[];teachingJournals=[];
+}
+function journalCanUse(){return !!(currentUser && ["ADMIN_SARPRAS","GURU_STAF"].includes(currentUser.role));}
+function journalActiveTeachers(){return journalTeachers.filter(t=>t.active !== false);}
+function journalTeacherName(id){const t=journalTeachers.find(x=>x.id===id);return t?t.name:"Guru tidak ditemukan";}
+function journalEscape(value){return escapeHTML(String(value==null?"":value));}
+function journalDateToday(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");}
+function journalFillTeacherOptions(){
+    const active=journalActiveTeachers();
+    const options=active.map(t=>`<option value="${journalEscape(t.id)}">${journalEscape(t.name)}${t.subject?" — "+journalEscape(t.subject):""}</option>`).join("");
+    const teacher=document.getElementById("journalTeacher");
+    const filter=document.getElementById("journalFilterTeacher");
+    const scheduleTeacher=document.getElementById("journalScheduleTeacher");
+    const prev=teacher?teacher.value:"", prevFilter=filter?filter.value:"", prevAdmin=scheduleTeacher?scheduleTeacher.value:"";
+    if(teacher) teacher.innerHTML=active.length?options:'<option value="">Admin belum menambahkan data guru</option>';
+    if(teacher && active.some(t=>t.id===prev)) teacher.value=prev;
+    if(filter) filter.innerHTML='<option value="">Semua guru</option>'+options;
+    if(filter && active.some(t=>t.id===prevFilter)) filter.value=prevFilter;
+    if(scheduleTeacher) scheduleTeacher.innerHTML=active.length?options:'<option value="">Tambahkan data guru terlebih dahulu</option>';
+    if(scheduleTeacher && active.some(t=>t.id===prevAdmin)) scheduleTeacher.value=prevAdmin;
+    const subjects=[...new Set(active.map(t=>t.subject).filter(Boolean))];
+    const dl=document.getElementById("journalSubjectOptions");
+    if(dl) dl.innerHTML=subjects.map(x=>`<option value="${journalEscape(x)}"></option>`).join("");
+    const teacherRows=document.getElementById("journalTeacherRows");
+    if(teacherRows && isAdmin()){
+        teacherRows.innerHTML=journalTeachers.length?journalTeachers.map(t=>`<tr><td>${journalEscape(t.name)}</td><td>${journalEscape(t.subject||"-")}</td><td><span class="badge ${t.active===false?"badge-secondary":"badge-success"}">${t.active===false?"Nonaktif":"Aktif"}</span></td><td><button class="btn btn-secondary btn-sm" onclick="journalTeacherEdit('${journalEscape(t.id)}')">Edit</button></td></tr>`).join(""):'<tr><td colspan="4" style="text-align:center">Belum ada data guru.</td></tr>';
+    }
+}
+function journalFillScheduleOptions(){
+    const sel=document.getElementById("journalSchedule");
+    if(!sel) return;
+    const teacherId=document.getElementById("journalTeacher")?.value||"";
+    const dayNames=["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+    const day=dayNames[new Date((document.getElementById("journalDate")?.value||journalDateToday())+"T12:00:00").getDay()];
+    const available=journalSchedules.filter(x=>x.active!==false && (!teacherId || x.teacherId===teacherId) && (!x.day || x.day===day));
+    const old=sel.value;
+    sel.innerHTML='<option value="">Pilih jadwal untuk mengisi otomatis</option>'+available.map(x=>`<option value="${journalEscape(x.id)}">${journalEscape(x.day||"")} · ${journalEscape(x.period||"Jam belum diatur")} · ${journalEscape(x.className||"")} · ${journalEscape(x.subject||"")}</option>`).join("");
+    if(available.some(x=>x.id===old)) sel.value=old;
+    const rows=document.getElementById("journalScheduleRows");
+    if(rows && isAdmin()){
+        rows.innerHTML=journalSchedules.length?journalSchedules.map(x=>`<tr><td>${journalEscape(x.day||"-")}</td><td>${journalEscape(x.period||"-")}</td><td>${journalEscape(x.className||"-")}</td><td>${journalEscape(journalTeacherName(x.teacherId))}<br><small>${journalEscape(x.subject||"")}</small></td><td><button class="btn btn-secondary btn-sm" onclick="journalScheduleEdit('${journalEscape(x.id)}')">Edit</button> <button class="btn btn-danger btn-sm" onclick="journalScheduleDelete('${journalEscape(x.id)}')">Hapus</button></td></tr>`).join(""):'<tr><td colspan="5" style="text-align:center">Belum ada jadwal.</td></tr>';
+    }
+}
+function journalApplySchedule(){
+    const x=journalSchedules.find(s=>s.id===document.getElementById("journalSchedule").value);
+    if(!x) return;
+    document.getElementById("journalTeacher").value=x.teacherId||"";
+    document.getElementById("journalSubject").value=x.subject||"";
+    document.getElementById("journalClass").value=x.className||"";
+    document.getElementById("journalPeriod").value=x.period||"";
+    journalFillScheduleOptions();
+}
+function journalResetForm(){
+    const f=document.getElementById("journalForm");if(f)f.reset();
+    document.getElementById("journalEditId").value="";
+    document.getElementById("journalDate").value=journalDateToday();
+    document.getElementById("journalFormHint").textContent="Data disimpan ke Firebase.";
+    journalFillScheduleOptions();
+}
+async function journalSave(event){
+    event.preventDefault();
+    if(!journalCanUse()) return;
+    const teacherId=document.getElementById("journalTeacher").value;
+    const teacher=journalActiveTeachers().find(t=>t.id===teacherId);
+    const editId=document.getElementById("journalEditId").value;
+    const record={
+        teacherId,teacherName:teacher?teacher.name:"",
+        date:document.getElementById("journalDate").value,
+        subject:document.getElementById("journalSubject").value.trim(),
+        className:document.getElementById("journalClass").value.trim(),
+        period:document.getElementById("journalPeriod").value.trim(),
+        material:document.getElementById("journalMaterial").value.trim(),
+        obstacle:document.getElementById("journalObstacle").value.trim(),
+        followup:document.getElementById("journalFollowup").value.trim(),
+        reflection:document.getElementById("journalReflection").value.trim(),
+        scheduleId:document.getElementById("journalSchedule").value||"",
+        updatedAt:new Date().toISOString(),updatedByUid:currentUser.uid||"",updatedByName:currentUser.name||""
+    };
+    if(!teacherId||!record.date||!record.subject||!record.className||!record.material){showToast("Lengkapi nama guru, tanggal, mata pelajaran, kelas, dan materi.");return;}
+    if(!isAdmin() && !journalActiveTeachers().some(t=>t.id===teacherId)){showToast("Pilih nama guru yang terdaftar.");return;}
+    try{
+        if(editId){
+            const existing=teachingJournals.find(x=>x.id===editId);
+            if(!existing || (!isAdmin() && existing.teacherId!==teacherId)){showToast("Jurnal ini tidak dapat diedit dari profil yang dipilih.");return;}
+            await db.collection("teachingJournals").doc(editId).update(record);
+            showToast("Jurnal berhasil diperbarui.");
+        }else{
+            record.createdAt=new Date().toISOString();record.createdByUid=currentUser.uid||"";record.createdByName=currentUser.name||"";
+            await db.collection("teachingJournals").add(record);
+            showToast("Jurnal mengajar berhasil disimpan.");
+        }
+        journalResetForm();
+    }catch(error){console.error("journalSave:",error);showToast("Jurnal gagal disimpan. Periksa koneksi dan aturan akses Firestore.");}
+}
+function journalEdit(id){
+    const x=teachingJournals.find(j=>j.id===id);if(!x)return;
+    if(!isAdmin() && document.getElementById("journalTeacher").value!==x.teacherId){showToast("Pilih profil guru yang sesuai sebelum mengedit jurnal.");return;}
+    document.getElementById("journalEditId").value=x.id;
+    document.getElementById("journalTeacher").value=x.teacherId||"";
+    document.getElementById("journalDate").value=x.date||journalDateToday();
+    document.getElementById("journalSubject").value=x.subject||"";
+    document.getElementById("journalClass").value=x.className||"";
+    document.getElementById("journalPeriod").value=x.period||"";
+    document.getElementById("journalMaterial").value=x.material||"";
+    document.getElementById("journalObstacle").value=x.obstacle||"";
+    document.getElementById("journalFollowup").value=x.followup||"";
+    document.getElementById("journalReflection").value=x.reflection||"";
+    document.getElementById("journalSchedule").value=x.scheduleId||"";
+    document.getElementById("journalFormHint").textContent="Mode edit jurnal. Simpan untuk memperbarui.";
+    document.getElementById("journalForm").scrollIntoView({behavior:"smooth",block:"start"});
+}
+async function journalDelete(id){
+    if(!isAdmin()){showToast("Hanya Admin yang dapat menghapus jurnal.");return;}
+    if(!confirm("Hapus jurnal ini? Tindakan ini tidak dapat dibatalkan."))return;
+    try{await db.collection("teachingJournals").doc(id).delete();showToast("Jurnal dihapus.");}
+    catch(e){console.error(e);showToast("Jurnal gagal dihapus. Periksa aturan akses Firestore.");}
+}
+function journalRender(){
+    const panel=document.getElementById("journalAdminPanel");
+    if(panel) panel.style.display=isAdmin()?"block":"none";
+    if(!journalCanUse()) return;
+    const filterTeacher=document.getElementById("journalFilterTeacher")?.value||"";
+    const from=document.getElementById("journalFilterFrom")?.value||"";
+    const to=document.getElementById("journalFilterTo")?.value||"";
+    const selectedProfile=document.getElementById("journalTeacher")?.value||"";
+    let rows=teachingJournals.filter(x=>(!filterTeacher||x.teacherId===filterTeacher)&&(!from||x.date>=from)&&(!to||x.date<=to));
+    if(!isAdmin()){
+        // UI filtering is useful for the shared teacher role, but is not an identity boundary.
+        rows=rows.filter(x=>x.teacherId===selectedProfile);
+    }
+    const month=journalDateToday().slice(0,7);
+    const total=document.getElementById("journalStatTotal"),m=document.getElementById("journalStatMonth"),t=document.getElementById("journalStatTeachers");
+    if(total)total.textContent=rows.length;
+    if(m)m.textContent=rows.filter(x=>(x.date||"").startsWith(month)).length;
+    if(t)t.textContent=journalActiveTeachers().length;
+    const tbody=document.getElementById("journalRows");
+    if(tbody) tbody.innerHTML=rows.length?rows.map((x,i)=>`<tr><td>${i+1}</td><td>${journalEscape(x.date||"-")}</td><td>${journalEscape(x.teacherName||journalTeacherName(x.teacherId))}</td><td>${journalEscape(x.className||"-")}</td><td>${journalEscape(x.period||"-")}</td><td>${journalEscape(x.subject||"-")}</td><td style="min-width:180px;white-space:pre-wrap">${journalEscape(x.material||"-")}</td><td style="min-width:140px;white-space:pre-wrap">${journalEscape(x.obstacle||"-")}</td><td style="min-width:140px;white-space:pre-wrap">${journalEscape(x.followup||"-")}</td><td style="min-width:140px;white-space:pre-wrap">${journalEscape(x.reflection||"-")}</td><td style="white-space:nowrap"><button class="btn btn-secondary btn-sm" onclick="journalEdit('${journalEscape(x.id)}')">Edit</button> ${isAdmin()?`<button class="btn btn-danger btn-sm" onclick="journalDelete('${journalEscape(x.id)}')">Hapus</button>`:""}</td></tr>`).join(""):'<tr><td colspan="11" style="text-align:center;color:var(--muted);padding:24px;">Belum ada jurnal sesuai filter. Pilih guru dan isi jurnal pertama Anda.</td></tr>';
+    const note=document.getElementById("journalAccessNote");
+    if(note)note.textContent=isAdmin()?"Mode Admin: Anda dapat melihat rekap semua guru serta mengelola data guru dan jadwal.":"Jurnal ditampilkan berdasarkan nama guru yang dipilih. Catatan teknis: akun Guru/Staf saat ini merupakan akun peran bersama; untuk privasi per guru yang kuat, setiap guru perlu akun Firebase individual.";
+    journalFillScheduleOptions();
+}
+function journalClearFilters(){
+    document.getElementById("journalFilterTeacher").value="";
+    document.getElementById("journalFilterFrom").value="";
+    document.getElementById("journalFilterTo").value="";
+    journalRender();
+}
+function journalFilteredRows(){
+    const filterTeacher=document.getElementById("journalFilterTeacher")?.value||"";
+    const from=document.getElementById("journalFilterFrom")?.value||"";
+    const to=document.getElementById("journalFilterTo")?.value||"";
+    let rows=teachingJournals.filter(x=>(!filterTeacher||x.teacherId===filterTeacher)&&(!from||x.date>=from)&&(!to||x.date<=to));
+    if(!isAdmin())rows=rows.filter(x=>x.teacherId===(document.getElementById("journalTeacher")?.value||""));
+    return rows;
+}
+function journalExportExcel(){
+    if(typeof XLSX==="undefined"){showToast("Fitur Excel belum tersedia.");return;}
+    const rows=journalFilteredRows().map((x,i)=>({"No.":i+1,"Hari/Tanggal":x.date||"","Nama Guru":x.teacherName||journalTeacherName(x.teacherId),"Mata Pelajaran":x.subject||"","Kelas":x.className||"","Jam Ke":x.period||"","Materi/Tujuan Pembelajaran":x.material||"","Kendala":x.obstacle||"","Tindak Lanjut":x.followup||"","Refleksi Guru":x.reflection||""}));
+    if(!rows.length){showToast("Tidak ada data jurnal untuk diekspor.");return;}
+    const wb=XLSX.utils.book_new(),ws=XLSX.utils.json_to_sheet(rows);
+    ws["!cols"]=[{wch:6},{wch:14},{wch:28},{wch:22},{wch:12},{wch:10},{wch:42},{wch:32},{wch:32},{wch:32}];
+    XLSX.utils.book_append_sheet(wb,ws,"Jurnal Mengajar");
+    XLSX.writeFile(wb,"Rekap_Jurnal_Mengajar_"+journalDateToday()+".xlsx");
+}
+function journalPrint(){if(!journalCanUse())return;window.print();}
+async function journalSaveTeacher(event){
+    event.preventDefault();if(!isAdmin())return;
+    const id=document.getElementById("journalTeacherEditId").value;
+    const name=document.getElementById("journalTeacherName").value.trim();
+    const subject=document.getElementById("journalTeacherSubject").value.trim();
+    const active=document.getElementById("journalTeacherActive").value==="true";
+    if(!name){showToast("Nama guru wajib diisi.");return;}
+    const duplicate=journalTeachers.find(t=>t.name.toLowerCase()===name.toLowerCase()&&t.id!==id);
+    if(duplicate){showToast("Nama guru tersebut sudah terdaftar.");return;}
+    try{
+        const data={name,subject,active,updatedAt:new Date().toISOString(),updatedBy:currentUser.name||"Admin"};
+        if(id)await db.collection("sibTeachers").doc(id).update(data);
+        else await db.collection("sibTeachers").add({...data,createdAt:new Date().toISOString()});
+        journalTeacherReset();showToast(id?"Data guru diperbarui.":"Guru berhasil ditambahkan.");
+    }catch(e){console.error(e);showToast("Data guru gagal disimpan. Periksa aturan akses Firestore.");}
+}
+function journalTeacherEdit(id){
+    if(!isAdmin())return;const t=journalTeachers.find(x=>x.id===id);if(!t)return;
+    document.getElementById("journalTeacherEditId").value=t.id;
+    document.getElementById("journalTeacherName").value=t.name||"";
+    document.getElementById("journalTeacherSubject").value=t.subject||"";
+    document.getElementById("journalTeacherActive").value=t.active===false?"false":"true";
+    document.getElementById("journalTeacherName").scrollIntoView({behavior:"smooth",block:"center"});
+}
+function journalTeacherReset(){const f=document.getElementById("journalTeacherForm");if(f)f.reset();document.getElementById("journalTeacherEditId").value="";document.getElementById("journalTeacherActive").value="true";}
+async function journalSaveSchedule(event){
+    event.preventDefault();if(!isAdmin())return;
+    const id=document.getElementById("journalScheduleEditId").value;
+    const data={
+        teacherId:document.getElementById("journalScheduleTeacher").value,
+        subject:document.getElementById("journalScheduleSubject").value.trim(),
+        className:document.getElementById("journalScheduleClass").value.trim(),
+        day:document.getElementById("journalScheduleDay").value,
+        period:document.getElementById("journalSchedulePeriod").value.trim(),
+        room:document.getElementById("journalScheduleRoom").value.trim(),
+        active:true,updatedAt:new Date().toISOString(),updatedBy:currentUser.name||"Admin"
+    };
+    const teacher=journalActiveTeachers().find(t=>t.id===data.teacherId);
+    if(!teacher||!data.subject||!data.className){showToast("Pilih guru dan lengkapi mata pelajaran serta kelas.");return;}
+    data.dayOrder=["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"].indexOf(data.day);
+    try{
+        if(id)await db.collection("sibSchedules").doc(id).update(data);
+        else await db.collection("sibSchedules").add({...data,createdAt:new Date().toISOString()});
+        journalScheduleReset();showToast(id?"Jadwal diperbarui.":"Jadwal berhasil ditambahkan.");
+    }catch(e){console.error(e);showToast("Jadwal gagal disimpan. Periksa aturan akses Firestore.");}
+}
+function journalScheduleEdit(id){
+    if(!isAdmin())return;const x=journalSchedules.find(s=>s.id===id);if(!x)return;
+    document.getElementById("journalScheduleEditId").value=x.id;
+    document.getElementById("journalScheduleTeacher").value=x.teacherId||"";
+    document.getElementById("journalScheduleSubject").value=x.subject||"";
+    document.getElementById("journalScheduleClass").value=x.className||"";
+    document.getElementById("journalScheduleDay").value=x.day||"Senin";
+    document.getElementById("journalSchedulePeriod").value=x.period||"";
+    document.getElementById("journalScheduleRoom").value=x.room||"";
+    document.getElementById("journalScheduleTeacher").scrollIntoView({behavior:"smooth",block:"center"});
+}
+function journalScheduleReset(){const f=document.getElementById("journalScheduleForm");if(f)f.reset();document.getElementById("journalScheduleEditId").value="";}
+async function journalScheduleDelete(id){
+    if(!isAdmin())return;if(!confirm("Hapus jadwal ini?"))return;
+    try{await db.collection("sibSchedules").doc(id).delete();showToast("Jadwal dihapus.");}
+    catch(e){console.error(e);showToast("Jadwal gagal dihapus.");}
+}
+document.addEventListener("change",event=>{
+    if(["journalTeacher","journalDate"].includes(event.target.id))journalFillScheduleOptions();
+});
+document.addEventListener("DOMContentLoaded",()=>{
+    const date=document.getElementById("journalDate");if(date)date.value=journalDateToday();
+});
+
+/* =========================================================
    REFRESH ALL
 ========================================================= */
 
@@ -15465,6 +15859,7 @@ function refreshAll(){
     renderMaster();
 
     renderStatistics();
+    journalRender();
 
 
     if(
