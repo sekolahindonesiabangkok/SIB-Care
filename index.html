@@ -3605,7 +3605,7 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
                 <form id="journalForm" onsubmit="journalSave(event)">
                     <input type="hidden" id="journalEditId">
                     <div class="grid grid-3">
-                        <div class="form-group"><label for="journalTeacher">Nama Guru *</label><select id="journalTeacher" class="form-control" required></select></div>
+                        <div class="form-group"><label for="journalTeacher">Nama Guru *</label><select id="journalTeacher" class="form-control" required onchange="journalFillScheduleOptions()"></select></div>
                         <div class="form-group"><label for="journalDate">Hari/Tanggal *</label><input id="journalDate" class="form-control" type="date" required></div>
                         <div class="form-group"><label for="journalSchedule">Gunakan Jadwal (opsional)</label><select id="journalSchedule" class="form-control" onchange="journalApplySchedule()"><option value="">Pilih jadwal untuk mengisi otomatis</option></select></div>
                         <div class="form-group"><label for="journalSubject">Mata Pelajaran *</label><input id="journalSubject" class="form-control" list="journalSubjectOptions" required placeholder="Contoh: Bahasa Indonesia"><datalist id="journalSubjectOptions"></datalist></div>
@@ -15707,10 +15707,7 @@ function journalRender(){
     const to=document.getElementById("journalFilterTo")?.value||"";
     const selectedProfile=document.getElementById("journalTeacher")?.value||"";
     let rows=teachingJournals.filter(x=>(!filterTeacher||x.teacherId===filterTeacher)&&(!from||x.date>=from)&&(!to||x.date<=to));
-    if(!isAdmin()){
-        // UI filtering is useful for the shared teacher role, but is not an identity boundary.
-        rows=rows.filter(x=>x.teacherId===selectedProfile);
-    }
+    // Perbaikan: akun Guru/Staf memakai Filter Guru ("Semua guru" = semua jurnal), sama seperti Admin.
     const month=journalDateToday().slice(0,7);
     const total=document.getElementById("journalStatTotal"),m=document.getElementById("journalStatMonth"),t=document.getElementById("journalStatTeachers");
     if(total)total.textContent=rows.length;
