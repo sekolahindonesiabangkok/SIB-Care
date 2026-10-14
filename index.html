@@ -3618,6 +3618,14 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
                         <div class="form-group"><label for="journalFollowup">Tindak Lanjut</label><textarea id="journalFollowup" class="form-control" placeholder="Langkah perbaikan atau tindak lanjut."></textarea></div>
                         <div class="form-group"><label for="journalReflection">Refleksi Guru</label><textarea id="journalReflection" class="form-control" placeholder="Apa yang berjalan baik dan apa yang perlu ditingkatkan?"></textarea></div>
                     </div>
+                    <div id="journalAiBox" style="border:1px dashed var(--border,#cbd5e1);border-radius:12px;padding:12px;margin:0 0 14px;">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+                            <button class="btn btn-secondary btn-sm" type="button" onclick="journalAssistSuggest()">✨ Bantu Refleksi</button>
+                            <button class="btn btn-secondary btn-sm" type="button" onclick="journalAssistPolish()">🪄 Rapikan Kalimat</button>
+                            <span style="font-size:12px;color:var(--muted);">Saran otomatis dari isian Anda. Saran hanya usulan; silakan dipilih dan diedit sendiri.</span>
+                        </div>
+                        <div id="journalAiResult" style="margin-top:10px;"></div>
+                    </div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
                         <button class="btn btn-primary" type="submit">💾 Simpan Jurnal</button>
                         <span id="journalFormHint" style="font-size:12px;color:var(--muted);">Data disimpan ke Firebase.</span>
@@ -16049,5 +16057,123 @@ setTimeout(()=>{
 })();
 </script>
 
+
+<script>
+/* =========================================================
+   BANTUAN REFLEKSI JURNAL (otomatis, tanpa server, gratis)
+   Tambahan terpisah: tidak mengubah fungsi Jurnal yang ada.
+========================================================= */
+(function(){
+    const $=id=>document.getElementById(id);
+    const esc=t=>String(t==null?"":t).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+    const THEMES=[
+        {k:"waktu",re:/waktu|durasi|kurang jam|terburu|molor|telat|terpotong/i,
+         obs:"manajemen waktu belum optimal",
+         follow:["Menyusun alokasi waktu per kegiatan (pembuka, inti, penutup) dan menyiapkan penanda waktu.","Memadatkan materi inti dan memindahkan latihan tambahan menjadi tugas mandiri."],
+         refl:"Alokasi waktu perlu diatur lebih rinci agar semua tahap pembelajaran tuntas."},
+        {k:"media",re:/proyektor|lcd|internet|wifi|jaringan|listrik|laptop|komputer|media|sinyal|speaker|infocus/i,
+         obs:"sarana atau media pembelajaran sempat terkendala",
+         follow:["Menyiapkan media cadangan (cetak/papan tulis) sebelum pembelajaran dimulai.","Mengecek perangkat dan jaringan 10 menit sebelum jam pelajaran."],
+         refl:"Kesiapan sarana perlu dicek lebih awal dan disiapkan rencana cadangan agar pembelajaran tidak terhenti."},
+        {k:"fokus",re:/fokus|konsentrasi|mengantuk|ngantuk|bosan|malas|kurang aktif|pasif|motivasi|semangat|tidak memperhatikan|ramai|gaduh|ribut/i,
+         obs:"perhatian dan keaktifan peserta didik belum merata",
+         follow:["Menambahkan aktivitas singkat yang melibatkan siswa (tanya jawab, diskusi pasangan, kuis cepat).","Mengatur posisi duduk dan memberi peran kepada siswa yang kurang aktif."],
+         refl:"Variasi kegiatan perlu ditambah supaya keterlibatan seluruh siswa meningkat."},
+        {k:"paham",re:/paham|pahami|sulit|kesulitan|bingung|salah konsep|belum tuntas|remedial|rendah|belum menguasai|belum mengerti/i,
+         obs:"sebagian siswa belum memahami materi secara utuh",
+         follow:["Mengulas kembali konsep kunci dengan contoh yang lebih konkret.","Memberi latihan bertingkat dan pendampingan kelompok kecil bagi siswa yang belum tuntas."],
+         refl:"Penjelasan konsep perlu disertai contoh yang lebih dekat dengan kehidupan siswa dan pengecekan pemahaman yang lebih sering."},
+        {k:"hadir",re:/tidak hadir|absen|alpa|izin|sakit|terlambat|kehadiran|bolos/i,
+         obs:"kehadiran siswa memengaruhi kelancaran pembelajaran",
+         follow:["Menyediakan ringkasan materi atau tugas pengganti bagi siswa yang tidak hadir.","Berkoordinasi dengan wali kelas terkait kehadiran siswa."],
+         refl:"Perlu mekanisme penyampaian materi susulan agar siswa yang berhalangan tidak tertinggal."},
+        {k:"tugas",re:/tugas|pr |pekerjaan rumah|tidak mengumpul|belum mengumpul|terlambat mengumpul/i,
+         obs:"pengumpulan atau pengerjaan tugas belum optimal",
+         follow:["Menetapkan batas waktu dan format pengumpulan yang jelas sejak awal.","Memberi umpan balik singkat pada tugas yang dikumpulkan tepat waktu."],
+         refl:"Petunjuk dan tenggat tugas perlu disampaikan lebih jelas serta dipantau secara berkala."},
+        {k:"praktik",re:/praktik|alat|bahan|lab|percobaan|eksperimen|peralatan/i,
+         obs:"kesiapan alat dan bahan praktik perlu ditingkatkan",
+         follow:["Menyiapkan daftar alat dan bahan serta mengeceknya sehari sebelumnya.","Membagi kelompok dan peran agar kegiatan praktik berjalan tertib."],
+         refl:"Persiapan alat dan pembagian peran perlu direncanakan lebih matang."}
+    ];
+
+    function val(id){const e=$(id);return e?e.value.trim():"";}
+    function lowerFirst(t){return t?t.charAt(0).toLowerCase()+t.slice(1):t;}
+    function endDot(t){t=t.trim();return t&&!/[.!?]$/.test(t)?t+".":t;}
+    function themesFor(text){return THEMES.filter(t=>t.re.test(text));}
+
+    function buildSuggestions(){
+        const subject=val("journalSubject"), klass=val("journalClass"), material=val("journalMaterial");
+        const obstacle=val("journalObstacle"), follow=val("journalFollowup");
+        if(!material && !obstacle){return null;}
+        const topic=material?lowerFirst(material.split(/[.\n]/)[0].slice(0,140)):(subject||"materi");
+        const forWho=(subject?subject+" ":"")+(klass?"kelas "+klass:"").trim();
+        const found=themesFor(obstacle+" "+follow);
+        const out={reflection:[],followup:[]};
+
+        if(obstacle && found.length){
+            found.slice(0,2).forEach(t=>{
+                out.reflection.push(endDot(`Pembelajaran ${topic} ${forWho?"pada "+forWho+" ":""}secara umum berjalan sesuai rencana. Kendala yang muncul: ${t.obs}. ${t.refl}`));
+                t.follow.forEach(f=>out.followup.push(f));
+            });
+        }else if(obstacle){
+            out.reflection.push(endDot(`Pembelajaran ${topic} ${forWho?"pada "+forWho+" ":""}berjalan, namun ada kendala: ${lowerFirst(obstacle)}. Pada pertemuan berikutnya perlu disiapkan langkah antisipasi yang lebih jelas`));
+            out.followup.push("Mencatat kendala tersebut dan menyiapkan langkah antisipasi pada pertemuan berikutnya.","Mendiskusikan kendala dengan rekan guru atau wali kelas untuk mencari solusi bersama.");
+        }else{
+            out.reflection.push(endDot(`Pembelajaran ${topic} ${forWho?"pada "+forWho+" ":""}berjalan lancar dan tujuan pembelajaran tercapai. Hal yang perlu dipertahankan adalah kegiatan yang membuat siswa terlibat aktif`));
+            out.reflection.push(endDot(`Untuk pertemuan berikutnya, perlu ditambahkan pengecekan pemahaman singkat di akhir pembelajaran agar ketercapaian ${topic} dapat diketahui lebih pasti`));
+            out.followup.push("Melanjutkan ke materi berikutnya dengan mengaitkan materi yang baru saja dipelajari.","Memberi latihan singkat atau pertanyaan penutup untuk mengecek ketercapaian tujuan.");
+        }
+        out.reflection.push("Hal yang berjalan baik: siswa mengikuti kegiatan inti. Hal yang perlu ditingkatkan: variasi metode dan pengecekan pemahaman di sepanjang pembelajaran.");
+        // buang duplikat
+        out.followup=[...new Set(out.followup)].slice(0,4);
+        out.reflection=[...new Set(out.reflection)].slice(0,3);
+        return out;
+    }
+
+    function chip(label,text,target){
+        return `<div style="display:flex;gap:8px;align-items:flex-start;margin-top:6px;padding:8px 10px;border-radius:10px;background:rgba(148,163,184,.12);">
+          <div style="flex:1;font-size:13px;line-height:1.45;">${esc(text)}</div>
+          <button type="button" class="btn btn-primary btn-sm" data-ai-target="${target}" data-ai-text="${esc(text)}">${label}</button></div>`;
+    }
+
+    window.journalAssistSuggest=function(){
+        const box=$("journalAiResult"); if(!box) return;
+        const r=buildSuggestions();
+        if(!r){box.innerHTML='<div style="font-size:13px;color:var(--muted);">Isi dulu Materi dan/atau Kendala, lalu tekan Bantu Refleksi.</div>';return;}
+        box.innerHTML=
+          '<div style="font-size:13px;font-weight:600;">Usulan Refleksi Guru</div>'+r.reflection.map(t=>chip("Pakai",t,"journalReflection")).join("")+
+          '<div style="font-size:13px;font-weight:600;margin-top:12px;">Usulan Tindak Lanjut</div>'+r.followup.map(t=>chip("Pakai",t,"journalFollowup")).join("");
+    };
+
+    document.addEventListener("click",function(ev){
+        const b=ev.target.closest("[data-ai-target]"); if(!b) return;
+        const el=$(b.dataset.aiTarget); if(!el) return;
+        const text=b.dataset.aiText||"";
+        el.value=el.value.trim()?el.value.trim()+(el.value.trim().match(/[.!?]$/)?" ":". ")+text:text;
+        b.textContent="✔ Dipakai"; b.disabled=true;
+        el.focus();
+    });
+
+    const FIX=[[/\btdk\b/gi,"tidak"],[/\bygg?\b/gi,"yang"],[/\bdgn\b/gi,"dengan"],[/\bdg\b/gi,"dengan"],[/\butk\b/gi,"untuk"],[/\bkrn\b/gi,"karena"],[/\bkarna\b/gi,"karena"],[/\bsdh\b/gi,"sudah"],[/\bblm\b/gi,"belum"],[/\bblom\b/gi,"belum"],[/\bsy\b/gi,"saya"],[/\bmsh\b/gi,"masih"],[/\bjg\b/gi,"juga"],[/\bsbg\b/gi,"sebagai"],[/\bspy\b/gi,"supaya"],[/\bbrp\b/gi,"beberapa"],[/\bsiswa2\b/gi,"siswa-siswa"],[/\bmurid2\b/gi,"murid-murid"],[/\bkmd\b/gi,"kemudian"],[/\bdlm\b/gi,"dalam"],[/\bdr\b/gi,"dari"],[/\bpd\b/gi,"pada"],[/\bkpd\b/gi,"kepada"],[/\bbs\b/gi,"bisa"],[/\bkurang2\b/gi,"kurang"],[/\bmaksimal\b/gi,"maksimal"]];
+    function polish(t){
+        if(!t.trim()) return t;
+        let x=t.replace(/[ \t]+/g," ").replace(/\s+([,.;:!?])/g,"$1").replace(/([,;:])(?=\S)/g,"$1 ").replace(/([.!?])(?=[A-Za-z])/g,"$1 ").trim();
+        FIX.forEach(([re,to])=>{x=x.replace(re,to);});
+        x=x.replace(/(^|[.!?]\s+|\n)([a-z])/g,(m,a,c)=>a+c.toUpperCase());
+        return endDot(x);
+    }
+    window.journalAssistPolish=function(){
+        let changed=0;
+        ["journalMaterial","journalObstacle","journalFollowup","journalReflection"].forEach(id=>{
+            const e=$(id); if(!e||!e.value.trim()) return;
+            const n=polish(e.value); if(n!==e.value){e.value=n;changed++;}
+        });
+        const box=$("journalAiResult");
+        if(box) box.innerHTML='<div style="font-size:13px;color:var(--muted);">'+(changed?`Kalimat di ${changed} kolom sudah dirapikan (spasi, huruf awal kalimat, tanda baca, singkatan umum). Silakan dibaca ulang sebelum disimpan.`:"Tidak ada yang perlu dirapikan.")+"</div>";
+    };
+})();
+</script>
 </body>
 </html>
