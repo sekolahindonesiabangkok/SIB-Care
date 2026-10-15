@@ -350,8 +350,6 @@ body{
 /* =========================================================
    APP
 ========================================================= */
-
-========================================================= */
 #app{
     display:none;
 }
@@ -451,6 +449,38 @@ body{
     cursor:pointer;
     font-size:14px;
     transition:.2s;
+}
+
+
+/* SIDEBAR TERKELOMPOK — perubahan terbatas pada navigasi */
+.sidebar-search-wrap{padding:0 5px 14px;margin-bottom:7px;border-bottom:1px solid rgba(220,231,247,.13)}
+.sidebar-search-label{display:block;color:#b9c9e0;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin:0 7px 7px}
+.sidebar-search-box{display:flex;align-items:center;gap:7px;background:#0b1f3d;border:1px solid rgba(220,231,247,.2);border-radius:9px;padding:0 9px;color:#a9bdd9}
+.sidebar-search-box:focus-within{border-color:#68a5ff;box-shadow:0 0 0 2px rgba(13,110,253,.18)}
+.sidebar-search-box>span{font-size:22px;line-height:1}
+.sidebar-search-box input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#fff;padding:10px 0;font:inherit;font-size:13px}
+.sidebar-search-box input::placeholder{color:#8fa5c5}
+.sidebar-search-clear{border:0;background:transparent;color:#dce7f7;font-size:21px;line-height:1;cursor:pointer;padding:1px 3px}
+.sidebar-search-status{min-height:0;color:#a9bdd9;font-size:11px;padding:4px 7px 0}
+.nav-group{margin:3px 0 9px}
+.nav-group-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;gap:7px;text-align:left;background:transparent;border:0;border-radius:8px;cursor:pointer;color:#9eb5d5;padding:10px 9px 7px;font:inherit;font-size:10.5px;letter-spacing:.045em;line-height:1.35;text-transform:uppercase;font-weight:800}
+.nav-group-toggle:hover{color:#fff;background:rgba(255,255,255,.055)}
+.nav-group-toggle>span:first-child{display:flex;align-items:center;gap:8px}
+.nav-group-icon{width:19px;height:19px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 19px;border-radius:5px;background:rgba(146,180,230,.13);color:#b9d3f6;font-size:14px;letter-spacing:0}
+.nav-chevron{font-size:15px;transition:transform .18s ease;letter-spacing:0}
+.nav-group-toggle[aria-expanded="false"] .nav-chevron{transform:rotate(-90deg)}
+.nav-group-items{display:block}
+.nav-group.collapsed .nav-group-items{display:none}
+.nav-group .nav-item{font-size:13px;padding:10px 10px;margin:2px 0;gap:9px}
+.nav-group.filtered-out{display:none!important}
+.nav-item.search-filtered-out{display:none!important}
+#adminNav .nav-group:first-child{margin-top:5px}
+@media(max-width:760px){
+  .sidebar{display:block;overflow:visible;padding:10px 12px;}
+  .sidebar-search-wrap{max-width:none}
+  .nav-title{display:flex;}
+  .nav-group{min-width:0;width:100%;}
+  .nav-group .nav-item{white-space:normal;}
 }
 
 .nav-item:hover,
@@ -1555,6 +1585,13 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
     #page-journal table{font-size:9px!important}
     #page-journal th,#page-journal td{font-size:8px!important;padding:4px!important;color:#000!important}
 }
+/* Override aturan navigasi lama khusus tampilan mobile */
+@media(max-width:760px){
+  #app .sidebar{display:block!important;overflow:visible!important;width:100%;height:auto;padding:10px 12px;}
+  #app .sidebar .nav-title{display:flex!important;}
+  #app .sidebar .nav-group{display:block;min-width:0;width:100%;}
+  #app .sidebar .nav-group .nav-item{white-space:normal;}
+}
 </style>
 </head>
 
@@ -1736,149 +1773,95 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
 
 
     <!-- SIDEBAR -->
-    <aside class="sidebar">
-
-        <div class="nav-title">Utama</div>
-
-        <div class="nav-item active"
-             data-page="home"
-             onclick="showPage('home')">
-            🏠 Beranda
+    <aside class="sidebar" aria-label="Navigasi utama SIB CARE">
+        <div class="sidebar-search-wrap">
+            <label class="sidebar-search-label" for="sidebarMenuSearch">Cari menu</label>
+            <div class="sidebar-search-box">
+                <span aria-hidden="true">⌕</span>
+                <input id="sidebarMenuSearch" type="search" placeholder="Cari menu…" autocomplete="off" aria-label="Cari menu navigasi">
+                <button type="button" id="sidebarSearchClear" class="sidebar-search-clear" aria-label="Hapus pencarian" title="Hapus pencarian" hidden>×</button>
+            </div>
+            <div id="sidebarSearchStatus" class="sidebar-search-status" aria-live="polite"></div>
         </div>
 
-        <div class="nav-item"
-             data-page="condition"
-             onclick="showPage('condition')">
-            🏫 Kondisi Sekolah
-        </div>
+        <section class="nav-group" data-nav-group="beranda">
+            <button type="button" class="nav-title nav-group-toggle" aria-expanded="true">
+                <span><span class="nav-group-icon">⌂</span> Beranda</span><span class="nav-chevron">⌄</span>
+            </button>
+            <div class="nav-group-items">
+                <div class="nav-item active" data-page="home" onclick="showPage('home')">🏠 Beranda</div>
+            </div>
+        </section>
 
-        <div class="nav-item"
-             data-page="report"
-             onclick="openReportModal()">
-            📝 Lapor Kondisi
-        </div>
+        <section class="nav-group" data-nav-group="pelaporan">
+            <button type="button" class="nav-title nav-group-toggle" aria-expanded="true">
+                <span><span class="nav-group-icon">▤</span> Pelaporan &amp; Pemantauan</span><span class="nav-chevron">⌄</span>
+            </button>
+            <div class="nav-group-items">
+                <div class="nav-item" data-page="condition" onclick="showPage('condition')">🏫 Kondisi Sekolah</div>
+                <div class="nav-item" data-page="report" onclick="openReportModal()">📝 Lapor Kondisi</div>
+                <div class="nav-item" data-page="myreports" onclick="showPage('myreports')">📋 Laporan Saya</div>
+                <div class="nav-item" data-page="timeline" onclick="showPage('timeline')">🕒 Timeline</div>
+            </div>
+        </section>
 
-        <div class="nav-item"
-             data-page="myreports"
-             onclick="showPage('myreports')">
-            📋 Laporan Saya
-        </div>
+        <section class="nav-group" data-nav-group="fasilitas">
+            <button type="button" class="nav-title nav-group-toggle" aria-expanded="true">
+                <span><span class="nav-group-icon">▦</span> Sarana &amp; Fasilitas</span><span class="nav-chevron">⌄</span>
+            </button>
+            <div class="nav-group-items">
+                <div class="nav-item" data-page="denah" onclick="showPage('denah')">🗺️ Denah Sekolah</div>
+                <div class="nav-item" data-page="gallery" onclick="showPage('gallery')">🖼️ Galeri</div>
+                <div class="nav-item" id="navBorrow" data-page="borrow" onclick="showPage('borrow')" style="display:none;">🖥️ Peminjaman Sarana</div>
+                <div class="nav-item" id="navCctv" data-page="cctv" onclick="showPage('cctv')" style="display:none;">📹 CCTV Sekolah</div>
+                <div class="nav-item" id="navLocker" data-page="locker" onclick="showPage('locker')" style="display:none;">🔐 Locker Siswa</div>
+                <div class="nav-item" data-page="lostfound" onclick="showPage('lostfound')">🔎 Barang Hilang &amp; Temuan</div>
+            </div>
+        </section>
 
-        <div class="nav-item"
-             data-page="timeline"
-             onclick="showPage('timeline')">
-            🕒 Timeline
-        </div>
-
-        <div class="nav-item"
-             data-page="gallery"
-             onclick="showPage('gallery')">
-            🖼️ Galeri
-        </div>
-
-        <div class="nav-item"
-             data-page="denah"
-             onclick="showPage('denah')">
-            🗺️ Denah Sekolah
-        </div>
-
-        <div class="nav-item"
-             id="navBorrow"
-             data-page="borrow"
-             onclick="showPage('borrow')"
-             style="display:none;">
-            🖥️ Peminjaman Sarana
-        </div>
-
-        <div class="nav-item"
-             id="navCctv"
-             data-page="cctv"
-             onclick="showPage('cctv')"
-             style="display:none;">
-            📹 CCTV Sekolah
-        </div>
-
-        <div class="nav-item"
-             id="navLocker"
-             data-page="locker"
-             onclick="showPage('locker')"
-             style="display:none;">
-            🔐 Locker Siswa
-        </div>
-
-        <div class="nav-item"
-             data-page="lostfound"
-             onclick="showPage('lostfound')">
-            🔎 Barang Hilang & Temuan
-        </div>
-
-
-        <div class="nav-item" id="navJournal" data-page="journal" onclick="showPage('journal')" style="display:none;">
-            📘 Jurnal Mengajar
-        </div>
+        <section class="nav-group" data-nav-group="akademik">
+            <button type="button" class="nav-title nav-group-toggle" aria-expanded="true">
+                <span><span class="nav-group-icon">▣</span> Akademik &amp; Siswa</span><span class="nav-chevron">⌄</span>
+            </button>
+            <div class="nav-group-items">
+                <div class="nav-item" id="navJournal" data-page="journal" onclick="showPage('journal')" style="display:none;">📘 Jurnal Mengajar</div>
+            </div>
+        </section>
 
         <div id="adminNav">
+            <section class="nav-group" data-nav-group="data-siswa">
+                <button type="button" class="nav-title nav-group-toggle" aria-expanded="true">
+                    <span><span class="nav-group-icon">♙</span> Data &amp; Administrasi Siswa</span><span class="nav-chevron">⌄</span>
+                </button>
+                <div class="nav-group-items">
+                    <div class="nav-item" data-page="students" onclick="showPage('students')">👨‍🎓 Data Siswa</div>
+                    <div class="nav-item" data-page="lockermaster" onclick="showPage('lockermaster')">🗄️ Data Locker</div>
+                </div>
+            </section>
 
-            <div class="nav-title">
-                Administrasi
-            </div>
+            <section class="nav-group" data-nav-group="analisis">
+                <button type="button" class="nav-title nav-group-toggle" aria-expanded="true">
+                    <span><span class="nav-group-icon">▥</span> Laporan &amp; Analisis</span><span class="nav-chevron">⌄</span>
+                </button>
+                <div class="nav-group-items">
+                    <div class="nav-item" data-page="dashboard" onclick="showPage('dashboard')">📊 Dashboard</div>
+                    <div class="nav-item" data-page="recap" onclick="showPage('recap')">📑 Rekap</div>
+                    <div class="nav-item" data-page="recap-borrow" onclick="showPage('recap-borrow')">📥 Rekap Peminjaman</div>
+                    <div class="nav-item" data-page="statistics" onclick="showPage('statistics')">📈 Statistik</div>
+                </div>
+            </section>
 
-            <div class="nav-item"
-                 data-page="students"
-                 onclick="showPage('students')">
-                👨‍🎓 Data Siswa
-            </div>
-
-            <div class="nav-item"
-                 data-page="lockermaster"
-                 onclick="showPage('lockermaster')">
-                🗄️ Data Locker
-            </div>
-
-            <div class="nav-item"
-                 data-page="dashboard"
-                 onclick="showPage('dashboard')">
-                📊 Dashboard
-            </div>
-
-            <div class="nav-item"
-                 data-page="master"
-                 onclick="showPage('master')">
-                ⚙️ Data Master
-            </div>
-
-            <div class="nav-item"
-                 data-page="recap"
-                 onclick="showPage('recap')">
-                📑 Rekap
-            </div>
-
-            <div class="nav-item"
-                 data-page="recap-borrow"
-                 onclick="showPage('recap-borrow')">
-                📥 Rekap Peminjaman
-            </div>
-
-            <div class="nav-item"
-                 data-page="statistics"
-                 onclick="showPage('statistics')">
-                📈 Statistik
-            </div>
-
-            <div class="nav-item"
-                 data-page="home-settings"
-                 onclick="showPage('home-settings')">
-                🏠 Pengaturan Beranda
-            </div>
-
-            <div class="nav-item"
-                 data-page="guestbook-admin"
-                 onclick="showPage('guestbook-admin')">
-                📖 Buku Tamu
-            </div>
-
+            <section class="nav-group" data-nav-group="pengaturan">
+                <button type="button" class="nav-title nav-group-toggle" aria-expanded="true">
+                    <span><span class="nav-group-icon">⚙</span> Pengaturan &amp; Data Master</span><span class="nav-chevron">⌄</span>
+                </button>
+                <div class="nav-group-items">
+                    <div class="nav-item" data-page="master" onclick="showPage('master')">⚙️ Data Master</div>
+                    <div class="nav-item" data-page="home-settings" onclick="showPage('home-settings')">🏠 Pengaturan Beranda</div>
+                    <div class="nav-item" data-page="guestbook-admin" onclick="showPage('guestbook-admin')">📖 Buku Tamu</div>
+                </div>
+            </section>
         </div>
-
     </aside>
 
 
@@ -11868,7 +11851,9 @@ function printLockerRecap(){
                 </thead>
                 <tbody>${tableRows}</tbody>
             </table>
-        </body>
+        
+
+</body>
         </html>
     `);
 
@@ -16175,5 +16160,75 @@ setTimeout(()=>{
     };
 })();
 </script>
+<script>
+/* Pencarian dan kategori sidebar: tidak mengubah fungsi navigasi halaman. */
+(function initSidebarNavigation(){
+    function setup(){
+        const sidebar=document.querySelector('.sidebar');
+        if(!sidebar || sidebar.dataset.organized==='true') return;
+        sidebar.dataset.organized='true';
+        const search=document.getElementById('sidebarMenuSearch');
+        const clear=document.getElementById('sidebarSearchClear');
+        const status=document.getElementById('sidebarSearchStatus');
+        const groups=Array.from(sidebar.querySelectorAll('.nav-group'));
+        const items=Array.from(sidebar.querySelectorAll('.nav-item'));
+
+        sidebar.querySelectorAll('.nav-group-toggle').forEach(button=>{
+            button.addEventListener('click',()=>{
+                if(search && search.value.trim()) return;
+                const group=button.closest('.nav-group');
+                const expanded=button.getAttribute('aria-expanded')==='true';
+                button.setAttribute('aria-expanded',String(!expanded));
+                group.classList.toggle('collapsed',expanded);
+            });
+        });
+
+        function filterMenus(){
+            const query=(search?.value||'').trim().toLocaleLowerCase('id');
+            let count=0;
+            if(clear) clear.hidden=!query;
+            items.forEach(item=>item.classList.remove('search-filtered-out'));
+            groups.forEach(group=>{
+                const title=group.querySelector('.nav-group-toggle')?.textContent.toLocaleLowerCase('id')||'';
+                const categoryMatches=!!query && title.includes(query);
+                Array.from(group.querySelectorAll('.nav-item')).forEach(item=>{
+                    if(!query) return;
+                    const eligible=getComputedStyle(item).display!=='none';
+                    const matches=eligible && (categoryMatches || item.textContent.toLocaleLowerCase('id').includes(query));
+                    if(!matches) item.classList.add('search-filtered-out');
+                    else count++;
+                });
+            });
+            groups.forEach(group=>{
+                const visibleItems=Array.from(group.querySelectorAll('.nav-item')).filter(item=>!item.classList.contains('search-filtered-out') && getComputedStyle(item).display!=='none');
+                group.classList.toggle('filtered-out',!!query && visibleItems.length===0);
+                const button=group.querySelector('.nav-group-toggle');
+                if(query){
+                    group.classList.remove('collapsed');
+                    if(button) button.setAttribute('aria-expanded','true');
+                }
+            });
+            if(status) status.textContent=query ? (count ? count+' menu ditemukan' : 'Menu tidak ditemukan') : '';
+        }
+        if(search) search.addEventListener('input',filterMenus);
+        if(clear) clear.addEventListener('click',()=>{search.value='';filterMenus();search.focus();});
+        search?.addEventListener('keydown',event=>{
+            if(event.key==='Escape'){search.value='';filterMenus();}
+            if(event.key==='Enter'){
+                const first=items.find(item=>!item.classList.contains('search-filtered-out') && getComputedStyle(item).display!=='none');
+                if(first) first.click();
+            }
+        });
+        filterMenus();
+        // Pastikan kategori yang memuat halaman aktif terbuka.
+        const active=sidebar.querySelector('.nav-item.active');
+        const activeGroup=active?.closest('.nav-group');
+        if(activeGroup){activeGroup.classList.remove('collapsed');activeGroup.querySelector('.nav-group-toggle')?.setAttribute('aria-expanded','true');}
+    }
+    if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',setup,{once:true});
+    else setup();
+})();
+</script>
+
 </body>
 </html>
