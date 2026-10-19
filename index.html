@@ -11018,7 +11018,15 @@ function renderLockerMaster(){
                     <td>${escapeHTML(l.condition||"Baik")}</td>
                     <td><span class="badge ${cls}">${escapeHTML(status)}</span></td>
                     <td>
-                        <div style="display:flex;gap:5px;">
+                        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+                            ${
+                                status === "Tersedia" && isAdmin()
+                                ? `<button class="btn btn-primary btn-sm"
+                                        onclick="openAssignLockerModal('${l.id}')">
+                                        ➕ Isi Siswa
+                                    </button>`
+                                : ""
+                            }
                             <button class="btn btn-secondary btn-sm"
                                     onclick="openLockerMasterForm('${l.id}')">
                                 ✏️
@@ -11350,6 +11358,8 @@ function getFilteredLockerAssignments(){
 
 function renderLockerPage(){
 
+    applyRoleMenuAccess();
+
     const tbody = document.getElementById("lockerTableBody");
 
     if(!tbody){
@@ -11425,7 +11435,7 @@ function renderLockerPage(){
 }
 
 
-function openAssignLockerModal(){
+function openAssignLockerModal(presetLockerId){
 
     if(!isAdmin()){
         showToast("Hanya Admin Sarpras yang dapat menempatkan locker.");
@@ -11469,6 +11479,10 @@ function openAssignLockerModal(){
             </option>`
         ).join("");
 
+
+    if(typeof presetLockerId === "string" && presetLockerId){
+        lockerSelect.value = presetLockerId;
+    }
 
     document.getElementById("assignStartDate").value = todayISO();
 
@@ -12911,7 +12925,30 @@ function getHomeSettingsSorted(){
     return normalizeHomeSettings(homeSettings);
 }
 
+/* Menampilkan menu sidebar & tombol sesuai peran dan Pengaturan Beranda */
+function applyRoleMenuAccess(){
+    const role = currentUser ? currentUser.role : "";
+    const admin = role === "ADMIN_SARPRAS";
+    const map = { navBorrow:"borrow", navCctv:"cctv", navLocker:"locker" };
+    Object.keys(map).forEach(id=>{
+        const el = document.getElementById(id);
+        if(!el) return;
+        const key = map[id];
+        let show = !!currentUser && role !== "TAMU";
+        if(show && role === "SISWA" && HOME_KEYS_HIDDEN_FROM_SISWA.includes(key)) show = false;
+        if(show && !admin && typeof getHomeSettingsSorted === "function"){
+            const st = getHomeSettingsSorted().find(i=>i.key===key);
+            if(st && st.visible === false) show = false;
+        }
+        el.style.display = show ? "flex" : "none";
+    });
+    const assignBtn = document.getElementById("lockerAssignBtn");
+    if(assignBtn) assignBtn.style.display = admin ? "inline-flex" : "none";
+}
+
 function renderHome(){
+
+    applyRoleMenuAccess();
 
     const grid = document.getElementById("homeMenuGrid");
 
