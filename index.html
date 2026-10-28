@@ -1592,6 +1592,11 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
   #app .sidebar .nav-group{display:block;min-width:0;width:100%;}
   #app .sidebar .nav-group .nav-item{white-space:normal;}
 }
+
+/* ---------- SIB LIBRARY (halaman tergabung) ---------- */
+#page-library{padding:0}
+#sibLibFrame{display:block;width:100%;height:calc(100vh - 120px);min-height:520px;border:1px solid var(--border);border-radius:var(--radius);background:#fff}
+@media(max-width:900px){#sibLibFrame{height:calc(100vh - 100px)}}
 </style>
 </head>
 
@@ -1816,6 +1821,15 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
                 <div class="nav-item" id="navCctv" data-page="cctv" onclick="showPage('cctv')" style="display:none;">📹 CCTV Sekolah</div>
                 <div class="nav-item" id="navLocker" data-page="locker" onclick="showPage('locker')" style="display:none;">🔐 Locker Siswa</div>
                 <div class="nav-item" data-page="lostfound" onclick="showPage('lostfound')">🔎 Barang Hilang &amp; Temuan</div>
+            </div>
+        </section>
+
+        <section class="nav-group" data-nav-group="perpustakaan">
+            <button type="button" class="nav-title nav-group-toggle" aria-expanded="true">
+                <span><span class="nav-group-icon">📚</span> Perpustakaan</span><span class="nav-chevron">⌄</span>
+            </button>
+            <div class="nav-group-items">
+                <div class="nav-item" id="navLibrary" data-page="library" onclick="showPage('library');sibLibOpen()" style="display:none;">📚 SIB Library</div>
             </div>
         </section>
 
@@ -3568,6 +3582,14 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
         <!-- =================================================
              JURNAL MENGAJAR DIGITAL
         ================================================= -->
+        <!-- =================================================
+             SIB LIBRARY (modul tergabung; data di Firestore)
+        ================================================= -->
+        <section id="page-library" class="page">
+            <iframe id="sibLibFrame" title="SIB Library" loading="lazy"></iframe>
+            <div id="sibLibMsg" class="tp-note" style="display:none;padding:14px"></div>
+        </section>
+
         <section id="page-journal" class="page">
             <div class="page-header">
                 <h1>📘 Jurnal Mengajar Digital</h1>
@@ -16264,6 +16286,513 @@ setTimeout(()=>{
     }
     if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',setup,{once:true});
     else setup();
+})();
+</script>
+
+
+<!-- =========================================================
+     SIB LIBRARY — template halaman (dimuat ke iframe saat menu dibuka)
+========================================================= -->
+<script type="text/plain" id="sibLibTpl"><!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIB LIBRARY — Digital Learning Hub</title>
+<meta name="description" content="SIB Library — Baca, jelajahi, bereksperimen, dan berkarya.">
+<style>
+:root{--navy:#10243d;--blue:#1769aa;--sky:#eaf5ff;--teal:#13a89e;--ink:#172b43;--muted:#64758b;--line:#dfe8f1;--paper:#fff;--bg:#f5f8fc;--shadow:0 14px 38px rgba(16,36,61,.09);--radius:22px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}.hidden{display:none!important}.wrap{width:min(1180px,calc(100% - 36px));margin:auto}
+.topbar{background:var(--navy);color:#dcecff;font-size:12px;padding:8px 0}.topbar .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header{background:rgba(255,255,255,.94);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;backdrop-filter:blur(14px)}.nav{display:flex;align-items:center;gap:22px;min-height:78px}.brand{display:flex;align-items:center;gap:11px;min-width:230px;color:var(--navy);text-decoration:none;cursor:pointer}.brandmark{width:46px;height:46px;border-radius:15px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;display:grid;place-items:center;font-size:22px;box-shadow:0 8px 20px #1769aa35}.brand strong{display:block;font-size:18px;letter-spacing:.08em;line-height:1.15}.brand small{color:var(--muted);font-size:11px;letter-spacing:.02em}.navlinks{display:flex;align-items:center;gap:17px;flex:1;flex-wrap:wrap}.navlinks button{border:0;background:none;color:#52647a;font-weight:650;font-size:13px;padding:10px 0}.navlinks button:hover,.navlinks button.active{color:var(--blue)}.nav-actions{display:flex;gap:8px;align-items:center}
+.btn{border:0;border-radius:12px;padding:11px 16px;font-weight:750;transition:.2s;display:inline-flex;align-items:center;justify-content:center;gap:7px;text-decoration:none}.btn:hover{transform:translateY(-1px)}.primary{background:var(--blue);color:white;box-shadow:0 7px 18px #1769aa2c}.secondary{background:#eaf4ff;color:#155b94}.ghost{background:transparent;color:var(--blue);border:1px solid #cbdff1}.danger{background:#fdecec;color:#b42318}.small{padding:8px 11px;font-size:12px;border-radius:9px}.menu-toggle{display:none}
+.hero{padding:45px 0 30px;background:radial-gradient(ellipse at 80% 15%,#bde9f0 0,transparent 34%),radial-gradient(ellipse at 5% 15%,#d7eaff 0,transparent 37%),linear-gradient(135deg,#f7fbff,#eef7ff 55%,#f6fcfb)}.hero-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:35px;align-items:center}.eyebrow{color:var(--teal);font-size:11px;letter-spacing:.16em;font-weight:850;text-transform:uppercase}.hero h1{font-size:clamp(35px,5vw,60px);line-height:1.04;letter-spacing:-.045em;color:var(--navy);margin:14px 0}.hero h1 span{color:var(--blue)}.hero p{color:#5c6f85;font-size:17px;max-width:600px;margin:0 0 22px}.hero-buttons{display:flex;gap:10px;flex-wrap:wrap}.hero-stats{display:flex;gap:25px;margin-top:26px;flex-wrap:wrap}.stat strong{display:block;font-size:20px;color:var(--navy)}.stat span{font-size:12px;color:var(--muted)}.hero-art{min-height:310px;position:relative;display:grid;place-items:center}.orbit{width:270px;height:270px;border-radius:50%;background:linear-gradient(145deg,#ccecff,#d9fbf2);display:grid;place-items:center;border:1px solid #fff;box-shadow:inset 0 0 0 18px #ffffff66,0 25px 60px #397ca51c}.book-stack{font-size:104px;filter:drop-shadow(0 15px 12px #10243d1d);transform:rotate(-8deg)}.float-card{position:absolute;background:#fff;border:1px solid #ffffffc9;border-radius:17px;padding:12px 15px;box-shadow:var(--shadow);font-size:12px;font-weight:800}.float-card span{display:block;font-size:10px;color:var(--muted);font-weight:500}.fc1{top:23px;right:0}.fc2{bottom:35px;left:0}.fc3{right:4px;bottom:0}
+.search-panel{margin-top:-2px;position:relative;z-index:2}.searchbox{display:flex;align-items:center;gap:12px;padding:10px 12px 10px 20px;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow)}.searchbox .glass{font-size:22px}.searchbox input{border:0;outline:0;flex:1;min-width:100px;padding:9px 0;color:var(--ink)}.searchbox select{border:0;background:#f4f8fc;border-radius:10px;padding:11px;color:#52647a;max-width:160px}
+section{padding:34px 0}.section-head{display:flex;justify-content:space-between;align-items:end;gap:15px;margin-bottom:18px}.section-head h2{margin:5px 0 0;color:var(--navy);font-size:27px;letter-spacing:-.03em}.section-head p{margin:3px 0 0;color:var(--muted);font-size:13px}.textlink{border:0;background:none;color:var(--blue);font-weight:800}.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.quick{background:#fff;border:1px solid var(--line);border-radius:19px;padding:20px;text-align:left;box-shadow:0 5px 18px #10243d05;min-height:152px;transition:.2s}.quick:hover{transform:translateY(-3px);box-shadow:var(--shadow)}.quick .icon{width:44px;height:44px;border-radius:14px;background:var(--sky);display:grid;place-items:center;font-size:22px;margin-bottom:13px}.quick strong{display:block;color:var(--navy);font-size:15px}.quick span{color:var(--muted);font-size:12px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 20px}.chip{border:1px solid var(--line);background:#fff;color:#617389;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:750}.chip.active,.chip:hover{background:var(--navy);border-color:var(--navy);color:#fff}.book-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:17px}.book-card{background:#fff;border:1px solid var(--line);border-radius:19px;overflow:hidden;transition:.2s;display:flex;flex-direction:column;min-width:0}.book-card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}.cover{height:180px;display:grid;place-items:center;position:relative;overflow:hidden;color:white;padding:20px;text-align:center;background:linear-gradient(145deg,#1769aa,#13a89e)}.cover:before,.cover:after{content:"";position:absolute;border:1px solid #ffffff44;border-radius:50%;width:210px;height:210px;right:-75px;top:-100px}.cover:after{width:130px;height:130px;right:auto;left:-50px;top:auto;bottom:-70px}.cover .cover-icon{font-size:52px;z-index:1;filter:drop-shadow(0 7px 8px #10243d33)}.cover .cover-title{position:absolute;left:15px;right:15px;bottom:14px;font-size:12px;font-weight:850;letter-spacing:.04em;text-shadow:0 2px 6px #10243d77}.cover .badge{position:absolute;top:12px;left:12px;background:#ffffffdf;color:#24405c;border-radius:7px;padding:4px 7px;font-size:9px;font-weight:850;z-index:1}.book-body{padding:15px;display:flex;flex-direction:column;flex:1}.book-body h3{margin:0 0 5px;font-size:15px;color:var(--navy);line-height:1.35}.author{color:var(--muted);font-size:12px}.book-meta{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.tag{background:#f0f6fb;color:#5c7187;border-radius:7px;padding:4px 7px;font-size:10px;font-weight:750;display:inline-block}.tag.ok{background:#e7f8ef;color:#16834c}.tag.no{background:#fdecec;color:#b42318}.book-actions{display:flex;gap:7px;margin-top:auto}.book-actions .btn{flex:1}.empty{grid-column:1/-1;padding:35px;text-align:center;border:1px dashed #c8d7e5;border-radius:18px;color:var(--muted);background:#fff}
+.feature-band{background:var(--navy);color:#fff;border-radius:28px;padding:30px;display:grid;grid-template-columns:1fr 1fr;gap:25px;align-items:center;overflow:hidden}.feature-band h2{font-size:30px;line-height:1.1;margin:9px 0}.feature-band p{color:#bed0e3;max-width:500px}.feature-band .eyebrow{color:#7ce2d7}.feature-tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}.feature-tile{background:#ffffff12;border:1px solid #ffffff24;border-radius:15px;padding:16px}.feature-tile b{display:block;font-size:13px;margin-top:8px}.feature-tile span{font-size:11px;color:#c1d3e5}.program-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.program{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;display:flex;flex-direction:column}.program .icon{font-size:26px}.program h3{margin:9px 0 5px;font-size:16px;color:var(--navy)}.program p{margin:0 0 13px;color:var(--muted);font-size:13px;flex:1}
+footer{background:#0b1b2e;color:#c6d4e4;padding:30px 0;margin-top:35px}.footer-grid{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}.footer-grid strong{color:white}.footer-grid small{display:block;color:#90a5bb;margin-top:4px}.footer-links{display:flex;gap:15px;align-items:center;flex-wrap:wrap}.footer-links button{border:0;background:none;color:#c6d4e4;font-size:12px}
+.page{padding:35px 0 60px;min-height:60vh}.page-title{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap;margin-bottom:22px}.page-title h1{margin:3px 0;color:var(--navy);font-size:32px}.page-title p{margin:0;color:var(--muted)}.panel{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 5px 20px #10243d05}.admin-layout{display:grid;grid-template-columns:220px 1fr;gap:18px}.admin-side{align-self:start;position:sticky;top:92px}.admin-side h3{margin:0 0 12px;color:var(--navy)}.admin-side button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:11px 12px;border-radius:10px;color:#53677e;font-weight:700;margin:3px 0}.admin-side button.active,.admin-side button:hover{background:#eaf4ff;color:var(--blue)}.admin-content{min-width:0}.admin-content h2{margin:0 0 5px;color:var(--navy)}.admin-content h3{color:var(--navy);margin:22px 0 10px}.admin-content>p{margin:0 0 20px;color:var(--muted);font-size:13px}.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}.metric{border:1px solid var(--line);border-radius:15px;padding:16px;background:#fbfdff}.metric span{font-size:12px;color:var(--muted)}.metric strong{display:block;font-size:25px;color:var(--navy)}.metric.warn strong{color:#b42318}
+.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:11px 10px;text-align:left;border-bottom:1px solid #edf1f5;white-space:nowrap;vertical-align:middle}th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}td .btn{margin:2px 2px 2px 0}.status{border-radius:99px;padding:5px 8px;font-size:10px;font-weight:850;background:#e7f8ef;color:#16834c;display:inline-block}.status.wait{background:#fff3d9;color:#93620b}.status.late{background:#fdecec;color:#b42318}.status.off{background:#eceff3;color:#59687a}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:800;color:#435971}.field input,.field select,.field textarea,.mini{width:100%;border:1px solid #d7e2ed;border-radius:10px;padding:10px 12px;outline:0;background:#fff;color:var(--ink)}.mini{padding:7px 9px;min-width:70px}.field input:focus,.field select:focus,.field textarea:focus,.mini:focus{border-color:#64a7dd;box-shadow:0 0 0 3px #1769aa15}.field textarea{min-height:90px;resize:vertical}.form-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px}.notice{padding:12px 14px;background:#fff7e7;border:1px solid #f2dfb7;border-radius:12px;color:#805d19;font-size:12px;margin:12px 0}.info{padding:12px 14px;background:#eef8ff;border:1px solid #d1e9fb;border-radius:12px;color:#315d7e;font-size:12px;margin:12px 0}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}.toolbar input,.toolbar select{border:1px solid #d7e2ed;border-radius:10px;padding:9px 12px;background:#fff}.toolbar input{flex:1;min-width:160px}
+.bar-row{display:grid;grid-template-columns:minmax(120px,40%) 1fr 36px;gap:10px;align-items:center;font-size:12px;margin:7px 0}.bar{height:10px;border-radius:9px;background:#eaf2f9;overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--teal));border-radius:9px}
+.modal-backdrop{position:fixed;inset:0;background:#0716299c;z-index:60;display:grid;place-items:center;padding:18px}.modal{width:min(680px,100%);max-height:90vh;overflow:auto;background:white;border-radius:22px;box-shadow:0 25px 90px #07162966}.modal-head{padding:19px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}.modal-head h2{margin:0;font-size:20px;color:var(--navy)}.close{border:0;background:#edf3f8;width:35px;height:35px;border-radius:10px;font-size:20px;color:#4b6075}.modal-body{padding:22px}.modal-book{display:grid;grid-template-columns:150px 1fr;gap:18px}.modal-book .cover{height:205px;border-radius:13px}.modal-book h3{margin:0;color:var(--navy)}.modal-book p{font-size:13px;color:var(--muted)}.reader-placeholder{background:#f4f8fc;border:1px dashed #c8d8e6;border-radius:14px;padding:28px;text-align:center;color:var(--muted)}.toast{position:fixed;right:18px;bottom:18px;background:#10243d;color:white;padding:13px 18px;border-radius:13px;box-shadow:var(--shadow);z-index:100;max-width:min(420px,calc(100% - 36px));font-size:13px}.login-card{max-width:430px;margin:35px auto}.login-card h2{margin-top:0;color:var(--navy)}.login-card p{color:var(--muted);font-size:13px}
+.idcard{border:2px solid var(--blue);border-radius:16px;padding:18px;max-width:340px;margin:auto;background:linear-gradient(135deg,#fff,#eef7ff)}.idcard .hd{display:flex;gap:10px;align-items:center;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px}.idcard .hd b{color:var(--navy);letter-spacing:.06em}.idcard .no{font:700 22px/1.2 ui-monospace,Menlo,monospace;color:var(--navy);letter-spacing:.08em;margin:8px 0}.idcard small{color:var(--muted)}
+@media print{body *{visibility:hidden}#printArea,#printArea *{visibility:visible}#printArea{position:absolute;left:0;top:0;width:100%}}
+@media(max-width:950px){.navlinks{display:none;position:absolute;top:78px;left:0;right:0;background:#fff;padding:14px 22px 20px;border-bottom:1px solid var(--line);box-shadow:var(--shadow);flex-direction:column;align-items:stretch}.navlinks.open{display:flex}.navlinks button{text-align:left}.menu-toggle{display:inline-flex}.hero-grid{grid-template-columns:1fr .7fr}.quick-grid,.book-grid{grid-template-columns:repeat(2,1fr)}.admin-layout{grid-template-columns:1fr}.admin-side{display:flex;gap:5px;overflow:auto;position:static}.admin-side h3{display:none}.admin-side button{white-space:nowrap;width:auto}.feature-band{grid-template-columns:1fr}.program-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.wrap{width:min(100% - 24px,1180px)}.topbar .wrap span:last-child{display:none}.nav{min-height:68px;gap:10px}.brand{min-width:0;flex:1}.brandmark{width:40px;height:40px}.brand strong{font-size:15px}.brand small{font-size:9px}.hero{padding:30px 0 24px}.hero-grid{grid-template-columns:1fr}.hero-art{min-height:200px;order:-1}.orbit{width:180px;height:180px}.book-stack{font-size:75px}.hero h1{font-size:40px}.hero p{font-size:15px}.searchbox{flex-wrap:wrap;padding:10px 13px}.searchbox input{flex-basis:calc(100% - 45px)}.searchbox select{max-width:none;flex:1}.searchbox .btn{flex:1}.section-head h2{font-size:23px}.quick-grid{grid-template-columns:1fr 1fr;gap:9px}.quick{padding:14px;min-height:140px}.book-grid{grid-template-columns:1fr 1fr;gap:10px}.cover{height:145px}.book-body{padding:11px}.book-body h3{font-size:13px}.book-actions{flex-direction:column}.feature-band{padding:22px}.feature-band h2{font-size:26px}.program-grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.modal-book{grid-template-columns:100px 1fr}.modal-book .cover{height:150px}.modal-body{padding:16px}.page-title h1{font-size:27px}}
+</style>
+</head>
+<body>
+<div class="topbar" id="topbar"></div>
+<header id="header"></header>
+<main id="app"></main>
+<footer id="footer"></footer>
+<div id="modal-root"></div><div id="toast" class="toast hidden"></div>
+<script>
+/* ============ KONFIGURASI & DATA ============ */
+const STORE='sibLibraryV2', OLD='sibLibraryPrototypeV1';
+const THEMES={biru:{blue:'#1769aa',teal:'#13a89e',navy:'#10243d'},hijau:{blue:'#177a4b',teal:'#2aa6a0',navy:'#0f2e22'},merah:{blue:'#c0392b',teal:'#d9822b',navy:'#3a1520'},ungu:{blue:'#5b43b5',teal:'#2fa3c4',navy:'#231a4a'}};
+const $=id=>document.getElementById(id);
+const val=id=>($(id)?$(id).value:'').trim();
+const p2=n=>String(n).padStart(2,'0');
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+function today(){const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())}
+function addDays(s,n){const [y,m,d]=s.split('-').map(Number);const t=new Date(y,m-1,d+n);return t.getFullYear()+'-'+p2(t.getMonth()+1)+'-'+p2(t.getDate())}
+function diffDays(a,b){const f=s=>{const [y,m,d]=s.split('-').map(Number);return Date.UTC(y,m-1,d)};return Math.round((f(b)-f(a))/864e5)}
+function fmtDate(s){if(!s)return '—';const [y,m,d]=s.split('-');return d+'/'+m+'/'+y}
+function esc(s=''){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function safeUrl(u){return /^https?:\/\//i.test(u||'')}
+function toast(s){const el=$('toast');el.textContent=s;el.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.add('hidden'),3500)}
+
+function defaults(){const t=today();return{
+v:2,
+books:[
+{id:'B001',title:'Jelajah Nusantara: Kekayaan Budaya Indonesia',author:'Tim Literasi SIB',category:'Budaya',level:'SD',year:'2024',type:'Digital',icon:'🏝️',color:'linear-gradient(145deg,#0f8b8d,#66c5a4)',description:'Mengenal keragaman budaya, tradisi, dan warisan Indonesia melalui bacaan pengayaan.',url:'',copies:0,callNo:'390 TIM',shelf:'',isbn:'',publisher:''},
+{id:'B002',title:'Sains di Sekitar Kita',author:'Tim Sains',category:'Sains',level:'SMP',year:'2025',type:'Digital',icon:'🔬',color:'linear-gradient(145deg,#185abc,#56b4e9)',description:'Eksplorasi fenomena sains sehari-hari dengan pertanyaan pengamatan dan kegiatan sederhana.',url:'',copies:0,callNo:'500 TIM',shelf:'',isbn:'',publisher:''},
+{id:'B003',title:'Cerita Pilihan untuk Pembaca Muda',author:'Koleksi Literasi',category:'Fiksi',level:'SD',year:'2023',type:'Fisik',icon:'🦊',color:'linear-gradient(145deg,#b45a38,#f2b76f)',description:'Kumpulan cerita untuk membangun minat baca, imajinasi, dan pemahaman karakter.',url:'',copies:3,callNo:'F KOL',shelf:'R-A1',isbn:'',publisher:''},
+{id:'B004',title:'Menulis dan Memahami Teks',author:'Tim Bahasa Indonesia',category:'Bahasa',level:'SMA',year:'2025',type:'Digital',icon:'✍️',color:'linear-gradient(145deg,#5147a8,#b5a2ff)',description:'Materi pengayaan tentang membaca kritis, menulis, dan memahami beragam jenis teks.',url:'',copies:0,callNo:'400 TIM',shelf:'',isbn:'',publisher:''},
+{id:'B005',title:'Planet, Bintang, dan Alam Semesta',author:'Klub Astronomi',category:'Sains',level:'SMP',year:'2024',type:'Fisik & Digital',icon:'🪐',color:'linear-gradient(145deg,#192e65,#7765c4)',description:'Pengenalan tata surya dan alam semesta untuk menumbuhkan rasa ingin tahu ilmiah.',url:'',copies:2,callNo:'520 KLU',shelf:'R-B2',isbn:'',publisher:''},
+{id:'B006',title:'Lingkungan Lestari: Aksi Kecil, Dampak Besar',author:'Green School SIB',category:'Lingkungan',level:'SMA',year:'2025',type:'Fisik',icon:'🌱',color:'linear-gradient(145deg,#176b45,#9acb69)',description:'Bacaan tentang keberlanjutan, sampah, air, energi, dan proyek lingkungan sekolah.',url:'',copies:2,callNo:'363 GRE',shelf:'R-B1',isbn:'',publisher:''},
+{id:'B007',title:'Logika dan Dasar Pemrograman',author:'Tim Informatika',category:'Informatika',level:'SMA',year:'2025',type:'Digital',icon:'💻',color:'linear-gradient(145deg,#243746,#36a5bd)',description:'Pengenalan algoritma, pola berpikir komputasional, dan dasar coding.',url:'',copies:0,callNo:'005 TIM',shelf:'',isbn:'',publisher:''},
+{id:'B008',title:'Cerita Rakyat dan Nilai Kehidupan',author:'Koleksi Sastra',category:'Fiksi',level:'SMP',year:'2022',type:'Fisik',icon:'📖',color:'linear-gradient(145deg,#8b3f6b,#e6a0b6)',description:'Cerita rakyat dari berbagai daerah Indonesia beserta pertanyaan refleksi.',url:'',copies:2,callNo:'398 KOL',shelf:'R-A2',isbn:'',publisher:''}],
+programs:[
+{id:'P01',icon:'📖',title:'Tantangan Membaca Mingguan',desc:'Pilih satu bacaan, temukan gagasan utama, lalu tuliskan refleksi singkat.',level:'Semua jenjang',status:'Aktif'},
+{id:'P02',icon:'🧪',title:'Sains di Sekitar Kita',desc:'Amati satu fenomena, ajukan pertanyaan, dan jelaskan hasil pengamatanmu.',level:'SD–SMA',status:'Aktif'},
+{id:'P03',icon:'🌏',title:'Jelajah Budaya Indonesia',desc:'Kenali satu tradisi Nusantara dan buat catatan atau karya visual.',level:'Semua jenjang',status:'Aktif'}],
+members:[
+{id:'M1',no:'SIB-0001',name:'Contoh Siswa A',type:'Siswa',cls:'Kelas 5',status:'Aktif',joined:t,expiry:addDays(t,365),contact:'',note:'Data contoh (fiktif)',demo:true},
+{id:'M2',no:'SIB-0002',name:'Contoh Siswa B',type:'Siswa',cls:'Kelas 8',status:'Aktif',joined:t,expiry:addDays(t,365),contact:'',note:'Data contoh (fiktif)',demo:true},
+{id:'M3',no:'SIB-0003',name:'Contoh Guru',type:'Guru',cls:'Guru Bahasa',status:'Aktif',joined:t,expiry:addDays(t,365),contact:'',note:'Data contoh (fiktif)',demo:true}],
+loans:[
+{id:'L1',bookId:'B003',memberId:'M1',loanDate:addDays(t,-12),dueDate:addDays(t,-5),returnDate:null,status:'Dipinjam',renewals:0,fine:0,finePaid:false,demo:true},
+{id:'L2',bookId:'B006',memberId:'M2',loanDate:addDays(t,-2),dueDate:addDays(t,5),returnDate:null,status:'Dipinjam',renewals:0,fine:0,finePaid:false,demo:true}],
+seq:{member:3},auth:null,
+settings:{name:'SIB LIBRARY',tag:'DIGITAL LEARNING HUB',school:'Sekolah Indonesia Bangkok',banner:'Selamat datang di SIB Library',heroAccent:'Baca. Jelajahi. Berkarya.',subtitle:'Temukan buku, jelajahi ide, dan ubah rasa ingin tahu menjadi pengalaman belajar.',
+topLeft:'🇮🇩 Sekolah Indonesia Bangkok · Pusat Pengetahuan Digital',topRight:'Baca · Jelajahi · Bereksperimen · Berkarya',footerTitle:'📚 SIB LIBRARY — Digital Learning Hub',footerText:'Bukan sekadar membaca, tetapi menjelajah pengetahuan.',theme:'biru',featured:['B001','B002','B006'],
+sections:{quick:true,featured:true,band:true,programs:true},bandTitle:'Pengetahuan tidak berhenti di halaman buku.',bandText:'Hubungkan bacaan dengan simulasi, pertanyaan, proyek, dan karya. SIB Library dirancang sebagai ruang belajar yang terus berkembang.',bandBtn:'Jelajahi Lab Maya →',bandTarget:'lab',
+tiles:'🧬|Lab Sains|Amati fenomena dan pola.\n💻|Lab Coding|Latih logika dan algoritma.\n🏛️|Museum Digital|Jelajahi budaya Indonesia.\n🌿|Green Learning|Belajar untuk bumi.',
+rules:{loanDaysSiswa:7,loanDaysGuru:14,maxSiswa:3,maxGuru:5,maxRenew:1,renewDays:7,finePerDay:2,maxFine:0,lostFee:100,currency:'THB',blockIfOverdue:true,memberMonths:12}},
+menus:[
+{id:'home',kind:'home',label:'Beranda',icon:'🏠',visible:true,locked:true,blurb:''},
+{id:'catalog',kind:'catalog',label:'Jelajahi Buku',icon:'📚',visible:true,blurb:'Temukan koleksi fisik dan digital.'},
+{id:'reading',kind:'reading',label:'Ruang Baca',icon:'📖',visible:true,blurb:'Baca, simpan, dan refleksikan.'},
+{id:'lab',kind:'content',label:'Lab Maya',icon:'🧪',visible:true,blurb:'Simulasi dan eksperimen digital.',eyebrow:'COBA · AMATI · SIMPULKAN',title:'Lab Maya',desc:'Ruang simulasi dan eksperimen digital lintas mata pelajaran.',note:'Kartu di bawah dapat diisi admin dengan tautan simulasi atau penjelasan kegiatan.',showPrograms:false,cards:[
+ {id:'c1',icon:'🧪',title:'Lab Sains',desc:'Eksplorasi gaya, gerak, ekosistem, energi, dan fenomena alam.',body:'Kumpulan aktivitas/simulasi sains akan ditempatkan di sini.',url:'',btn:'Lihat rancangan →'},
+ {id:'c2',icon:'📐',title:'Lab Matematika',desc:'Manipulasi bentuk, grafik, peluang, dan pola bilangan.',body:'Aktivitas geometri dan grafik interaktif.',url:'',btn:'Lihat rancangan →'},
+ {id:'c3',icon:'✍️',title:'Lab Bahasa',desc:'Menganalisis teks, tokoh, konflik, sudut pandang, dan persuasi.',body:'Ruang analisis teks dan refleksi membaca.',url:'',btn:'Lihat rancangan →'},
+ {id:'c4',icon:'💻',title:'Lab Informatika & Coding',desc:'Latihan algoritma, logika, dan pemrograman dasar.',body:'Tantangan coding dan simulasi algoritma.',url:'',btn:'Lihat rancangan →'}]},
+{id:'explore',kind:'content',label:'Ruang Eksplorasi',icon:'🌏',visible:true,blurb:'Budaya, sains, dan lingkungan.',eyebrow:'MELAMPAUI HALAMAN BUKU',title:'Ruang Eksplorasi',desc:'Pengetahuan dibangun melalui pengalaman, pengamatan, dan rasa ingin tahu.',note:'',showPrograms:false,cards:[
+ {id:'e1',icon:'🏛️',title:'Museum Digital Indonesia',desc:'Jelajahi tradisi, tokoh, rumah adat, seni, dan warisan budaya.',body:'Ruang ini disiapkan sebagai galeri/aktivitas digital.',url:'',btn:'Jelajahi →'},
+ {id:'e2',icon:'🌌',title:'Jelajah Alam Semesta',desc:'Kenali tata surya, bintang, planet, dan ruang angkasa.',body:'Ruang ini disiapkan sebagai galeri/aktivitas digital.',url:'',btn:'Jelajahi →'},
+ {id:'e3',icon:'🌏',title:'Peta dan Dunia',desc:'Eksplorasi geografi, negara, bahasa, dan hubungan Indonesia–Thailand.',body:'Ruang ini disiapkan sebagai galeri/aktivitas digital.',url:'',btn:'Jelajahi →'},
+ {id:'e4',icon:'🌿',title:'Green Learning Space',desc:'Pelajari air, energi, sampah, keanekaragaman hayati, dan aksi lingkungan.',body:'Ruang ini disiapkan sebagai galeri/aktivitas digital.',url:'',btn:'Jelajahi →'}]},
+{id:'community',kind:'content',label:'Komunitas Belajar',icon:'🤝',visible:true,blurb:'Tantangan literasi dan karya.',eyebrow:'BELAJAR BERSAMA',title:'Komunitas Belajar',desc:'Tantangan literasi, aktivitas bersama, dan pameran karya.',note:'Pengiriman karya siswa dan interaksi publik memerlukan moderasi serta perlindungan data sebelum diaktifkan.',showPrograms:true,cards:[
+ {id:'k1',icon:'🖼️',title:'Galeri Karya Siswa',desc:'Ruang pamer karya yang dilengkapi setelah mekanisme peninjauan dan izin publikasi ditetapkan.',body:'Karya hanya ditampilkan setelah ditinjau admin dan ada izin publikasi.',url:'',btn:'Lihat rencana →'}]},
+{id:'account',kind:'account',label:'Cek Pinjaman',icon:'🔎',visible:true,blurb:'Lihat jatuh tempo pinjamanmu.'}]
+}}
+/* ============ JEMBATAN KE SIB CARE (login + Firestore) ============ */
+const BR=(()=>{try{return parent&&parent.SIBLIB_BRIDGE||null}catch(e){return null}})();
+const FS=BR?BR.db:null;
+const COL={books:'lib_books',members:'lib_members',loans:'lib_loans'}, CFG=['lib_config','main'];
+const fsState={status:BR?'memuat':'offline',err:'',loaded:{}};
+let lastSnap={books:{},members:{},loans:{},cfg:''};
+function normalize(x,d){
+  const r={...d,...x};r.settings={...d.settings,...(x.settings||{})};r.settings.sections={...d.settings.sections,...(x.settings&&x.settings.sections||{})};r.settings.rules={...d.settings.rules,...(x.settings&&x.settings.rules||{})};
+  r.seq={...d.seq,...(x.seq||{})};['books','programs','members','loans','menus'].forEach(k=>{if(!Array.isArray(r[k]))r[k]=d[k]});
+  if(!r.menus.some(m=>m.id==='home'))r.menus.unshift(d.menus[0]);return r}
+/* Data awal tampil dari bawaan (tanpa anggota/pinjaman contoh); data asli datang dari Firestore. */
+function startData(){const d=defaults();d.members=[];d.loans=[];return d}
+let db=startData();
+let page='home',category='Semua',query='',level='Semua jenjang',ctype='Semua jenis';
+let adminTab='overview',editingBook=null,editingMember=null,circFilter='aktif',memSearch='',memStatus='Semua',menuEdit=null,cardEdit=null;
+const R=()=>db.settings.rules, S=()=>db.settings;
+
+/* ============ LOGIKA PUSTAKAWAN ============ */
+const isPhysical=b=>b.type!=='Digital', isDigital=b=>b.type!=='Fisik';
+const bookById=id=>db.books.find(b=>b.id===id), memberById=id=>db.members.find(m=>m.id===id);
+const memberByNo=no=>db.members.find(m=>m.no.toUpperCase()===String(no).trim().toUpperCase());
+const isStudent=m=>m.type==='Siswa';
+const daysFor=m=>isStudent(m)?R().loanDaysSiswa:R().loanDaysGuru;
+const maxFor=m=>isStudent(m)?R().maxSiswa:R().maxGuru;
+const activeOf=mid=>db.loans.filter(l=>l.memberId===mid&&l.status==='Dipinjam');
+function availOf(b){return Math.max(0,(b.copies||0)-db.loans.filter(l=>l.bookId===b.id&&l.status==='Dipinjam').length)}
+function lState(l){return l.status==='Dipinjam'&&l.dueDate<today()?'Terlambat':l.status}
+function fineOf(l){if(l.status==='Dipinjam'){const late=diffDays(l.dueDate,today());if(late<=0)return 0;const f=late*R().finePerDay,mx=R().maxFine;return mx>0?Math.min(f,mx):f}return l.fine||0}
+const unpaidFine=l=>(l.finePaid?0:fineOf(l));
+const memberFines=mid=>db.loans.filter(l=>l.memberId===mid).reduce((s,l)=>s+unpaidFine(l),0);
+const money=n=>R().currency+' '+Number(n||0).toLocaleString('id-ID');
+const memberLabel=m=>m?m.no+' — '+m.name:'Anggota dihapus';
+function canLend(m,b){
+ if(!m)return 'Anggota tidak ditemukan.';
+ if(m.status!=='Aktif')return 'Status anggota: '+m.status+'.';
+ if(m.expiry&&m.expiry<today())return 'Masa keanggotaan sudah berakhir ('+fmtDate(m.expiry)+').';
+ if(!b)return 'Buku tidak ditemukan.';
+ if(!isPhysical(b))return 'Koleksi ini hanya digital (tidak dipinjam).';
+ const mine=activeOf(m.id);
+ if(mine.length>=maxFor(m))return 'Batas pinjaman tercapai ('+maxFor(m)+' buku).';
+ if(R().blockIfOverdue&&mine.some(l=>l.dueDate<today()))return 'Anggota masih memiliki pinjaman terlambat.';
+ if(mine.some(l=>l.bookId===b.id))return 'Anggota sudah meminjam judul ini.';
+ if(availOf(b)<=0)return 'Semua eksemplar sedang dipinjam.';
+ return null}
+function parseToken(s){return String(s||'').split(' — ')[0].trim()}
+
+/* ============ AUTH & SINKRONISASI (Firebase SIB CARE) ============
+   Admin = akun Admin Firebase SIB CARE yang sedang login. Tidak ada lagi kata sandi
+   lokal, tidak ada "pembuat sandi pertama", dan tidak bisa dipalsukan lewat
+   penyimpanan browser. Hak tulis dipaksa oleh Firestore Rules (lihat firestore.rules). */
+function authUser(){try{return BR&&BR.auth.currentUser}catch(e){return null}}
+function isAdmin(){const u=authUser();return !!(u&&u.email&&u.email.toLowerCase()===BR.adminEmail.toLowerCase())}
+function canRequest(){return !!authUser()&&!!BR&&BR.role()!=='TAMU'}
+function backToCare(){try{parent.showPage('home')}catch(e){}}
+function goAdmin(){if(!isAdmin())return toast('Dashboard hanya untuk Admin SIB CARE.');go('admin')}
+
+let flushT=null,dirty=false,saving=false,saveAgain=false,pendingRender=false,seeded=false;
+const jstr=o=>JSON.stringify(o);
+function cfgObj(){return {v:db.v||2,settings:db.settings,menus:db.menus,programs:db.programs,seq:db.seq}}
+function save(){dirty=true;clearTimeout(flushT);flushT=setTimeout(flush,250)}
+async function flush(){
+  if(!FS||!authUser())return toast('Belum terhubung ke Firestore. Perubahan belum tersimpan.');
+  if(saving){saveAgain=true;return}
+  saving=true;
+  try{
+    const admin=isAdmin(),ops=[];
+    for(const k of ['books','members','loans']){
+      const cur=new Map(db[k].map(x=>[x.id,x]));
+      for(const [id,x] of cur){const s=jstr(x);if(lastSnap[k][id]!==s)ops.push({t:'set',k,id,x,s})}
+      if(admin)for(const id of Object.keys(lastSnap[k]))if(!cur.has(id))ops.push({t:'del',k,id})
+    }
+    if(admin){const c=jstr(cfgObj());if(lastSnap.cfg!==c)ops.push({t:'cfg',c})}
+    // pengguna biasa hanya boleh menambah permintaan pinjam ('Menunggu'); sisanya diabaikan
+    const todo=admin?ops:ops.filter(o=>o.t==='set'&&o.k==='loans'&&!(o.id in lastSnap.loans)&&o.x.status==='Menunggu');
+    for(let i=0;i<todo.length;i+=400){
+      const batch=FS.batch(),part=todo.slice(i,i+400);
+      part.forEach(o=>{if(o.t==='set')batch.set(FS.collection(COL[o.k]).doc(o.id),JSON.parse(o.s));else if(o.t==='del')batch.delete(FS.collection(COL[o.k]).doc(o.id));else batch.set(FS.collection(CFG[0]).doc(CFG[1]),JSON.parse(o.c))});
+      await batch.commit();
+      part.forEach(o=>{if(o.t==='set')lastSnap[o.k][o.id]=o.s;else if(o.t==='del')delete lastSnap[o.k][o.id];else lastSnap.cfg=o.c});
+    }
+    fsState.status='terhubung';fsState.err='';
+  }catch(e){
+    console.error('SIB Library simpan:',e);fsState.status='ditolak';fsState.err=e.code||String(e);
+    toast(e.code==='permission-denied'?'Firestore menolak penulisan. Perbarui Rules (lihat Pengaturan → Status Firestore).':'Gagal menyimpan: '+(e.message||e));
+  }finally{saving=false;if(saveAgain){saveAgain=false;save()}else dirty=false}
+}
+function softRender(){
+  const ae=document.activeElement,app=$('app');
+  if(ae&&app&&app.contains(ae)&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)||document.querySelector('#modal-root .modal-backdrop')){pendingRender=true;return}
+  pendingRender=false;render()}
+document.addEventListener('focusout',()=>{if(pendingRender)setTimeout(()=>{const ae=document.activeElement;if(!(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)))softRender()},120)});
+function onErr(name){return e=>{console.error('SIB Library '+name+':',e);fsState.status='ditolak';fsState.err=e.code||String(e);softRender()}}
+function startSync(){
+  if(!FS||!authUser()){fsState.status='offline';return}
+  ['books','members','loans'].forEach(k=>{
+    const apply=snap=>{
+      if(dirty||saving)return void setTimeout(()=>apply(snap),400);
+      const arr=[];lastSnap[k]={};
+      snap.forEach(d=>{const x={...d.data(),id:d.id};arr.push(x);lastSnap[k][d.id]=jstr(x)});
+      if(k==='books')arr.sort((a,b)=>String(a.id).localeCompare(String(b.id),'id',{numeric:true}));
+      if(k==='loans')arr.sort((a,b)=>String(b.loanDate||'').localeCompare(String(a.loanDate||'')));
+      db[k]=arr;fsState.loaded[k]=true;fsState.status='terhubung';fsState.err='';maybeSeed();softRender()
+    };
+    FS.collection(COL[k]).onSnapshot(apply,onErr(k))});
+  const applyCfg=s=>{
+    if(dirty||saving)return void setTimeout(()=>applyCfg(s),400);
+    fsState.loaded.cfg=true;
+    if(s.exists){const x=s.data();db=normalize({...db,...x},defaults());db.members=db.members;lastSnap.cfg=jstr(cfgObj())}
+    fsState.status='terhubung';maybeSeed();softRender()};
+  FS.collection(CFG[0]).doc(CFG[1]).onSnapshot(applyCfg,onErr('config'))}
+/* Admin pertama yang membuka Library mengisi Firestore dengan koleksi awal (sekali saja). */
+function maybeSeed(){
+  if(seeded||!isAdmin())return;const L=fsState.loaded;if(!(L.books&&L.cfg))return;
+  seeded=true;
+  if(!db.books.length&&!lastSnap.cfg){const d=startData();db.books=d.books;db.programs=d.programs;db.settings=d.settings;db.menus=d.menus;db.seq=d.seq;save();toast('Koleksi awal SIB Library dibuat di Firestore.')}}
+async function importLocal(){
+  if(!isAdmin())return toast('Hanya Admin.');
+  let x=null;try{x=JSON.parse(localStorage.getItem(STORE))}catch(e){}
+  if(!x||!x.books)return toast('Tidak ada data lama SIB Library di browser ini.');
+  if(!confirm('Impor data lama dari browser ini ke Firestore? Data dengan ID sama akan ditimpa; data lain tidak dihapus.'))return;
+  const n=normalize(x,defaults());
+  const byId=(a,b)=>{const m=new Map(a.map(o=>[o.id,o]));b.forEach(o=>m.set(o.id,o));return[...m.values()]};
+  db.books=byId(db.books,n.books);db.members=byId(db.members,n.members.filter(m=>!m.demo));db.loans=byId(db.loans,n.loans.filter(l=>!l.demo));
+  db.programs=n.programs;db.menus=n.menus;db.settings=n.settings;db.seq=n.seq;save();render();toast('Data lama diimpor ke Firestore.')}
+
+/* ============ CHROME & NAVIGASI ============ */
+function applyTheme(){const t=THEMES[S().theme]||THEMES.biru,r=document.documentElement.style;r.setProperty('--blue',t.blue);r.setProperty('--teal',t.teal);r.setProperty('--navy',t.navy)}
+function chrome(){
+ $('topbar').innerHTML=`<div class="wrap"><span>${esc(S().topLeft)}</span><span>${esc(S().topRight)}</span></div>`;
+ $('header').innerHTML=`<div class="wrap nav"><a class="brand" onclick="go('home')"><span class="brandmark">📚</span><span><strong>${esc(S().name)}</strong><small>${esc(S().tag)}</small></span></a><nav class="navlinks" id="navlinks">${db.menus.filter(m=>m.visible).map(m=>`<button data-page="${m.id}" class="${page===m.id?'active':''}" onclick="go('${m.id}')">${esc(m.label)}</button>`).join('')}</nav><div class="nav-actions">${isAdmin()?`<button class="btn primary small" onclick="go('admin')">⚙ Dashboard</button>`:''}<button class="btn ghost small" onclick="backToCare()">← SIB CARE</button><button class="btn ghost small menu-toggle" onclick="$('navlinks').classList.toggle('open')">☰</button></div></div>`;
+ $('footer').innerHTML=`<div class="wrap footer-grid"><div><strong>${esc(S().footerTitle)}</strong><small>${esc(S().footerText)}</small><small>${esc(S().school)}</small></div><div class="footer-links">${db.menus.filter(m=>m.visible&&m.id!=='home').slice(0,4).map(m=>`<button onclick="go('${m.id}')">${esc(m.label)}</button>`).join('')}<button onclick="go('admin')">Login Pengelola</button></div></div>`}
+function go(p){page=p;render();window.scrollTo({top:0,behavior:'smooth'})}
+function render(){
+ applyTheme();
+ if(page!=='admin'&&!db.menus.some(m=>m.id===page&&m.visible))page='home';
+ chrome();const app=$('app');
+ if(page==='admin'&&!isAdmin()){page='home'}
+ if(page==='admin'){app.innerHTML=adminPage();return}
+ const m=db.menus.find(x=>x.id===page);
+ app.innerHTML=m.kind==='home'?homePage():m.kind==='catalog'?catalogPage(m):m.kind==='reading'?readingPage(m):m.kind==='account'?accountPage(m):contentPage(m)}
+
+/* ============ HALAMAN PUBLIK ============ */
+function cover(b){return `<div class="cover" style="background:${esc(b.color||'linear-gradient(145deg,#1769aa,#13a89e)')}"><span class="badge">${esc(b.category)}</span><span class="cover-icon">${esc(b.icon||'📘')}</span><span class="cover-title">${esc(b.title)}</span></div>`}
+function availTag(b){if(!isPhysical(b))return '';const a=availOf(b);return `<span class="tag ${a>0?'ok':'no'}">${a>0?'Tersedia '+a+'/'+b.copies:'Dipinjam semua'}</span>`}
+function primaryAction(b){return isDigital(b)?`readBook('${b.id}')`:`borrow('${b.id}')`}
+function card(b){return `<article class="book-card">${cover(b)}<div class="book-body"><h3>${esc(b.title)}</h3><div class="author">${esc(b.author||'Penulis belum diisi')}</div><div class="book-meta"><span class="tag">${esc(b.level)}</span><span class="tag">${esc(b.type)}</span>${availTag(b)}</div><div class="book-actions"><button class="btn secondary small" onclick="details('${b.id}')">Detail</button><button class="btn primary small" onclick="${primaryAction(b)}">${isDigital(b)?'Baca':'Pinjam'}</button></div></div></article>`}
+function programCard(p){return `<article class="program"><div class="icon">${esc(p.icon||'📘')}</div><h3>${esc(p.title)}</h3><p>${esc(p.desc)}</p><div><span class="tag">${esc(p.level||'Semua jenjang')}</span> <span class="tag">${esc(p.status||'Aktif')}</span></div></article>`}
+function homePage(){
+ const s=S(),sec=s.sections;let featured=(s.featured||[]).map(bookById).filter(Boolean);if(!featured.length)featured=db.books.slice(0,4);
+ const quick=db.menus.filter(m=>m.visible&&m.id!=='home').slice(0,8);
+ const tiles=(s.tiles||'').split('\n').map(x=>x.split('|')).filter(x=>x[1]);
+ const target=db.menus.find(m=>m.id===s.bandTarget&&m.visible);
+ const activeM=db.members.filter(m=>m.status==='Aktif').length;
+ return `<section class="hero"><div class="wrap hero-grid"><div><div class="eyebrow">${esc(s.name)} · ${esc(s.tag)}</div><h1>${esc(s.banner)}<br><span>${esc(s.heroAccent)}</span></h1><p>${esc(s.subtitle)}</p><div class="hero-buttons"><button class="btn primary" onclick="go('catalog')">📚 Jelajahi Koleksi</button>${target?`<button class="btn secondary" onclick="go('${target.id}')">${esc(target.icon)} ${esc(target.label)}</button>`:''}</div><div class="hero-stats"><div class="stat"><strong>${db.books.length}</strong><span>Judul koleksi</span></div><div class="stat"><strong>${activeM}</strong><span>Anggota aktif</span></div><div class="stat"><strong>${db.programs.filter(p=>p.status==='Aktif').length}</strong><span>Program belajar</span></div></div></div><div class="hero-art"><div class="orbit"><div class="book-stack">📚</div></div><div class="float-card fc1">🔎 Temukan<span>Pengetahuan baru</span></div><div class="float-card fc2">🧪 Coba & amati<span>Belajar interaktif</span></div><div class="float-card fc3">🌱 Tumbuh<span>Jadi pembelajar aktif</span></div></div></div></section>
+<div class="wrap search-panel"><div class="searchbox"><span class="glass">⌕</span><input id="homeSearch" value="${esc(query)}" placeholder="Cari judul, penulis, topik, atau mata pelajaran..." onkeydown="if(event.key==='Enter'){query=this.value;go('catalog')}"><select id="homeLevel"><option>Semua jenjang</option><option>TK</option><option>SD</option><option>SMP</option><option>SMA</option><option>Guru</option></select><button class="btn primary" onclick="query=$('homeSearch').value;level=$('homeLevel').value;go('catalog')">Cari</button></div></div>
+${sec.quick?`<section><div class="wrap"><div class="section-head"><div><div class="eyebrow">PINTU MASUK BELAJAR</div><h2>Jelajahi ruang pengetahuan</h2><p>Pilih pengalaman belajar sesuai rasa ingin tahumu.</p></div></div><div class="quick-grid">${quick.map(m=>`<button class="quick" onclick="go('${m.id}')"><div class="icon">${esc(m.icon)}</div><strong>${esc(m.label)}</strong><span>${esc(m.blurb||'')}</span></button>`).join('')}</div></div></section>`:''}
+${sec.featured?`<section><div class="wrap"><div class="section-head"><div><div class="eyebrow">PILIHAN PUSTAKAWAN</div><h2>Koleksi pilihan</h2></div><button class="textlink" onclick="go('catalog')">Lihat semua →</button></div><div class="book-grid">${featured.slice(0,4).map(card).join('')}</div></div></section>`:''}
+${sec.band?`<section><div class="wrap"><div class="feature-band"><div><div class="eyebrow">LEARNING BEYOND BOOKS</div><h2>${esc(s.bandTitle)}</h2><p>${esc(s.bandText)}</p>${target?`<button class="btn" style="background:#fff;color:#10243d" onclick="go('${target.id}')">${esc(s.bandBtn)}</button>`:''}</div><div class="feature-tiles">${tiles.map(t=>`<div class="feature-tile">${esc(t[0])}<b>${esc(t[1])}</b><span>${esc(t[2]||'')}</span></div>`).join('')}</div></div></div></section>`:''}
+${sec.programs?`<section><div class="wrap"><div class="section-head"><div><div class="eyebrow">AKTIF DAN TERBUKA</div><h2>Program komunitas belajar</h2></div></div><div class="program-grid">${db.programs.filter(p=>p.status==='Aktif').slice(0,3).map(programCard).join('')||'<div class="empty">Belum ada program aktif.</div>'}</div></div></section>`:''}`}
+function filterBooks(){const q=query.toLowerCase();return db.books.filter(b=>(category==='Semua'||b.category===category)&&(level==='Semua jenjang'||b.level===level)&&(ctype==='Semua jenis'||(ctype==='Fisik'?isPhysical(b):isDigital(b)))&&(!q||(b.title+' '+b.author+' '+b.category+' '+b.description+' '+(b.callNo||'')+' '+(b.isbn||'')).toLowerCase().includes(q)))}
+function catalogPage(m){const cats=['Semua',...new Set(db.books.map(b=>b.category))];return `<div class="page"><div class="wrap"><div class="page-title"><div><div class="eyebrow">KOLEKSI PENGETAHUAN</div><h1>${esc(m.label)}</h1><p>Telusuri koleksi berdasarkan topik, jenis, dan jenjang.</p></div><button class="btn secondary" onclick="query='';category='Semua';level='Semua jenjang';ctype='Semua jenis';render()">↺ Reset filter</button></div><div class="searchbox"><span class="glass">⌕</span><input id="catalogSearch" value="${esc(query)}" placeholder="Cari judul, penulis, kategori, no. panggil..." oninput="query=this.value;renderCatalogResults()"><select onchange="level=this.value;renderCatalogResults()">${['Semua jenjang','TK','SD','SMP','SMA','Guru','Umum'].map(x=>`<option ${level===x?'selected':''}>${x}</option>`).join('')}</select><select onchange="ctype=this.value;renderCatalogResults()">${['Semua jenis','Fisik','Digital'].map(x=>`<option ${ctype===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="filters">${cats.map(c=>`<button class="chip ${category===c?'active':''}" onclick="category='${esc(c)}';render()">${esc(c)}</button>`).join('')}</div><div id="catalogResults" class="book-grid">${filterBooks().map(card).join('')||'<div class="empty">Tidak ada koleksi yang cocok.</div>'}</div></div></div>`}
+function renderCatalogResults(){const r=$('catalogResults');if(r)r.innerHTML=filterBooks().map(card).join('')||'<div class="empty">Tidak ada koleksi yang cocok.</div>'}
+function readingPage(m){const d=db.books.filter(isDigital);return `<div class="page"><div class="wrap"><div class="page-title"><div><div class="eyebrow">BACA DENGAN NYAMAN</div><h1>${esc(m.label)}</h1><p>Pilih koleksi digital dan mulai perjalanan membaca.</p></div></div><div class="book-grid">${d.map(card).join('')||'<div class="empty">Belum ada koleksi digital.</div>'}</div></div></div>`}
+function contentPage(m){
+ const cards=m.cards||[];
+ return `<div class="page"><div class="wrap"><div class="page-title"><div><div class="eyebrow">${esc(m.eyebrow||'')}</div><h1>${esc(m.title||m.label)}</h1><p>${esc(m.desc||'')}</p></div></div>${m.note?`<div class="info">${esc(m.note)}</div>`:''}<div class="program-grid">${cards.map((c,i)=>`<article class="program"><div class="icon">${esc(c.icon||'📘')}</div><h3>${esc(c.title)}</h3><p>${esc(c.desc||'')}</p>${safeUrl(c.url)?`<a class="btn primary small" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">${esc(c.btn||'Buka')} ↗</a>`:`<button class="btn secondary small" onclick="cardInfo('${m.id}',${i})">${esc(c.btn||'Lihat')}</button>`}</article>`).join('')||'<div class="empty">Belum ada konten di halaman ini.</div>'}</div>${m.showPrograms?`<section><div class="section-head"><div><div class="eyebrow">PROGRAM</div><h2>Program belajar</h2></div></div><div class="program-grid">${db.programs.filter(p=>p.status==='Aktif').map(programCard).join('')||'<div class="empty">Belum ada program aktif.</div>'}</div></section>`:''}</div></div>`}
+function cardInfo(mid,i){const c=db.menus.find(m=>m.id===mid).cards[i];showModal(esc(c.title),`<div class="reader-placeholder"><div style="font-size:36px">${esc(c.icon||'🧭')}</div><h3>${esc(c.title)}</h3><p>${esc(c.body||c.desc||'')}</p></div>`)}
+function accountPage(m){return `<div class="page"><div class="wrap"><div class="page-title"><div><div class="eyebrow">LAYANAN ANGGOTA</div><h1>${esc(m.label)}</h1><p>Masukkan nomor anggota untuk melihat pinjaman dan jatuh tempo.</p></div></div><div class="panel" style="max-width:560px"><form onsubmit="lookup(event)"><div class="field"><label>Nomor anggota</label><input id="lkNo" placeholder="contoh: SIB-0001" required></div><div class="form-actions"><button class="btn primary" type="submit">Cek status</button></div></form><div id="lkResult"></div></div></div></div>`}
+function lookup(e){e.preventDefault();const m=memberByNo($('lkNo').value);const r=$('lkResult');if(!m){r.innerHTML='<div class="notice">Nomor anggota tidak ditemukan.</div>';return}
+ const parts=m.name.split(' ');const shown=parts[0]+(parts[1]?' '+parts[1][0]+'.':'');const ls=db.loans.filter(l=>l.memberId===m.id&&['Dipinjam','Menunggu'].includes(l.status));
+ r.innerHTML=`<h3 style="color:var(--navy)">Halo, ${esc(shown)}</h3><p style="color:var(--muted);font-size:13px">Status: ${esc(m.status)} · Berlaku s.d. ${fmtDate(m.expiry)}</p>${ls.length?`<div class="table-wrap"><table><thead><tr><th>Buku</th><th>Jatuh tempo</th><th>Status</th></tr></thead><tbody>${ls.map(l=>{const st=lState(l);return `<tr><td>${esc(bookById(l.bookId)?.title||'—')}</td><td>${l.status==='Menunggu'?'—':fmtDate(l.dueDate)}</td><td><span class="status ${st==='Terlambat'?'late':st==='Menunggu'?'wait':''}">${st}</span></td></tr>`}).join('')}</tbody></table></div>`:'<div class="info">Tidak ada pinjaman aktif.</div>'}${memberFines(m.id)>0?`<div class="notice">Denda belum lunas: <b>${money(memberFines(m.id))}</b>. Silakan temui pustakawan.</div>`:''}`}
+function details(id){const b=bookById(id);if(!b)return;showModal('Detail Koleksi',`<div class="modal-book">${cover(b)}<div><h3>${esc(b.title)}</h3><p>Penulis: ${esc(b.author||'—')}<br>Kategori: ${esc(b.category)} · Jenjang: ${esc(b.level)}<br>Jenis: ${esc(b.type)} · ${esc(b.year||'')}${b.callNo?`<br>No. panggil: ${esc(b.callNo)}`:''}${b.shelf&&isPhysical(b)?`<br>Rak: ${esc(b.shelf)}`:''}${b.isbn?`<br>ISBN: ${esc(b.isbn)}`:''}${isPhysical(b)?`<br>Ketersediaan: ${availOf(b)} dari ${b.copies} eksemplar`:''}</p><p>${esc(b.description||'Deskripsi belum tersedia.')}</p><div class="form-actions">${isDigital(b)?`<button class="btn primary" onclick="readBook('${b.id}')">Buka ruang baca</button>`:''}${isPhysical(b)?`<button class="btn secondary" onclick="borrow('${b.id}')">Ajukan peminjaman</button>`:''}</div></div></div>`)}
+function readBook(id){const b=bookById(id);if(!b)return;showModal('Ruang Baca',safeUrl(b.url)?`<p>Sumber digital tersedia untuk <b>${esc(b.title)}</b>.</p><a class="btn primary" href="${esc(b.url)}" target="_blank" rel="noopener noreferrer">Buka sumber digital ↗</a>`:`<div class="reader-placeholder"><div style="font-size:35px">📖</div><h3>${esc(b.title)}</h3><p>Belum ada berkas digital yang dihubungkan. Admin dapat menambahkan tautan di Manajemen Buku.</p><p>Pastikan sekolah memiliki hak atau izin akses yang sesuai.</p></div>`)}
+function borrow(id){const b=bookById(id);if(!b)return;showModal('Ajukan Peminjaman',`<p style="color:var(--muted);font-size:13px">Koleksi: <b>${esc(b.title)}</b> · ${availOf(b)} eksemplar tersedia</p><form onsubmit="requestLoan(event,'${b.id}')"><div class="field"><label>Nomor anggota *</label><input id="rqNo" required placeholder="contoh: SIB-0001"></div><div class="info">Permintaan akan diperiksa pustakawan. Buku diambil di perpustakaan setelah disetujui.</div><div class="form-actions"><button class="btn primary" type="submit">Kirim permintaan</button></div></form>`)}
+function requestLoan(e,id){e.preventDefault();if(!canRequest())return toast('Masuk ke SIB CARE sebagai Siswa/Guru untuk mengajukan peminjaman.');const m=memberByNo($('rqNo').value),b=bookById(id);const err=canLend(m,b);if(err)return toast(m?err:'Nomor anggota tidak ditemukan.');
+ if(db.loans.some(l=>l.memberId===m.id&&l.bookId===id&&l.status==='Menunggu'))return toast('Permintaan untuk buku ini sudah diajukan.');
+ db.loans.unshift({id:uid('L'),bookId:id,memberId:m.id,loanDate:today(),dueDate:'',returnDate:null,status:'Menunggu',renewals:0,fine:0,finePaid:false});save();closeModal();toast('Permintaan terkirim. Menunggu persetujuan pustakawan.')}
+
+/* ============ MODAL ============ */
+function showModal(title,body){$('modal-root').innerHTML=`<div class="modal-backdrop" onclick="if(event.target===this)closeModal()"><div class="modal" role="dialog" aria-modal="true"><div class="modal-head"><h2>${title}</h2><button class="close" aria-label="Tutup" onclick="closeModal()">×</button></div><div class="modal-body">${body}</div></div></div>`}
+function closeModal(){$('modal-root').innerHTML=''}
+
+/* ============ ADMIN ============ */
+function adminPage(){
+ return `<div class="page"><div class="wrap"><div class="page-title"><div><div class="eyebrow">PENGELOLAAN PERPUSTAKAAN</div><h1>Dashboard Admin</h1><p>Sirkulasi, anggota, koleksi, menu, dan personalisasi.</p></div><button class="btn ghost" onclick="go('home')">← Kembali ke beranda</button></div><div id="adminRoot">${adminContent()}</div></div></div>`}
+function adminContent(){
+ if(!isAdmin()){return `<div class="panel login-card"><div style="font-size:32px">🔐</div><h2>Khusus Admin SIB CARE</h2><p>Dashboard pengelola dibuka otomatis untuk akun <b>Admin</b> yang login di SIB CARE. Tidak ada kata sandi terpisah di sini.</p><div class="form-actions"><button class="btn primary" onclick="backToCare()">← Kembali ke SIB CARE</button></div></div>`}
+ const t=adminTab,tabs=[['overview','▦ Ringkasan'],['circ','🔄 Sirkulasi'],['members','👥 Anggota'],['books','📚 Manajemen Buku'],['import','📥 Impor Koleksi'],['menus','🧭 Menu & Halaman'],['home','🎨 Personalisasi'],['programs','🌱 Program Belajar'],['reports','📊 Laporan'],['settings','⚙ Pengaturan']];
+ const pend=db.loans.filter(l=>l.status==='Menunggu').length;
+ return `<div class="admin-layout"><aside class="panel admin-side"><h3>Menu Pengelola</h3>${tabs.map(x=>`<button class="${t===x[0]?'active':''}" onclick="adminTab='${x[0]}';editingBook=null;editingMember=null;menuEdit=null;cardEdit=null;render()">${x[1]}${x[0]==='circ'&&pend?` (${pend})`:''}</button>`).join('')}<button onclick="go('home')">← Ke beranda Library</button></aside><div class="panel admin-content">${({overview:overviewAdmin,circ:circAdmin,members:membersAdmin,books:booksAdmin,import:importAdmin,menus:menusAdmin,home:homeAdmin,programs:programAdmin,reports:reportsAdmin,settings:settingsAdmin})[t]()}</div></div>`}
+
+/* --- Ringkasan --- */
+function stats(){const act=db.loans.filter(l=>l.status==='Dipinjam');return{titles:db.books.length,copies:db.books.filter(isPhysical).reduce((s,b)=>s+(b.copies||0),0),out:act.length,late:act.filter(l=>l.dueDate<today()).length,members:db.members.filter(m=>m.status==='Aktif').length,fines:db.loans.reduce((s,l)=>s+unpaidFine(l),0),pend:db.loans.filter(l=>l.status==='Menunggu').length,dueToday:act.filter(l=>l.dueDate===today()).length}}
+function overviewAdmin(){const s=stats();const late=db.loans.filter(l=>lState(l)==='Terlambat').sort((a,b)=>a.dueDate.localeCompare(b.dueDate)).slice(0,6);
+ const hasDemo=db.members.some(m=>m.demo)||db.loans.some(l=>l.demo);
+ return `<h2>Selamat datang, Pengelola</h2><p>Gambaran layanan perpustakaan hari ini, ${fmtDate(today())}.</p>${hasDemo?`<div class="notice">Data contoh (fiktif) masih ada. Hapus lewat <b>Pengaturan → Data</b> sebelum memakai data sungguhan.</div>`:''}<div class="stats-grid"><div class="metric"><span>Judul koleksi</span><strong>${s.titles}</strong></div><div class="metric"><span>Eksemplar fisik</span><strong>${s.copies}</strong></div><div class="metric"><span>Sedang dipinjam</span><strong>${s.out}</strong></div><div class="metric ${s.late?'warn':''}"><span>Terlambat</span><strong>${s.late}</strong></div><div class="metric"><span>Jatuh tempo hari ini</span><strong>${s.dueToday}</strong></div><div class="metric"><span>Permintaan menunggu</span><strong>${s.pend}</strong></div><div class="metric"><span>Anggota aktif</span><strong>${s.members}</strong></div><div class="metric ${s.fines?'warn':''}"><span>Denda belum lunas</span><strong>${money(s.fines)}</strong></div></div><div class="form-actions"><button class="btn primary" onclick="adminTab='circ';render()">🔄 Layani sirkulasi</button><button class="btn secondary" onclick="adminTab='members';editingMember=null;render()">👥 Anggota</button><button class="btn secondary" onclick="adminTab='menus';render()">🧭 Atur menu</button></div><h3>Pinjaman terlambat</h3>${late.length?`<div class="table-wrap"><table><thead><tr><th>Anggota</th><th>Buku</th><th>Jatuh tempo</th><th>Terlambat</th><th>Denda</th></tr></thead><tbody>${late.map(l=>`<tr><td>${esc(memberLabel(memberById(l.memberId)))}</td><td>${esc(bookById(l.bookId)?.title||'—')}</td><td>${fmtDate(l.dueDate)}</td><td>${diffDays(l.dueDate,today())} hari</td><td>${money(fineOf(l))}</td></tr>`).join('')}</tbody></table></div>`:'<div class="info">Tidak ada pinjaman terlambat. 🎉</div>'}`}
+
+/* --- Sirkulasi --- */
+function circAdmin(){
+ const physical=db.books.filter(isPhysical);
+ return `<h2>Sirkulasi Buku</h2><p>Peminjaman, pengembalian, perpanjangan, dan denda mengikuti aturan di Pengaturan.</p>
+<h3 style="margin-top:0">Peminjaman baru</h3><form onsubmit="checkout(event)"><div class="form-grid"><div class="field"><label>Anggota * (ketik nomor/nama)</label><input id="coMember" list="dlMem" required autocomplete="off"><datalist id="dlMem">${db.members.filter(m=>m.status==='Aktif').map(m=>`<option value="${esc(memberLabel(m))}">`).join('')}</datalist></div><div class="field"><label>Buku * (ketik ID/judul)</label><input id="coBook" list="dlBook" required autocomplete="off"><datalist id="dlBook">${physical.map(b=>`<option value="${esc(b.id+' — '+b.title)}">`).join('')}</datalist></div></div><div class="form-actions"><button class="btn primary" type="submit">Pinjamkan</button></div></form>
+<h3>Daftar transaksi</h3><div class="filters">${[['aktif','Aktif'],['terlambat','Terlambat'],['menunggu','Permintaan'],['denda','Denda'],['riwayat','Riwayat']].map(f=>`<button class="chip ${circFilter===f[0]?'active':''}" onclick="circFilter='${f[0]}';render()">${f[1]} (${circList(f[0]).length})</button>`).join('')}</div>${circTable()}`}
+function circList(f){return db.loans.filter(l=>{const s=lState(l);return f==='aktif'?(s==='Dipinjam'||s==='Terlambat'):f==='terlambat'?s==='Terlambat':f==='menunggu'?s==='Menunggu':f==='denda'?unpaidFine(l)>0:['Dikembalikan','Hilang','Ditolak'].includes(s)})}
+function circTable(){const ls=circList(circFilter);if(!ls.length)return '<div class="empty">Tidak ada data pada kategori ini.</div>';
+ return `<div class="table-wrap"><table><thead><tr><th>Anggota</th><th>Buku</th><th>Pinjam</th><th>Jatuh tempo</th><th>Status</th><th>Denda</th><th>Aksi</th></tr></thead><tbody>${ls.map(l=>{const s=lState(l),f=unpaidFine(l);let act='';
+  if(s==='Menunggu')act=`<button class="btn primary small" onclick="approveLoan('${l.id}')">Setujui</button><button class="btn ghost small" onclick="rejectLoan('${l.id}')">Tolak</button>`;
+  else if(s==='Dipinjam'||s==='Terlambat')act=`<button class="btn primary small" onclick="returnLoan('${l.id}')">Kembalikan</button><button class="btn secondary small" onclick="renewLoan('${l.id}')">Perpanjang</button><button class="btn ghost small" onclick="lostLoan('${l.id}')">Hilang</button>`;
+  if(f>0&&!['Menunggu','Ditolak'].includes(s)&&s!=='Dipinjam'&&s!=='Terlambat')act+=`<button class="btn secondary small" onclick="payFine('${l.id}')">Lunas</button>`;
+  return `<tr><td>${esc(memberLabel(memberById(l.memberId)))}</td><td>${esc(bookById(l.bookId)?.title||'Koleksi dihapus')}</td><td>${fmtDate(l.loanDate)}</td><td>${l.dueDate?fmtDate(l.dueDate):'—'}</td><td><span class="status ${s==='Terlambat'||s==='Hilang'?'late':s==='Menunggu'?'wait':s==='Ditolak'?'off':''}">${s}</span></td><td>${f>0?money(f):'—'}</td><td>${act}</td></tr>`}).join('')}</tbody></table></div>`}
+function checkout(e){e.preventDefault();const m=memberByNo(parseToken($('coMember').value)),b=bookById(parseToken($('coBook').value));const err=canLend(m,b);if(err)return toast('Ditolak: '+err);
+ const due=addDays(today(),daysFor(m));db.loans.unshift({id:uid('L'),bookId:b.id,memberId:m.id,loanDate:today(),dueDate:due,returnDate:null,status:'Dipinjam',renewals:0,fine:0,finePaid:false});save();render();toast(`Berhasil. Jatuh tempo ${fmtDate(due)}.`)}
+const loanById=id=>db.loans.find(l=>l.id===id);
+function approveLoan(id){const l=loanById(id),m=memberById(l.memberId),b=bookById(l.bookId);l.status='Dipinjam';const err=(()=>{l.status='Menunggu';return canLend(m,b)})();if(err)return toast('Tidak bisa disetujui: '+err);l.status='Dipinjam';l.loanDate=today();l.dueDate=addDays(today(),daysFor(m));save();render();toast('Disetujui. Jatuh tempo '+fmtDate(l.dueDate)+'.')}
+function rejectLoan(id){const l=loanById(id);l.status='Ditolak';save();render();toast('Permintaan ditolak.')}
+function returnLoan(id){const l=loanById(id);const f=fineOf(l);l.fine=f;l.finePaid=f===0;l.status='Dikembalikan';l.returnDate=today();save();render();toast(f>0?'Dikembalikan. Denda '+money(f)+' belum lunas.':'Buku dikembalikan tepat waktu.')}
+function renewLoan(id){const l=loanById(id);if(lState(l)==='Terlambat')return toast('Pinjaman terlambat tidak dapat diperpanjang.');if(l.renewals>=R().maxRenew)return toast('Batas perpanjangan tercapai ('+R().maxRenew+'x).');l.dueDate=addDays(l.dueDate,R().renewDays);l.renewals++;save();render();toast('Diperpanjang sampai '+fmtDate(l.dueDate)+'.')}
+function lostLoan(id){const l=loanById(id),b=bookById(l.bookId);if(!confirm('Tandai buku hilang? Denda keterlambatan + biaya penggantian '+money(R().lostFee)+' dikenakan, dan stok eksemplar dikurangi 1.'))return;l.fine=fineOf(l)+R().lostFee;l.finePaid=false;l.status='Hilang';l.returnDate=today();if(b)b.copies=Math.max(0,(b.copies||0)-1);save();render();toast('Dicatat hilang. Tagihan '+money(l.fine)+'.')}
+function payFine(id){const l=loanById(id);l.finePaid=true;save();render();toast('Denda ditandai lunas.')}
+
+/* --- Anggota --- */
+function memberRows(){const q=memSearch.toLowerCase();return db.members.filter(m=>(memStatus==='Semua'||m.status===memStatus)&&(!q||(m.no+' '+m.name+' '+m.cls).toLowerCase().includes(q)))}
+function memberTable(){const ms=memberRows();return ms.length?`<table><thead><tr><th>No.</th><th>Nama</th><th>Jenis</th><th>Kelas/Unit</th><th>Status</th><th>Pinjam</th><th>Denda</th><th>Aksi</th></tr></thead><tbody>${ms.map(m=>{const exp=m.expiry&&m.expiry<today();const f=memberFines(m.id);return `<tr><td>${esc(m.no)}</td><td>${esc(m.name)}</td><td>${esc(m.type)}</td><td>${esc(m.cls)}</td><td><span class="status ${m.status!=='Aktif'||exp?'off':''}">${exp&&m.status==='Aktif'?'Kedaluwarsa':esc(m.status)}</span></td><td>${activeOf(m.id).length}/${maxFor(m)}</td><td>${f?money(f):'—'}</td><td><button class="btn secondary small" onclick="memberDetail('${m.id}')">Detail</button><button class="btn secondary small" onclick="editingMember='${m.id}';render()">Edit</button><button class="btn ghost small" onclick="memberCard('${m.id}')">Kartu</button></td></tr>`}).join('')}</tbody></table>`:'<div class="empty">Tidak ada anggota yang cocok.</div>'}
+function renderMemberRows(){const el=$('memTable');if(el)el.innerHTML=memberTable()}
+function membersAdmin(){const m=editingMember?memberById(editingMember):null;
+ return `<h2>Keanggotaan Perpustakaan</h2><p>Kelola data anggota, status, masa berlaku, dan kartu anggota. Kumpulkan data seminimal mungkin dan jaga kerahasiaannya.</p>
+<form onsubmit="saveMember(event)"><div class="form-grid"><div class="field"><label>Nama lengkap *</label><input id="mName" required value="${esc(m?.name||'')}"></div><div class="field"><label>Nomor anggota</label><input id="mNo" value="${esc(m?.no||'')}" placeholder="otomatis jika kosong"></div><div class="field"><label>Jenis</label><select id="mType">${['Siswa','Guru','Staf'].map(x=>`<option ${m?.type===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="field"><label>Kelas / unit</label><input id="mCls" value="${esc(m?.cls||'')}" placeholder="Kelas 5 / Guru IPA"></div><div class="field"><label>Status</label><select id="mStatus">${['Aktif','Nonaktif','Diblokir'].map(x=>`<option ${m?.status===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="field"><label>Berlaku sampai</label><input id="mExp" type="date" value="${m?.expiry||addDays(today(),Math.round(R().memberMonths*30.4))}"></div><div class="field full"><label>Kontak (opsional)</label><input id="mContact" value="${esc(m?.contact||'')}" placeholder="email sekolah / nomor orang tua"></div><div class="field full"><label>Catatan</label><input id="mNote" value="${esc(m?.note||'')}"></div></div><div class="form-actions"><button class="btn primary" type="submit">${m?'Simpan perubahan':'Tambah anggota'}</button>${m?`<button class="btn ghost" type="button" onclick="editingMember=null;render()">Batal</button><button class="btn danger" type="button" onclick="deleteMember('${m.id}')">Hapus</button>`:''}</div></form>
+<h3>Daftar anggota (${db.members.length})</h3><div class="toolbar"><input placeholder="Cari nama / nomor / kelas..." value="${esc(memSearch)}" oninput="memSearch=this.value;renderMemberRows()"><select onchange="memStatus=this.value;renderMemberRows()">${['Semua','Aktif','Nonaktif','Diblokir'].map(x=>`<option ${memStatus===x?'selected':''}>${x}</option>`).join('')}</select><button class="btn secondary small" onclick="exportMembers()">⬇ Ekspor CSV</button></div><div class="table-wrap" id="memTable">${memberTable()}</div>
+<h3>Impor cepat</h3><div class="info">Tempel satu anggota per baris: <b>nama, jenis, kelas</b> (jenis: Siswa/Guru/Staf). Contoh: <code>Budi Santoso, Siswa, Kelas 6</code></div><textarea id="bulkMem" class="mini" style="min-height:90px;width:100%"></textarea><div class="form-actions"><button class="btn secondary" onclick="bulkMembers()">Impor</button></div>`}
+function nextNo(){db.seq.member=(db.seq.member||0)+1;return 'SIB-'+String(db.seq.member).padStart(4,'0')}
+function saveMember(e){e.preventDefault();const old=editingMember?memberById(editingMember):null;let no=val('mNo').toUpperCase();
+ if(no&&db.members.some(x=>x.no.toUpperCase()===no&&x.id!==(old&&old.id)))return toast('Nomor anggota sudah dipakai.');
+ const m={id:old?old.id:uid('M'),no:no||(old?old.no:nextNo()),name:val('mName'),type:val('mType'),cls:val('mCls'),status:val('mStatus'),joined:old?old.joined:today(),expiry:val('mExp'),contact:val('mContact'),note:val('mNote'),demo:old?old.demo:false};
+ if(old)db.members=db.members.map(x=>x.id===m.id?m:x);else db.members.push(m);save();editingMember=null;render();toast(old?'Data anggota diperbarui.':'Anggota ditambahkan: '+m.no)}
+function deleteMember(id){if(activeOf(id).length)return toast('Masih ada pinjaman aktif. Selesaikan dulu.');if(db.loans.some(l=>l.memberId===id))return toast('Anggota punya riwayat pinjaman. Ubah status menjadi Nonaktif agar riwayat tetap utuh.');if(!confirm('Hapus anggota ini?'))return;db.members=db.members.filter(m=>m.id!==id);save();editingMember=null;render();toast('Anggota dihapus.')}
+function bulkMembers(){const lines=val('bulkMem').split('\n').map(x=>x.trim()).filter(Boolean);let n=0;lines.forEach(ln=>{const [name,type,cls]=ln.split(',').map(x=>x.trim());if(!name)return;const t=['Siswa','Guru','Staf'].find(x=>x.toLowerCase()===(type||'').toLowerCase())||'Siswa';db.members.push({id:uid('M'),no:nextNo(),name,type:t,cls:cls||'',status:'Aktif',joined:today(),expiry:addDays(today(),Math.round(R().memberMonths*30.4)),contact:'',note:'',demo:false});n++});save();render();toast(n+' anggota diimpor.')}
+function memberDetail(id){const m=memberById(id);const ls=db.loans.filter(l=>l.memberId===id);showModal('Profil Anggota',`<h3 style="margin:0;color:var(--navy)">${esc(m.name)}</h3><p style="color:var(--muted);font-size:13px">${esc(m.no)} · ${esc(m.type)} · ${esc(m.cls)}<br>Status: ${esc(m.status)} · Bergabung ${fmtDate(m.joined)} · Berlaku s.d. ${fmtDate(m.expiry)}${m.contact?`<br>Kontak: ${esc(m.contact)}`:''}${m.note?`<br>Catatan: ${esc(m.note)}`:''}</p><div class="stats-grid"><div class="metric"><span>Pinjaman aktif</span><strong>${activeOf(id).length}</strong></div><div class="metric"><span>Total pinjam</span><strong>${ls.filter(l=>!['Menunggu','Ditolak'].includes(l.status)).length}</strong></div><div class="metric"><span>Denda</span><strong>${money(memberFines(id))}</strong></div></div><div class="table-wrap">${ls.length?`<table><thead><tr><th>Buku</th><th>Pinjam</th><th>Kembali</th><th>Status</th></tr></thead><tbody>${ls.map(l=>`<tr><td>${esc(bookById(l.bookId)?.title||'—')}</td><td>${fmtDate(l.loanDate)}</td><td>${fmtDate(l.returnDate)}</td><td>${lState(l)}</td></tr>`).join('')}</tbody></table>`:'<div class="info">Belum ada riwayat.</div>'}</div>`)}
+function memberCard(id){const m=memberById(id);showModal('Kartu Anggota',`<div id="printArea"><div class="idcard"><div class="hd"><span style="font-size:26px">📚</span><div><b>${esc(S().name)}</b><br><small>${esc(S().school)}</small></div></div><div><b style="font-size:17px;color:var(--navy)">${esc(m.name)}</b><br><small>${esc(m.type)} · ${esc(m.cls)}</small></div><div class="no">${esc(m.no)}</div><small>Berlaku s.d. ${fmtDate(m.expiry)}</small></div></div><div class="form-actions" style="justify-content:center"><button class="btn primary" onclick="window.print()">🖨 Cetak kartu</button></div>`)}
+
+/* --- Buku --- */
+function booksAdmin(){const b=editingBook?bookById(editingBook):null;const sel=(arr,v)=>arr.map(x=>`<option ${v===x?'selected':''}>${x}</option>`).join('');
+ return `<h2>Manajemen Koleksi</h2><p>Metadata koleksi, jumlah eksemplar, nomor panggil, dan lokasi rak.</p><form onsubmit="saveBook(event)"><div class="form-grid"><div class="field full"><label>Judul *</label><input id="fTitle" required value="${esc(b?.title||'')}"></div><div class="field"><label>Penulis</label><input id="fAuthor" value="${esc(b?.author||'')}"></div><div class="field"><label>Penerbit</label><input id="fPub" value="${esc(b?.publisher||'')}"></div><div class="field"><label>Kategori</label><select id="fCategory">${sel(['Fiksi','Nonfiksi','Bahasa','Sains','Budaya','Lingkungan','Informatika','Sejarah','Umum'],b?.category)}</select></div><div class="field"><label>Jenjang</label><select id="fLevel">${sel(['TK','SD','SMP','SMA','Guru','Umum'],b?.level)}</select></div><div class="field"><label>Jenis koleksi</label><select id="fType">${sel(['Fisik','Digital','Fisik & Digital'],b?.type||'Digital')}</select></div><div class="field"><label>Jumlah eksemplar fisik</label><input id="fCopies" type="number" min="0" value="${b?.copies??1}"></div><div class="field"><label>No. panggil (DDC)</label><input id="fCall" value="${esc(b?.callNo||'')}" placeholder="500 TIM"></div><div class="field"><label>Lokasi rak</label><input id="fShelf" value="${esc(b?.shelf||'')}" placeholder="R-A1"></div><div class="field"><label>ISBN</label><input id="fIsbn" value="${esc(b?.isbn||'')}"></div><div class="field"><label>Tahun terbit</label><input id="fYear" value="${esc(b?.year||String(new Date().getFullYear()))}"></div><div class="field"><label>Ikon sampul (emoji)</label><input id="fIcon" value="${esc(b?.icon||'📘')}"></div><div class="field full"><label>Deskripsi</label><textarea id="fDesc">${esc(b?.description||'')}</textarea></div><div class="field full"><label>Tautan sumber digital (https://...)</label><input id="fUrl" type="url" value="${esc(b?.url||'')}"></div></div><div class="form-actions"><button class="btn primary" type="submit">${b?'Simpan perubahan':'Tambah koleksi'}</button>${b?'<button class="btn ghost" type="button" onclick="editingBook=null;render()">Batal</button>':''}</div></form>
+<h3>Daftar koleksi (${db.books.length})</h3><div class="table-wrap"><table><thead><tr><th>ID</th><th>Judul</th><th>No. panggil</th><th>Jenis</th><th>Stok</th><th>Aksi</th></tr></thead><tbody>${db.books.map(x=>`<tr><td>${x.id}</td><td>${esc(x.title)}</td><td>${esc(x.callNo||'—')}</td><td>${esc(x.type)}</td><td>${isPhysical(x)?availOf(x)+'/'+x.copies:'—'}</td><td><button class="btn secondary small" onclick="editingBook='${x.id}';render();scrollTo({top:0,behavior:'smooth'})">Edit</button><button class="btn ghost small" onclick="deleteBook('${x.id}')">Hapus</button></td></tr>`).join('')}</tbody></table></div>`}
+function saveBook(e){e.preventDefault();const old=editingBook?bookById(editingBook):null;const id=old?old.id:'B'+Date.now().toString().slice(-6);const url=val('fUrl');if(url&&!safeUrl(url))return toast('Tautan harus diawali http:// atau https://');
+ const copies=Math.max(0,parseInt(val('fCopies'))||0),type=val('fType');const out=db.loans.filter(l=>l.bookId===id&&l.status==='Dipinjam').length;if(old&&type!=='Digital'&&copies<out)return toast('Eksemplar tidak boleh kurang dari yang sedang dipinjam ('+out+').');
+ const b={id,title:val('fTitle'),author:val('fAuthor'),publisher:val('fPub'),category:val('fCategory'),level:val('fLevel'),type,copies:type==='Digital'?0:copies,callNo:val('fCall'),shelf:val('fShelf'),isbn:val('fIsbn'),year:val('fYear'),icon:val('fIcon')||'📘',description:val('fDesc'),url,color:old?.color||'linear-gradient(145deg,#1769aa,#13a89e)'};
+ if(old)db.books=db.books.map(x=>x.id===id?b:x);else db.books.unshift(b);save();editingBook=null;render();toast(old?'Koleksi diperbarui.':'Koleksi ditambahkan.')}
+function deleteBook(id){const b=bookById(id);if(db.loans.some(l=>l.bookId===id&&l.status==='Dipinjam'))return toast('Buku sedang dipinjam, tidak dapat dihapus.');if(!confirm('Hapus koleksi "'+b.title+'"?'))return;db.books=db.books.filter(x=>x.id!==id);S().featured=(S().featured||[]).filter(x=>x!==id);save();render();toast('Koleksi dihapus.')}
+
+/* --- Impor Koleksi --- */
+let impRows=[];
+const ROMAN={I:1,II:2,III:3,IV:4,V:5,VI:6,VII:7,VIII:8,IX:9,X:10,XI:11,XII:12};
+const CATS=['Fiksi','Nonfiksi','Bahasa','Sains','Budaya','Lingkungan','Informatika','Sejarah','Umum'],LEVELS=['TK','SD','SMP','SMA','Guru','Umum'],TYPES=['Fisik','Digital','Fisik & Digital'];
+const levelOfGrade=n=>n<=6?'SD':n<=9?'SMP':'SMA';
+function catOf(t){t=t.toLowerCase();return /bahasa|sastra/.test(t)?'Bahasa':/ipa|fisika|kimia|biologi|matematika|sains|alam/.test(t)?'Sains':/sejarah/.test(t)?'Sejarah':/informatika|komputer/.test(t)?'Informatika':/geografi|lingkungan/.test(t)?'Lingkungan':/seni|budaya|musik|tari/.test(t)?'Budaya':'Umum'}
+function fromUrl(u){let name='';try{name=decodeURIComponent(u.split('#')[0].split('?')[0].split('/').pop()||'')}catch(e){name=u.split('/').pop()||''}
+ name=name.replace(/\.(pdf|epub)$/i,'');const toks=name.split(/[_\s]+/).filter(x=>x&&!/^rev$/i.test(x));
+ const k=toks.findIndex(x=>/^kls$/i.test(x));let grade=0,romanTxt='',role='',mapel=toks;
+ if(k>=0){romanTxt=(toks[k+1]||'').toUpperCase();grade=ROMAN[romanTxt]||0;const r=(toks[k-1]||'').toUpperCase();if(r==='BS'||r==='BG'){role=r;mapel=toks.slice(0,k-1)}else mapel=toks.slice(0,k)}
+ const m=mapel.join(' ')||name||'Buku digital';const roleTxt=role==='BG'?' (Buku Guru)':role==='BS'?' (Buku Siswa)':'';
+ const official=/kemdikbud|kemendikdasmen|kemdikbudristek/i.test(u);
+ return {title:m+roleTxt+(grade?' — Kelas '+romanTxt:''),author:official?'Kemendikdasmen':'',category:catOf(m),level:role==='BG'?'Guru':grade?levelOfGrade(grade):'Umum',type:'Digital',copies:0,callNo:'',url:u,
+  description:official?'Bacaan digital dari sumber resmi Kemendikdasmen (SIBI). Dibuka melalui tautan sumber.':'Bacaan digital. Dibuka melalui tautan sumber.'}}
+function parseCsvLine(s){const out=[];let cur='',q=false;for(let i=0;i<s.length;i++){const c=s[i];if(q){if(c==='"'){if(s[i+1]==='"'){cur+='"';i++}else q=false}else cur+=c}else if(c==='"')q=true;else if(c===','||c==='\t'||c===';'){out.push(cur.trim());cur=''}else cur+=c}out.push(cur.trim());return out}
+const normT=s=>String(s||'').toLowerCase().replace(/\s+/g,' ').trim();
+function buildImport(){
+ const lines=$('impText').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0,1000);
+ const seenT=new Set(db.books.map(b=>normT(b.title))),seenU=new Set(db.books.map(b=>b.url).filter(Boolean));impRows=[];
+ lines.forEach((ln,i)=>{if(/^"?judul"?\s*[,;\t]/i.test(ln))return;let b,err='';
+  if(/^https?:\/\//i.test(ln)){b=fromUrl(ln.split(/\s/)[0])}
+  else{const c=parseCsvLine(ln);let url=c[4]||'';let type=TYPES.includes(c[5])?c[5]:(url?'Digital':'Fisik');
+   b={title:c[0]||'',author:c[1]||'',category:CATS.includes(c[2])?c[2]:'Umum',level:LEVELS.includes(c[3])?c[3]:'Umum',url,type,copies:type==='Digital'?0:Math.max(0,parseInt(c[6])||1),callNo:c[7]||'',description:''}}
+  if(!b.title)err='Judul kosong';else if(b.url&&!/^https:\/\//i.test(b.url))err='Tautan harus https://';else if(b.type!=='Fisik'&&!b.url)err='Koleksi digital perlu tautan';
+  let st=err?'Tidak valid: '+err:'Baru';
+  if(!err&&((b.url&&seenU.has(b.url))||seenT.has(normT(b.title))))st='Duplikat';
+  if(!err&&st==='Baru'){seenT.add(normT(b.title));if(b.url)seenU.add(b.url)}
+  impRows.push({b,st,sel:st==='Baru'})});
+ renderImpPreview()}
+function renderImpPreview(){const el=$('impPreview');if(!el)return;
+ if(!impRows.length){el.innerHTML='<div class="info">Belum ada data. Tempel daftar lalu klik Pratinjau.</div>';return}
+ const n=impRows.filter(r=>r.sel).length,dup=impRows.filter(r=>r.st==='Duplikat').length,bad=impRows.filter(r=>r.st.startsWith('Tidak')).length;
+ el.innerHTML=`<div class="stats-grid"><div class="metric"><span>Baris dibaca</span><strong>${impRows.length}</strong></div><div class="metric"><span>Siap diimpor</span><strong>${n}</strong></div><div class="metric"><span>Duplikat</span><strong>${dup}</strong></div><div class="metric ${bad?'warn':''}"><span>Tidak valid</span><strong>${bad}</strong></div></div><div class="table-wrap"><table><thead><tr><th></th><th>Judul</th><th>Kategori</th><th>Jenjang</th><th>Jenis</th><th>Sumber</th><th>Status</th></tr></thead><tbody>${impRows.map((r,i)=>{let host='—';try{if(r.b.url)host=new URL(r.b.url).hostname}catch(e){}return `<tr><td><input type="checkbox" ${r.sel?'checked':''} ${r.st==='Baru'||r.st==='Duplikat'?'':'disabled'} onchange="impRows[${i}].sel=this.checked;renderImpPreview()"></td><td>${esc(r.b.title)}</td><td>${esc(r.b.category)}</td><td>${esc(r.b.level)}</td><td>${esc(r.b.type)}</td><td>${esc(host)}</td><td><span class="status ${r.st==='Baru'?'':r.st==='Duplikat'?'wait':'late'}">${esc(r.st)}</span></td></tr>`}).join('')}</tbody></table></div><div class="form-actions"><button class="btn primary" onclick="doImport()" ${n?'':'disabled'}>Impor ${n} koleksi</button></div>`}
+const IMP_COLORS={SD:'linear-gradient(145deg,#0f8b8d,#66c5a4)',SMP:'linear-gradient(145deg,#185abc,#56b4e9)',SMA:'linear-gradient(145deg,#5147a8,#b5a2ff)',Guru:'linear-gradient(145deg,#8b3f6b,#e6a0b6)'};
+function doImport(){const sel=impRows.filter(r=>r.sel&&(r.st==='Baru'||r.st==='Duplikat'));if(!sel.length)return;let n=0;
+ sel.forEach((r,i)=>{const b=r.b;db.books.unshift({id:'B'+Date.now().toString().slice(-6)+String(i).padStart(3,'0'),title:b.title,author:b.author,publisher:'',category:b.category,level:b.level,type:b.type,copies:b.copies,callNo:b.callNo,shelf:'',isbn:'',year:String(new Date().getFullYear()),icon:'📘',color:IMP_COLORS[b.level]||'linear-gradient(145deg,#1769aa,#13a89e)',description:b.description,url:b.url});n++});
+ save();impRows=[];render();toast(n+' koleksi berhasil diimpor.')}
+function impTemplate(){download('templat_impor_koleksi.csv',csv([['judul','penulis','kategori','jenjang','tautan','jenis','eksemplar','no_panggil'],['Contoh Buku Digital','Nama Penulis','Sains','SMP','https://contoh.go.id/buku.pdf','Digital','',''],['Contoh Buku Cetak','Nama Penulis','Fiksi','SD','','Fisik','3','F PEN']]))}
+function impSample(){$('impText').value=['https://static.buku.kemdikbud.go.id/content/pdf/bukuteks/kurikulum21/Bahasa_Indonesia_BS_KLS_VII_Rev.pdf','https://static.buku.kemdikbud.go.id/content/pdf/bukuteks/kurikulum21/Bahasa_Indonesia_BG_KLS_IV_Rev.pdf','https://static.buku.kemdikbud.go.id/content/pdf/bukuteks/kurikulum21/Geografi_BS_KLS_XI_Rev.pdf'].join('\n')}
+function impFile(f){if(!f)return;if(f.size>2e6)return toast('Berkas terlalu besar (maks. 2 MB).');const rd=new FileReader();rd.onload=()=>{$('impText').value=($('impText').value?$('impText').value+'\n':'')+rd.result;toast('Berkas dimuat. Klik Pratinjau.')};rd.readAsText(f)}
+function importAdmin(){return `<h2>Impor Koleksi</h2><p>Tambah banyak koleksi sekaligus dari daftar tautan atau CSV. Tidak ada berkas yang diunduh: buku dibaca lewat tautan sumbernya.</p>
+<div class="info"><b>Cara 1 — daftar tautan:</b> tempel satu tautan PDF per baris. Judul, kelas, jenjang, dan kategori diisi otomatis dari nama berkas bila polanya seperti <code>Mapel_BS_KLS_VII_Rev.pdf</code> (BS = Buku Siswa, BG = Buku Guru).<br><b>Cara 2 — CSV:</b> kolom <code>judul, penulis, kategori, jenjang, tautan, jenis, eksemplar, no_panggil</code>. Pemisah koma, titik koma, atau tab.</div>
+<textarea id="impText" class="mini" style="min-height:150px;width:100%" placeholder="https://.../Matematika_BS_KLS_VII_Rev.pdf&#10;Judul Buku,Penulis,Sains,SMP,https://..."></textarea>
+<div class="form-actions"><button class="btn primary" onclick="buildImport()">🔍 Pratinjau</button><label class="btn secondary" style="cursor:pointer">📄 Muat berkas CSV/TXT<input type="file" accept=".csv,.txt,text/csv,text/plain" class="hidden" onchange="impFile(this.files[0])"></label><button class="btn ghost" onclick="impTemplate()">⬇ Templat CSV</button><button class="btn ghost" onclick="impSample()">Isi contoh tautan</button></div>
+<div class="notice">Pastikan tautan berasal dari sumber yang sah dan sekolah boleh menautkannya. Pratinjau menandai duplikat (judul atau tautan sama) dan tautan yang bukan https. Periksa kategori dan jenjang hasil otomatis; semuanya bisa diedit di Manajemen Buku.</div>
+<div id="impPreview">${impRows.length?'':'<div class="info">Belum ada data. Tempel daftar lalu klik Pratinjau.</div>'}</div>`}
+/* --- Menu & Halaman --- */
+const KIND={home:'Beranda (tetap)',catalog:'Katalog',reading:'Ruang baca',account:'Cek pinjaman',content:'Halaman konten'};
+function menusAdmin(){if(menuEdit)return menuEditor(db.menus.find(m=>m.id===menuEdit));
+ return `<h2>Menu & Halaman</h2><p>Atur urutan, nama, ikon, tampil/sembunyi menu. Halaman konten (Lab Maya, Ruang Eksplorasi, Komunitas, atau halaman baru) dapat diisi kartu, tautan, dan teks sendiri.</p><div class="table-wrap"><table><thead><tr><th>Urutan</th><th>Ikon</th><th>Nama menu</th><th>Jenis</th><th>Tampil</th><th>Aksi</th></tr></thead><tbody>${db.menus.map((m,i)=>`<tr><td><button class="btn ghost small" onclick="moveMenu(${i},-1)">↑</button><button class="btn ghost small" onclick="moveMenu(${i},1)">↓</button></td><td><input class="mini" style="width:64px" value="${esc(m.icon)}" onchange="setMenu(${i},'icon',this.value)"></td><td><input class="mini" value="${esc(m.label)}" onchange="setMenu(${i},'label',this.value)"></td><td>${KIND[m.kind]}</td><td><input type="checkbox" ${m.visible?'checked':''} ${m.locked?'disabled':''} onchange="setMenu(${i},'visible',this.checked)"></td><td>${m.kind==='content'?`<button class="btn primary small" onclick="menuEdit='${m.id}';cardEdit=null;render()">Kelola isi</button>`:''}${m.custom?`<button class="btn danger small" onclick="deleteMenu(${i})">Hapus</button>`:''}</td></tr>`).join('')}</tbody></table></div><h3>Tambah halaman baru</h3><form onsubmit="addMenu(event)"><div class="form-grid"><div class="field"><label>Nama menu *</label><input id="nmLabel" required placeholder="Contoh: Perpustakaan Keliling"></div><div class="field"><label>Ikon (emoji)</label><input id="nmIcon" value="✨"></div></div><div class="form-actions"><button class="btn primary" type="submit">Tambah halaman</button></div></form>`}
+function setMenu(i,k,v){if(k==='label'){v=String(v).trim();if(!v)return render()}db.menus[i][k]=v;save();render();toast('Menu diperbarui.')}
+function moveMenu(i,d){const j=i+d;if(j<0||j>=db.menus.length)return;[db.menus[i],db.menus[j]]=[db.menus[j],db.menus[i]];save();render()}
+function addMenu(e){e.preventDefault();const label=val('nmLabel');db.menus.push({id:uid('m'),kind:'content',custom:true,label,icon:val('nmIcon')||'✨',visible:true,blurb:'',eyebrow:'HALAMAN BARU',title:label,desc:'Deskripsi halaman.',note:'',showPrograms:false,cards:[]});save();render();toast('Halaman ditambahkan. Klik "Kelola isi" untuk mengisi.')}
+function deleteMenu(i){if(!confirm('Hapus halaman "'+db.menus[i].label+'" beserta kontennya?'))return;db.menus.splice(i,1);save();render();toast('Halaman dihapus.')}
+function menuEditor(m){const c=cardEdit!==null?m.cards[cardEdit]:null;
+ return `<button class="btn ghost small" onclick="menuEdit=null;cardEdit=null;render()">← Kembali ke daftar menu</button><h2 style="margin-top:12px">Kelola halaman: ${esc(m.label)}</h2><p>Perubahan tampil langsung di menu publik.</p><form onsubmit="saveMenuMeta(event,'${m.id}')"><div class="form-grid"><div class="field"><label>Label kecil di atas judul</label><input id="mmEyebrow" value="${esc(m.eyebrow||'')}"></div><div class="field"><label>Judul halaman</label><input id="mmTitle" value="${esc(m.title||'')}"></div><div class="field full"><label>Deskripsi halaman</label><textarea id="mmDesc">${esc(m.desc||'')}</textarea></div><div class="field full"><label>Kotak informasi (kosongkan jika tidak perlu)</label><input id="mmNote" value="${esc(m.note||'')}"></div><div class="field"><label>Teks singkat di beranda</label><input id="mmBlurb" value="${esc(m.blurb||'')}"></div><div class="field"><label>Tampilkan program belajar</label><select id="mmProg"><option value="0">Tidak</option><option value="1" ${m.showPrograms?'selected':''}>Ya</option></select></div></div><div class="form-actions"><button class="btn primary" type="submit">Simpan halaman</button></div></form>
+<h3>Kartu konten (${m.cards.length})</h3><form onsubmit="saveCard(event,'${m.id}')"><div class="form-grid"><div class="field"><label>Judul kartu *</label><input id="cTitle" required value="${esc(c?.title||'')}"></div><div class="field"><label>Ikon</label><input id="cIcon" value="${esc(c?.icon||'📘')}"></div><div class="field full"><label>Deskripsi singkat</label><input id="cDesc" value="${esc(c?.desc||'')}"></div><div class="field full"><label>Isi lengkap (tampil di jendela detail)</label><textarea id="cBody">${esc(c?.body||'')}</textarea></div><div class="field"><label>Tautan (https://...) — opsional</label><input id="cUrl" value="${esc(c?.url||'')}" placeholder="simulasi / video / situs"></div><div class="field"><label>Teks tombol</label><input id="cBtn" value="${esc(c?.btn||'Lihat')}"></div></div><div class="form-actions"><button class="btn primary" type="submit">${c?'Simpan kartu':'Tambah kartu'}</button>${c?'<button class="btn ghost" type="button" onclick="cardEdit=null;render()">Batal</button>':''}</div></form>
+<div class="table-wrap" style="margin-top:16px"><table><thead><tr><th>Urutan</th><th>Kartu</th><th>Tautan</th><th>Aksi</th></tr></thead><tbody>${m.cards.map((x,i)=>`<tr><td><button class="btn ghost small" onclick="moveCard('${m.id}',${i},-1)">↑</button><button class="btn ghost small" onclick="moveCard('${m.id}',${i},1)">↓</button></td><td>${esc(x.icon)} ${esc(x.title)}</td><td>${esc(x.url||'—')}</td><td><button class="btn secondary small" onclick="cardEdit=${i};render()">Edit</button><button class="btn ghost small" onclick="deleteCard('${m.id}',${i})">Hapus</button></td></tr>`).join('')||'<tr><td colspan="4">Belum ada kartu.</td></tr>'}</tbody></table></div>`}
+function saveMenuMeta(e,id){e.preventDefault();const m=db.menus.find(x=>x.id===id);m.eyebrow=val('mmEyebrow');m.title=val('mmTitle')||m.label;m.desc=val('mmDesc');m.note=val('mmNote');m.blurb=val('mmBlurb');m.showPrograms=val('mmProg')==='1';save();render();toast('Halaman disimpan.')}
+function saveCard(e,id){e.preventDefault();const m=db.menus.find(x=>x.id===id);const url=val('cUrl');if(url&&!safeUrl(url))return toast('Tautan harus diawali http:// atau https://');const c={id:cardEdit!==null?m.cards[cardEdit].id:uid('c'),title:val('cTitle'),icon:val('cIcon')||'📘',desc:val('cDesc'),body:val('cBody'),url,btn:val('cBtn')||'Lihat'};if(cardEdit!==null)m.cards[cardEdit]=c;else m.cards.push(c);cardEdit=null;save();render();toast('Kartu disimpan.')}
+function moveCard(id,i,d){const m=db.menus.find(x=>x.id===id),j=i+d;if(j<0||j>=m.cards.length)return;[m.cards[i],m.cards[j]]=[m.cards[j],m.cards[i]];save();render()}
+function deleteCard(id,i){if(!confirm('Hapus kartu ini?'))return;db.menus.find(x=>x.id===id).cards.splice(i,1);cardEdit=null;save();render()}
+
+/* --- Personalisasi --- */
+function homeAdmin(){const s=S(),sec=s.sections;
+ return `<h2>Personalisasi Tampilan</h2><p>Identitas, warna, beranda, dan footer.</p><form onsubmit="saveHome(event)"><div class="form-grid"><div class="field"><label>Nama perpustakaan</label><input id="sName" value="${esc(s.name)}"></div><div class="field"><label>Subjudul merek</label><input id="sTag" value="${esc(s.tag)}"></div><div class="field"><label>Nama sekolah</label><input id="sSchool" value="${esc(s.school)}"></div><div class="field"><label>Tema warna</label><select id="sTheme">${Object.keys(THEMES).map(k=>`<option ${s.theme===k?'selected':''}>${k}</option>`).join('')}</select></div><div class="field"><label>Bilah atas (kiri)</label><input id="sTopL" value="${esc(s.topLeft)}"></div><div class="field"><label>Bilah atas (kanan)</label><input id="sTopR" value="${esc(s.topRight)}"></div><div class="field"><label>Judul sambutan</label><input id="sBanner" required value="${esc(s.banner)}"></div><div class="field"><label>Baris aksen judul</label><input id="sAccent" value="${esc(s.heroAccent)}"></div><div class="field full"><label>Deskripsi sambutan</label><textarea id="sSub">${esc(s.subtitle)}</textarea></div>
+<div class="field full"><label>Bagian yang ditampilkan di beranda</label><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:13px">${[['quick','Pintu masuk menu'],['featured','Koleksi pilihan'],['band','Pita fitur'],['programs','Program belajar']].map(x=>`<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="sec_${x[0]}" ${sec[x[0]]?'checked':''}> ${x[1]}</label>`).join('')}</div></div>
+<div class="field full"><label>Judul pita fitur</label><input id="sBandT" value="${esc(s.bandTitle)}"></div><div class="field full"><label>Teks pita fitur</label><textarea id="sBandX">${esc(s.bandText)}</textarea></div><div class="field"><label>Teks tombol pita</label><input id="sBandB" value="${esc(s.bandBtn)}"></div><div class="field"><label>Tombol mengarah ke</label><select id="sBandG">${db.menus.filter(m=>m.id!=='home').map(m=>`<option value="${m.id}" ${s.bandTarget===m.id?'selected':''}>${esc(m.label)}</option>`).join('')}</select></div><div class="field full"><label>Kotak kecil pita (satu per baris: ikon|judul|keterangan)</label><textarea id="sTiles">${esc(s.tiles)}</textarea></div>
+<div class="field full"><label>Judul footer</label><input id="sFootT" value="${esc(s.footerTitle)}"></div><div class="field full"><label>Teks footer</label><input id="sFootX" value="${esc(s.footerText)}"></div>
+<div class="field full"><label>Koleksi unggulan (maksimal 4)</label>${db.books.map(b=>`<label style="display:flex;align-items:center;gap:9px;padding:5px 0;font-size:13px;font-weight:400"><input type="checkbox" name="featured" value="${b.id}" ${(s.featured||[]).includes(b.id)?'checked':''}> ${esc(b.title)}</label>`).join('')}</div></div><div class="form-actions"><button class="btn primary" type="submit">Simpan personalisasi</button></div></form>`}
+function saveHome(e){e.preventDefault();const s=S();Object.assign(s,{name:val('sName')||s.name,tag:val('sTag'),school:val('sSchool'),theme:val('sTheme'),topLeft:val('sTopL'),topRight:val('sTopR'),banner:val('sBanner'),heroAccent:val('sAccent'),subtitle:val('sSub'),bandTitle:val('sBandT'),bandText:val('sBandX'),bandBtn:val('sBandB'),bandTarget:val('sBandG'),tiles:$('sTiles').value,footerTitle:val('sFootT'),footerText:val('sFootX')});
+ ['quick','featured','band','programs'].forEach(k=>s.sections[k]=$('sec_'+k).checked);s.featured=[...document.querySelectorAll('input[name="featured"]:checked')].map(x=>x.value).slice(0,4);save();render();toast('Personalisasi disimpan.')}
+
+/* --- Program --- */
+function programAdmin(){return `<h2>Program Belajar</h2><p>Tantangan literasi dan aktivitas komunitas.</p><form onsubmit="saveProgram(event)"><div class="form-grid"><div class="field"><label>Judul program *</label><input id="pTitle" required></div><div class="field"><label>Ikon</label><input id="pIcon" value="📖"></div><div class="field"><label>Sasaran</label><select id="pLevel">${['Semua jenjang','TK','SD','SMP','SMA','Guru'].map(x=>`<option>${x}</option>`).join('')}</select></div><div class="field"><label>Status</label><select id="pStatus"><option>Aktif</option><option>Draft</option></select></div><div class="field full"><label>Deskripsi *</label><textarea id="pDesc" required></textarea></div></div><div class="form-actions"><button class="btn primary" type="submit">Tambah program</button></div></form><h3>Program tersedia</h3><div class="table-wrap"><table><thead><tr><th>Program</th><th>Sasaran</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${db.programs.map(p=>`<tr><td>${esc(p.icon)} ${esc(p.title)}</td><td>${esc(p.level)}</td><td><span class="status ${p.status==='Draft'?'wait':''}">${esc(p.status)}</span></td><td><button class="btn secondary small" onclick="toggleProgram('${p.id}')">${p.status==='Aktif'?'Jadikan draft':'Aktifkan'}</button><button class="btn ghost small" onclick="deleteProgram('${p.id}')">Hapus</button></td></tr>`).join('')}</tbody></table></div>`}
+function saveProgram(e){e.preventDefault();db.programs.unshift({id:uid('P'),title:val('pTitle'),icon:val('pIcon')||'📖',level:val('pLevel'),status:val('pStatus'),desc:val('pDesc')});save();render();toast('Program ditambahkan.')}
+function toggleProgram(id){const p=db.programs.find(x=>x.id===id);p.status=p.status==='Aktif'?'Draft':'Aktif';save();render()}
+function deleteProgram(id){if(!confirm('Hapus program ini?'))return;db.programs=db.programs.filter(x=>x.id!==id);save();render()}
+
+/* --- Laporan --- */
+function csv(rows){return '\ufeff'+rows.map(r=>r.map(c=>{c=String(c??'');if(/^[=+\-@]/.test(c))c="'"+c;return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c}).join(',')).join('\r\n')}
+function download(name,text){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
+function exportLoans(){download('sirkulasi_'+today()+'.csv',csv([['ID','No Anggota','Nama','Judul','Tgl Pinjam','Jatuh Tempo','Tgl Kembali','Status','Denda','Denda Lunas']].concat(db.loans.map(l=>{const m=memberById(l.memberId);return [l.id,m?.no||'',m?.name||'',bookById(l.bookId)?.title||'',l.loanDate,l.dueDate,l.returnDate||'',lState(l),fineOf(l),l.finePaid?'Ya':'Tidak']}))))}
+function exportMembers(){download('anggota_'+today()+'.csv',csv([['No','Nama','Jenis','Kelas/Unit','Status','Bergabung','Berlaku s.d.','Kontak']].concat(db.members.map(m=>[m.no,m.name,m.type,m.cls,m.status,m.joined,m.expiry,m.contact]))))}
+function exportBooks(){download('koleksi_'+today()+'.csv',csv([['ID','Judul','Penulis','Penerbit','Kategori','Jenjang','Jenis','Eksemplar','Tersedia','No Panggil','Rak','ISBN','Tahun']].concat(db.books.map(b=>[b.id,b.title,b.author,b.publisher,b.category,b.level,b.type,b.copies,isPhysical(b)?availOf(b):'',b.callNo,b.shelf,b.isbn,b.year]))))}
+function bars(items){const mx=Math.max(1,...items.map(x=>x[1]));return items.length?items.map(x=>`<div class="bar-row"><span>${esc(x[0])}</span><div class="bar"><i style="width:${x[1]/mx*100}%"></i></div><b>${x[1]}</b></div>`).join(''):'<div class="info">Belum ada data.</div>'}
+function reportsAdmin(){const done=db.loans.filter(l=>!['Menunggu','Ditolak'].includes(l.status));const cnt={};done.forEach(l=>{const t=bookById(l.bookId)?.title||'—';cnt[t]=(cnt[t]||0)+1});const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,5);
+ const mc={};done.forEach(l=>{const m=memberById(l.memberId);if(m)mc[m.name]=(mc[m.name]||0)+1});const topM=Object.entries(mc).sort((a,b)=>b[1]-a[1]).slice(0,5);
+ const months=[];for(let i=5;i>=0;i--){const d=new Date();d.setMonth(d.getMonth()-i,1);months.push(d.getFullYear()+'-'+p2(d.getMonth()+1))}const mm=months.map(k=>[k,done.filter(l=>(l.loanDate||'').startsWith(k)).length]);
+ const catc={};done.forEach(l=>{const c=bookById(l.bookId)?.category||'—';catc[c]=(catc[c]||0)+1});
+ return `<h2>Laporan & Statistik</h2><p>Dasar evaluasi koleksi dan layanan. Ekspor CSV dapat dibuka di Excel / Google Sheets.</p><div class="form-actions" style="margin:0 0 10px"><button class="btn primary" onclick="exportLoans()">⬇ Sirkulasi</button><button class="btn secondary" onclick="exportMembers()">⬇ Anggota</button><button class="btn secondary" onclick="exportBooks()">⬇ Koleksi</button><button class="btn ghost" onclick="window.print()">🖨 Cetak halaman</button></div><div id="printArea"><h3>Peminjaman 6 bulan terakhir</h3>${bars(mm)}<h3>Buku paling sering dipinjam</h3>${bars(top)}<h3>Kategori paling diminati</h3>${bars(Object.entries(catc).sort((a,b)=>b[1]-a[1]).slice(0,5))}<h3>Anggota paling aktif</h3>${bars(topM)}</div>`}
+
+/* --- Pengaturan --- */
+function settingsAdmin(){const r=R();const n=(id,l,v,st='')=>`<div class="field"><label>${l}</label><input id="${id}" type="number" min="0" step="${st||1}" value="${v}"></div>`;
+ return `<h2>Pengaturan</h2><p>Aturan sirkulasi, keamanan, cadangan data.</p><h3 style="margin-top:0">Aturan peminjaman</h3><form onsubmit="saveRules(event)"><div class="form-grid">${n('rDS','Lama pinjam siswa (hari)',r.loanDaysSiswa)}${n('rDG','Lama pinjam guru/staf (hari)',r.loanDaysGuru)}${n('rMS','Maks. buku siswa',r.maxSiswa)}${n('rMG','Maks. buku guru/staf',r.maxGuru)}${n('rMR','Maks. perpanjangan',r.maxRenew)}${n('rRD','Tambahan hari per perpanjangan',r.renewDays)}${n('rFP','Denda per hari',r.finePerDay,'0.5')}${n('rFM','Batas maks. denda (0 = tanpa batas)',r.maxFine)}${n('rLF','Biaya penggantian buku hilang',r.lostFee)}${n('rMM','Masa keanggotaan (bulan)',r.memberMonths)}<div class="field"><label>Mata uang</label><input id="rCur" value="${esc(r.currency)}"></div><div class="field"><label>Blokir pinjam baru jika ada yang terlambat</label><select id="rBlk"><option value="1">Ya</option><option value="0" ${r.blockIfOverdue?'':'selected'}>Tidak</option></select></div></div><div class="form-actions"><button class="btn primary" type="submit">Simpan aturan</button></div></form>
+<h3>Keamanan</h3><div class="info">Akses admin mengikuti akun <b>Admin</b> SIB CARE (Firebase Authentication). Ganti kata sandi lewat Firebase Console → Authentication. Hak tulis dipaksa oleh Firestore Rules, bukan hanya oleh tampilan.</div>
+<h3>Status Firestore</h3><div class="notice">Koneksi: <b>${esc(fsState.status)}</b>${fsState.err?' · kode: <b>'+esc(fsState.err)+'</b>':''}<br>Buku: ${db.books.length} · Anggota: ${db.members.length} · Pinjaman: ${db.loans.length}<br>Koleksi: <code>lib_books</code>, <code>lib_members</code>, <code>lib_loans</code>, <code>lib_config/main</code>.${fsState.err==='permission-denied'?'<br><b>Rules belum mengizinkan koleksi ini.</b> Tempel isi <code>firestore.rules</code> (lihat panduan) di Firebase Console → Firestore → Rules → Publish.':''}</div>
+<h3>Data</h3><div class="notice">Data tersimpan di <b>Firestore SIB CARE</b> dan dipakai bersama semua perangkat. Tetap unduh cadangan JSON secara berkala.</div><div class="form-actions"><button class="btn primary" onclick="backup()">⬇ Unduh cadangan (JSON)</button><label class="btn secondary" style="cursor:pointer">⬆ Pulihkan cadangan<input type="file" accept=".json,application/json" class="hidden" onchange="restore(this.files[0])"></label><button class="btn secondary" onclick="importLocal()">⬇ Impor data lama dari browser ini</button><button class="btn ghost" onclick="clearDemo()">Hapus data contoh</button><button class="btn danger" onclick="resetAll()">Kosongkan data Library</button></div>`}
+function saveRules(e){e.preventDefault();const g=id=>Math.max(0,parseFloat($(id).value)||0);Object.assign(R(),{loanDaysSiswa:g('rDS')||1,loanDaysGuru:g('rDG')||1,maxSiswa:g('rMS'),maxGuru:g('rMG'),maxRenew:g('rMR'),renewDays:g('rRD'),finePerDay:g('rFP'),maxFine:g('rFM'),lostFee:g('rLF'),memberMonths:g('rMM')||12,currency:val('rCur')||'THB',blockIfOverdue:val('rBlk')==='1'});save();render();toast('Aturan disimpan.')}
+function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,1)],{type:'application/json'}));a.download='sib-library-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove()}
+function restore(f){if(!f)return;if(!isAdmin())return toast('Hanya Admin.');const rd=new FileReader();rd.onload=()=>{try{const x=JSON.parse(rd.result);if(!x.books||!x.menus)throw 0;if(!confirm('Pulihkan cadangan? Data saat ini akan diganti.'))return;db=normalize(x,defaults());save();render();toast('Cadangan dipulihkan.')}catch(e){toast('Berkas cadangan tidak valid.')}};rd.readAsText(f)}
+function clearDemo(){if(!confirm('Hapus anggota dan pinjaman contoh (fiktif)?'))return;db.loans=db.loans.filter(l=>!l.demo);db.members=db.members.filter(m=>!m.demo||db.loans.some(l=>l.memberId===m.id));save();render();toast('Data contoh dihapus.')}
+async function resetAll(){if(!isAdmin())return toast('Hanya Admin.');if(!confirm('KOSONGKAN semua data SIB Library di Firestore (buku, anggota, pinjaman, pengaturan)? Tidak dapat dibatalkan.'))return;if(prompt('Ketik HAPUS untuk melanjutkan')!=='HAPUS')return;
+ try{for(const k of ['books','members','loans']){const s=await FS.collection(COL[k]).get();const ids=s.docs.map(d=>d.id);for(let i=0;i<ids.length;i+=400){const bt=FS.batch();ids.slice(i,i+400).forEach(id=>bt.delete(FS.collection(COL[k]).doc(id)));await bt.commit()}}
+ await FS.collection(CFG[0]).doc(CFG[1]).delete();seeded=false;lastSnap={books:{},members:{},loans:{},cfg:''};db=startData();page='home';render();toast('Data Library dikosongkan. Muat ulang untuk membuat koleksi awal.')}catch(e){toast('Gagal: '+(e.code||e.message))}}
+render();
+startSync();
+@@SE@@>
+</body>
+</html>
+</script>
+
+<script>
+/* =========================================================
+   JEMBATAN SIB CARE <-> SIB LIBRARY
+   - Library memakai LOGIN FIREBASE SIB CARE yang sama (tanpa sandi terpisah).
+   - Admin Library = akun Admin SIB CARE (email diperiksa dari Firebase Auth).
+   - Data Library: Firestore (lib_books, lib_members, lib_loans, lib_config/main).
+========================================================= */
+window.SIBLIB_BRIDGE = {
+    db: db,
+    auth: firebaseAuth,
+    adminEmail: ROLE_ACCOUNTS.admin.email,
+    role: function(){ return (typeof currentUser !== "undefined" && currentUser) ? currentUser.role : null; }
+};
+
+function sibLibOpen(){
+    var f = document.getElementById("sibLibFrame");
+    if(!f || f.getAttribute("data-loaded") === "1") return;
+    var u = firebaseAuth.currentUser;
+    if(!u){ return; }
+    var tpl = document.getElementById("sibLibTpl").textContent
+        .split("@@SE@@").join("</script").split("@@CM@@").join("<!--");
+    f.setAttribute("data-loaded","1");
+    f.srcdoc = tpl;
+}
+function sibLibUnload(){
+    var f = document.getElementById("sibLibFrame");
+    if(!f) return;
+    f.removeAttribute("data-loaded");
+    f.removeAttribute("srcdoc");
+    f.src = "about:blank";
+}
+function sibLibNav(){
+    var n = document.getElementById("navLibrary");
+    if(!n) return;
+    var r = (typeof currentUser !== "undefined" && currentUser) ? currentUser.role : null;
+    n.style.display = (r && r !== "TAMU") ? "flex" : "none";
+}
+firebaseAuth.onAuthStateChanged(function(u){ if(!u) sibLibUnload(); sibLibNav(); });
+(function(){
+    var app = document.getElementById("app");
+    if(app) new MutationObserver(sibLibNav).observe(app,{attributes:true,attributeFilter:["style"]});
 })();
 </script>
 
