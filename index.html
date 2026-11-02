@@ -6625,6 +6625,14 @@ const ROLE_ACCOUNTS = {
         email:"tamu@sibcare-app.internal",
         name:"Tamu",
         role:"TAMU"
+    },
+    /* Pengelola SIB Library. TIDAK tampil di halaman login.
+       Hanya dipakai lewat tombol "Masuk Pengelola" di dalam SIB Library
+       oleh Guru/Staf yang tahu password-nya (akun dibuat di Firebase Console). */
+    libadmin:{
+        email:"perpus@sibcare-app.internal",
+        name:"Pengelola SIB Library",
+        role:"ADMIN_LIBRARY"
     }
 };
 
@@ -6701,6 +6709,8 @@ async function login(){
                 throw primaryError;
             }
         }
+
+        if(loginRole === "guru"){ try{ _libRememberGuru(password); }catch(e){} }
 
         currentUser = {
             name:account.name,
@@ -6782,6 +6792,8 @@ async function login(){
 ========================================================= */
 
 async function logout(){
+
+    try{ _libReset(); }catch(error){}
 
     try{ journalStopListeners(); }catch(error){ console.warn("journalStopListeners:", error); }
     try{ gbStop(); }catch(error){ console.warn("gbStop:", error); }
@@ -16442,34 +16454,46 @@ function parseToken(s){return String(s||'').split(' — ')[0].trim()}
    lokal, tidak ada "pembuat sandi pertama", dan tidak bisa dipalsukan lewat
    penyimpanan browser. Hak tulis dipaksa oleh Firestore Rules (lihat firestore.rules). */
 function authUser(){try{return BR&&BR.auth.currentUser}catch(e){return null}}
-function isAdmin(){const u=authUser();return !!(u&&u.email&&u.email.toLowerCase()===BR.adminEmail.toLowerCase())}
+function isSuper(){const u=authUser();return !!(u&&u.email&&BR&&u.email.toLowerCase()===BR.adminEmail.toLowerCase())}
+function isLibMgr(){const u=authUser();return !!(u&&u.email&&BR&&BR.libEmail&&u.email.toLowerCase()===BR.libEmail.toLowerCase())}
+/* isAdmin = boleh mengelola ISI Library (Admin utama ATAU Pengelola Library). Tampilan & aturan = isSuper(). */
+function isAdmin(){return isSuper()||isLibMgr()}
+function canEnterMgr(){return !!authUser()&&!!BR&&BR.role()==='GURU_STAF'&&!isAdmin()}
 function canRequest(){return !!authUser()&&!!BR&&BR.role()!=='TAMU'}
 function backToCare(){try{parent.showPage('home')}catch(e){}}
-function goAdmin(){if(!isAdmin())return toast('Dashboard hanya untuk Admin SIB CARE.');go('admin')}
+function goAdmin(){if(!isAdmin()&&!canEnterMgr())return toast('Dashboard hanya untuk Pengelola Library.');go('admin')}
+async function mgrLogin(e){e.preventDefault();const pw=$('mgrPw').value;if(!pw)return toast('Masukkan password pengelola.');const b=$('mgrBtn');if(b){b.disabled=true;b.textContent='Memeriksa...'}
+  try{await BR.enterManager(pw);adminTab='overview';page='admin';render();toast('Masuk sebagai Pengelola Library.')}
+  catch(err){const c=err&&err.code;toast(c==='not-guru'?'Hanya akun Guru/Staf yang dapat masuk sebagai pengelola.':c==='auth/network-request-failed'?'Koneksi gagal. Coba lagi.':c==='auth/too-many-requests'?'Terlalu banyak percobaan. Coba lagi nanti.':'Password pengelola tidak benar.');if(b){b.disabled=false;b.textContent='Masuk sebagai Pengelola'}}}
+async function mgrLogout(){try{await BR.exitManager()}catch(e){}page='home';render();toast('Keluar dari mode Pengelola.')}
+function libAuthChanged(){if(page==='admin')page='home';render()}
 
 let flushT=null,dirty=false,saving=false,saveAgain=false,pendingRender=false,seeded=false;
 const jstr=o=>JSON.stringify(o);
 function cfgObj(){return {v:db.v||2,settings:db.settings,menus:db.menus,programs:db.programs,seq:db.seq}}
+/* Bagian konfigurasi yang boleh ditulis Pengelola Library (tanpa tampilan/aturan). */
+function cfgSub(){return {menus:db.menus,programs:db.programs,seq:db.seq}}
 function save(){dirty=true;clearTimeout(flushT);flushT=setTimeout(flush,250)}
 async function flush(){
   if(!FS||!authUser())return toast('Belum terhubung ke Firestore. Perubahan belum tersimpan.');
   if(saving){saveAgain=true;return}
   saving=true;
   try{
-    const admin=isAdmin(),ops=[];
+    const admin=isAdmin(),sup=isSuper(),ops=[];
     for(const k of ['books','members','loans']){
       const cur=new Map(db[k].map(x=>[x.id,x]));
       for(const [id,x] of cur){const s=jstr(x);if(lastSnap[k][id]!==s)ops.push({t:'set',k,id,x,s})}
       if(admin)for(const id of Object.keys(lastSnap[k]))if(!cur.has(id))ops.push({t:'del',k,id})
     }
-    if(admin){const c=jstr(cfgObj());if(lastSnap.cfg!==c)ops.push({t:'cfg',c})}
+    if(sup){const c=jstr(cfgObj());if(lastSnap.cfg!==c)ops.push({t:'cfg',c})}
+    else if(admin){const c=jstr(cfgSub());if(lastSnap.cfgSub!==c)ops.push({t:'cfgsub',c})}
     // pengguna biasa hanya boleh menambah permintaan pinjam ('Menunggu'); sisanya diabaikan
     const todo=admin?ops:ops.filter(o=>o.t==='set'&&o.k==='loans'&&!(o.id in lastSnap.loans)&&o.x.status==='Menunggu');
     for(let i=0;i<todo.length;i+=400){
       const batch=FS.batch(),part=todo.slice(i,i+400);
-      part.forEach(o=>{if(o.t==='set')batch.set(FS.collection(COL[o.k]).doc(o.id),JSON.parse(o.s));else if(o.t==='del')batch.delete(FS.collection(COL[o.k]).doc(o.id));else batch.set(FS.collection(CFG[0]).doc(CFG[1]),JSON.parse(o.c))});
+      part.forEach(o=>{if(o.t==='set')batch.set(FS.collection(COL[o.k]).doc(o.id),JSON.parse(o.s));else if(o.t==='del')batch.delete(FS.collection(COL[o.k]).doc(o.id));else if(o.t==='cfgsub')batch.set(FS.collection(CFG[0]).doc(CFG[1]),JSON.parse(o.c),{merge:true});else batch.set(FS.collection(CFG[0]).doc(CFG[1]),JSON.parse(o.c))});
       await batch.commit();
-      part.forEach(o=>{if(o.t==='set')lastSnap[o.k][o.id]=o.s;else if(o.t==='del')delete lastSnap[o.k][o.id];else lastSnap.cfg=o.c});
+      part.forEach(o=>{if(o.t==='set')lastSnap[o.k][o.id]=o.s;else if(o.t==='del')delete lastSnap[o.k][o.id];else if(o.t==='cfgsub')lastSnap.cfgSub=o.c;else lastSnap.cfg=o.c});
     }
     fsState.status='terhubung';fsState.err='';
   }catch(e){
@@ -16498,16 +16522,16 @@ function startSync(){
   const applyCfg=s=>{
     if(dirty||saving)return void setTimeout(()=>applyCfg(s),400);
     fsState.loaded.cfg=true;
-    if(s.exists){const x=s.data();db=normalize({...db,...x},defaults());db.members=db.members;lastSnap.cfg=jstr(cfgObj())}
+    if(s.exists){const x=s.data();db=normalize({...db,...x},defaults());db.members=db.members;lastSnap.cfg=jstr(cfgObj());lastSnap.cfgSub=jstr(cfgSub())}
     fsState.status='terhubung';maybeSeed();softRender()};
   FS.collection(CFG[0]).doc(CFG[1]).onSnapshot(applyCfg,onErr('config'))}
 /* Admin pertama yang membuka Library mengisi Firestore dengan koleksi awal (sekali saja). */
 function maybeSeed(){
-  if(seeded||!isAdmin())return;const L=fsState.loaded;if(!(L.books&&L.cfg))return;
+  if(seeded||!isSuper())return;const L=fsState.loaded;if(!(L.books&&L.cfg))return;
   seeded=true;
   if(!db.books.length&&!lastSnap.cfg){const d=startData();db.books=d.books;db.programs=d.programs;db.settings=d.settings;db.menus=d.menus;db.seq=d.seq;save();toast('Koleksi awal SIB Library dibuat di Firestore.')}}
 async function importLocal(){
-  if(!isAdmin())return toast('Hanya Admin.');
+  if(!isSuper())return toast('Hanya Admin utama SIB CARE.');
   let x=null;try{x=JSON.parse(localStorage.getItem(STORE))}catch(e){}
   if(!x||!x.books)return toast('Tidak ada data lama SIB Library di browser ini.');
   if(!confirm('Impor data lama dari browser ini ke Firestore? Data dengan ID sama akan ditimpa; data lain tidak dihapus.'))return;
@@ -16520,14 +16544,14 @@ async function importLocal(){
 function applyTheme(){const t=THEMES[S().theme]||THEMES.biru,r=document.documentElement.style;r.setProperty('--blue',t.blue);r.setProperty('--teal',t.teal);r.setProperty('--navy',t.navy)}
 function chrome(){
  $('topbar').innerHTML=`<div class="wrap"><span>${esc(S().topLeft)}</span><span>${esc(S().topRight)}</span></div>`;
- $('header').innerHTML=`<div class="wrap nav"><a class="brand" onclick="go('home')"><span class="brandmark">📚</span><span><strong>${esc(S().name)}</strong><small>${esc(S().tag)}</small></span></a><nav class="navlinks" id="navlinks">${db.menus.filter(m=>m.visible).map(m=>`<button data-page="${m.id}" class="${page===m.id?'active':''}" onclick="go('${m.id}')">${esc(m.label)}</button>`).join('')}</nav><div class="nav-actions">${isAdmin()?`<button class="btn primary small" onclick="go('admin')">⚙ Dashboard</button>`:''}<button class="btn ghost small" onclick="backToCare()">← SIB CARE</button><button class="btn ghost small menu-toggle" onclick="$('navlinks').classList.toggle('open')">☰</button></div></div>`;
+ $('header').innerHTML=`<div class="wrap nav"><a class="brand" onclick="go('home')"><span class="brandmark">📚</span><span><strong>${esc(S().name)}</strong><small>${esc(S().tag)}</small></span></a><nav class="navlinks" id="navlinks">${db.menus.filter(m=>m.visible).map(m=>`<button data-page="${m.id}" class="${page===m.id?'active':''}" onclick="go('${m.id}')">${esc(m.label)}</button>`).join('')}</nav><div class="nav-actions">${isAdmin()?`<button class="btn primary small" onclick="go('admin')">⚙ Dashboard</button>`:canEnterMgr()?`<button class="btn primary small" onclick="go('admin')">🔑 Masuk Pengelola</button>`:''}${isLibMgr()?`<button class="btn ghost small" onclick="mgrLogout()">Keluar Pengelola</button>`:''}<button class="btn ghost small" onclick="backToCare()">← SIB CARE</button><button class="btn ghost small menu-toggle" onclick="$('navlinks').classList.toggle('open')">☰</button></div></div>`;
  $('footer').innerHTML=`<div class="wrap footer-grid"><div><strong>${esc(S().footerTitle)}</strong><small>${esc(S().footerText)}</small><small>${esc(S().school)}</small></div><div class="footer-links">${db.menus.filter(m=>m.visible&&m.id!=='home').slice(0,4).map(m=>`<button onclick="go('${m.id}')">${esc(m.label)}</button>`).join('')}<button onclick="go('admin')">Login Pengelola</button></div></div>`}
 function go(p){page=p;render();window.scrollTo({top:0,behavior:'smooth'})}
 function render(){
  applyTheme();
  if(page!=='admin'&&!db.menus.some(m=>m.id===page&&m.visible))page='home';
  chrome();const app=$('app');
- if(page==='admin'&&!isAdmin()){page='home'}
+ if(page==='admin'&&!isAdmin()&&!canEnterMgr()){page='home'}
  if(page==='admin'){app.innerHTML=adminPage();return}
  const m=db.menus.find(x=>x.id===page);
  app.innerHTML=m.kind==='home'?homePage():m.kind==='catalog'?catalogPage(m):m.kind==='reading'?readingPage(m):m.kind==='account'?accountPage(m):contentPage(m)}
@@ -16577,10 +16601,12 @@ function closeModal(){$('modal-root').innerHTML=''}
 function adminPage(){
  return `<div class="page"><div class="wrap"><div class="page-title"><div><div class="eyebrow">PENGELOLAAN PERPUSTAKAAN</div><h1>Dashboard Admin</h1><p>Sirkulasi, anggota, koleksi, menu, dan personalisasi.</p></div><button class="btn ghost" onclick="go('home')">← Kembali ke beranda</button></div><div id="adminRoot">${adminContent()}</div></div></div>`}
 function adminContent(){
- if(!isAdmin()){return `<div class="panel login-card"><div style="font-size:32px">🔐</div><h2>Khusus Admin SIB CARE</h2><p>Dashboard pengelola dibuka otomatis untuk akun <b>Admin</b> yang login di SIB CARE. Tidak ada kata sandi terpisah di sini.</p><div class="form-actions"><button class="btn primary" onclick="backToCare()">← Kembali ke SIB CARE</button></div></div>`}
- const t=adminTab,tabs=[['overview','▦ Ringkasan'],['circ','🔄 Sirkulasi'],['members','👥 Anggota'],['books','📚 Manajemen Buku'],['import','📥 Impor Koleksi'],['menus','🧭 Menu & Halaman'],['home','🎨 Personalisasi'],['programs','🌱 Program Belajar'],['reports','📊 Laporan'],['settings','⚙ Pengaturan']];
+ if(!isAdmin()){
+    if(canEnterMgr())return `<div class="panel login-card"><div style="font-size:32px">🔑</div><h2>Masuk Pengelola SIB Library</h2><p>Khusus Guru/Staf yang diberi password pengelola perpustakaan. Anda tetap login di SIB CARE sebagai Guru; mode pengelola hanya berlaku selama Anda berada di SIB Library.</p><form onsubmit="mgrLogin(event)"><div class="field"><label>Password Pengelola Library</label><input id="mgrPw" type="password" autocomplete="off" placeholder="Masukkan password pengelola"></div><div class="form-actions"><button class="btn primary" id="mgrBtn" type="submit">Masuk sebagai Pengelola</button><button class="btn ghost" type="button" onclick="go('home')">Batal</button></div></form></div>`;
+    return `<div class="panel login-card"><div style="font-size:32px">🔐</div><h2>Khusus Pengelola</h2><p>Dashboard ini hanya untuk Pengelola SIB Library dan Admin SIB CARE.</p><div class="form-actions"><button class="btn primary" onclick="backToCare()">← Kembali ke SIB CARE</button></div></div>`}
+ const sup=isSuper(),t=(!sup&&['home','settings'].includes(adminTab))?'overview':adminTab,allTabs=[['overview','▦ Ringkasan'],['circ','🔄 Sirkulasi'],['members','👥 Anggota'],['books','📚 Manajemen Buku'],['import','📥 Impor Koleksi'],['menus','🧭 Menu & Halaman'],['home','🎨 Personalisasi'],['programs','🌱 Program Belajar'],['reports','📊 Laporan'],['settings','⚙ Pengaturan']],tabs=allTabs.filter(x=>sup||!['home','settings'].includes(x[0]));
  const pend=db.loans.filter(l=>l.status==='Menunggu').length;
- return `<div class="admin-layout"><aside class="panel admin-side"><h3>Menu Pengelola</h3>${tabs.map(x=>`<button class="${t===x[0]?'active':''}" onclick="adminTab='${x[0]}';editingBook=null;editingMember=null;menuEdit=null;cardEdit=null;render()">${x[1]}${x[0]==='circ'&&pend?` (${pend})`:''}</button>`).join('')}<button onclick="go('home')">← Ke beranda Library</button></aside><div class="panel admin-content">${({overview:overviewAdmin,circ:circAdmin,members:membersAdmin,books:booksAdmin,import:importAdmin,menus:menusAdmin,home:homeAdmin,programs:programAdmin,reports:reportsAdmin,settings:settingsAdmin})[t]()}</div></div>`}
+ return `<div class="admin-layout"><aside class="panel admin-side"><h3>Menu Pengelola</h3><small style="display:block;margin:-4px 0 10px;color:var(--muted,#6b7280)">${sup?'Mode: Admin utama':'Mode: Pengelola Library'}</small>${tabs.map(x=>`<button class="${t===x[0]?'active':''}" onclick="adminTab='${x[0]}';editingBook=null;editingMember=null;menuEdit=null;cardEdit=null;render()">${x[1]}${x[0]==='circ'&&pend?` (${pend})`:''}</button>`).join('')}<button onclick="go('home')">← Ke beranda Library</button>${isLibMgr()?`<button onclick="mgrLogout()">🚪 Keluar Pengelola</button>`:''}</aside><div class="panel admin-content">${({overview:overviewAdmin,circ:circAdmin,members:membersAdmin,books:booksAdmin,import:importAdmin,menus:menusAdmin,home:homeAdmin,programs:programAdmin,reports:reportsAdmin,settings:settingsAdmin})[t]()}</div></div>`}
 
 /* --- Ringkasan --- */
 function stats(){const act=db.loans.filter(l=>l.status==='Dipinjam');return{titles:db.books.length,copies:db.books.filter(isPhysical).reduce((s,b)=>s+(b.copies||0),0),out:act.length,late:act.filter(l=>l.dueDate<today()).length,members:db.members.filter(m=>m.status==='Aktif').length,fines:db.loans.reduce((s,l)=>s+unpaidFine(l),0),pend:db.loans.filter(l=>l.status==='Menunggu').length,dueToday:act.filter(l=>l.dueDate===today()).length}}
@@ -16710,7 +16736,7 @@ function homeAdmin(){const s=S(),sec=s.sections;
 <div class="field full"><label>Judul pita fitur</label><input id="sBandT" value="${esc(s.bandTitle)}"></div><div class="field full"><label>Teks pita fitur</label><textarea id="sBandX">${esc(s.bandText)}</textarea></div><div class="field"><label>Teks tombol pita</label><input id="sBandB" value="${esc(s.bandBtn)}"></div><div class="field"><label>Tombol mengarah ke</label><select id="sBandG">${db.menus.filter(m=>m.id!=='home').map(m=>`<option value="${m.id}" ${s.bandTarget===m.id?'selected':''}>${esc(m.label)}</option>`).join('')}</select></div><div class="field full"><label>Kotak kecil pita (satu per baris: ikon|judul|keterangan)</label><textarea id="sTiles">${esc(s.tiles)}</textarea></div>
 <div class="field full"><label>Judul footer</label><input id="sFootT" value="${esc(s.footerTitle)}"></div><div class="field full"><label>Teks footer</label><input id="sFootX" value="${esc(s.footerText)}"></div>
 <div class="field full"><label>Koleksi unggulan (maksimal 4)</label>${db.books.map(b=>`<label style="display:flex;align-items:center;gap:9px;padding:5px 0;font-size:13px;font-weight:400"><input type="checkbox" name="featured" value="${b.id}" ${(s.featured||[]).includes(b.id)?'checked':''}> ${esc(b.title)}</label>`).join('')}</div></div><div class="form-actions"><button class="btn primary" type="submit">Simpan personalisasi</button></div></form>`}
-function saveHome(e){e.preventDefault();const s=S();Object.assign(s,{name:val('sName')||s.name,tag:val('sTag'),school:val('sSchool'),theme:val('sTheme'),topLeft:val('sTopL'),topRight:val('sTopR'),banner:val('sBanner'),heroAccent:val('sAccent'),subtitle:val('sSub'),bandTitle:val('sBandT'),bandText:val('sBandX'),bandBtn:val('sBandB'),bandTarget:val('sBandG'),tiles:$('sTiles').value,footerTitle:val('sFootT'),footerText:val('sFootX')});
+function saveHome(e){e.preventDefault();if(!isSuper())return toast('Tampilan hanya dapat diubah Admin utama SIB CARE.');const s=S();Object.assign(s,{name:val('sName')||s.name,tag:val('sTag'),school:val('sSchool'),theme:val('sTheme'),topLeft:val('sTopL'),topRight:val('sTopR'),banner:val('sBanner'),heroAccent:val('sAccent'),subtitle:val('sSub'),bandTitle:val('sBandT'),bandText:val('sBandX'),bandBtn:val('sBandB'),bandTarget:val('sBandG'),tiles:$('sTiles').value,footerTitle:val('sFootT'),footerText:val('sFootX')});
  ['quick','featured','band','programs'].forEach(k=>s.sections[k]=$('sec_'+k).checked);s.featured=[...document.querySelectorAll('input[name="featured"]:checked')].map(x=>x.value).slice(0,4);save();render();toast('Personalisasi disimpan.')}
 
 /* --- Program --- */
@@ -16735,14 +16761,14 @@ function reportsAdmin(){const done=db.loans.filter(l=>!['Menunggu','Ditolak'].in
 /* --- Pengaturan --- */
 function settingsAdmin(){const r=R();const n=(id,l,v,st='')=>`<div class="field"><label>${l}</label><input id="${id}" type="number" min="0" step="${st||1}" value="${v}"></div>`;
  return `<h2>Pengaturan</h2><p>Aturan sirkulasi, keamanan, cadangan data.</p><h3 style="margin-top:0">Aturan peminjaman</h3><form onsubmit="saveRules(event)"><div class="form-grid">${n('rDS','Lama pinjam siswa (hari)',r.loanDaysSiswa)}${n('rDG','Lama pinjam guru/staf (hari)',r.loanDaysGuru)}${n('rMS','Maks. buku siswa',r.maxSiswa)}${n('rMG','Maks. buku guru/staf',r.maxGuru)}${n('rMR','Maks. perpanjangan',r.maxRenew)}${n('rRD','Tambahan hari per perpanjangan',r.renewDays)}${n('rFP','Denda per hari',r.finePerDay,'0.5')}${n('rFM','Batas maks. denda (0 = tanpa batas)',r.maxFine)}${n('rLF','Biaya penggantian buku hilang',r.lostFee)}${n('rMM','Masa keanggotaan (bulan)',r.memberMonths)}<div class="field"><label>Mata uang</label><input id="rCur" value="${esc(r.currency)}"></div><div class="field"><label>Blokir pinjam baru jika ada yang terlambat</label><select id="rBlk"><option value="1">Ya</option><option value="0" ${r.blockIfOverdue?'':'selected'}>Tidak</option></select></div></div><div class="form-actions"><button class="btn primary" type="submit">Simpan aturan</button></div></form>
-<h3>Keamanan</h3><div class="info">Akses admin mengikuti akun <b>Admin</b> SIB CARE (Firebase Authentication). Ganti kata sandi lewat Firebase Console → Authentication. Hak tulis dipaksa oleh Firestore Rules, bukan hanya oleh tampilan.</div>
+<h3>Keamanan</h3><div class="info">Admin utama = akun <b>Admin</b> SIB CARE; Pengelola Library = akun <b>perpus</b> (dipakai Guru lewat tombol <b>Masuk Pengelola</b>). Pengelola hanya mengelola isi (buku, anggota, sirkulasi, menu, program), bukan tampilan/aturan. Ganti kata sandi lewat Firebase Console → Authentication. Hak tulis dipaksa oleh Firestore Rules, bukan hanya oleh tampilan.</div>
 <h3>Status Firestore</h3><div class="notice">Koneksi: <b>${esc(fsState.status)}</b>${fsState.err?' · kode: <b>'+esc(fsState.err)+'</b>':''}<br>Buku: ${db.books.length} · Anggota: ${db.members.length} · Pinjaman: ${db.loans.length}<br>Koleksi: <code>lib_books</code>, <code>lib_members</code>, <code>lib_loans</code>, <code>lib_config/main</code>.${fsState.err==='permission-denied'?'<br><b>Rules belum mengizinkan koleksi ini.</b> Tempel isi <code>firestore.rules</code> (lihat panduan) di Firebase Console → Firestore → Rules → Publish.':''}</div>
 <h3>Data</h3><div class="notice">Data tersimpan di <b>Firestore SIB CARE</b> dan dipakai bersama semua perangkat. Tetap unduh cadangan JSON secara berkala.</div><div class="form-actions"><button class="btn primary" onclick="backup()">⬇ Unduh cadangan (JSON)</button><label class="btn secondary" style="cursor:pointer">⬆ Pulihkan cadangan<input type="file" accept=".json,application/json" class="hidden" onchange="restore(this.files[0])"></label><button class="btn secondary" onclick="importLocal()">⬇ Impor data lama dari browser ini</button><button class="btn ghost" onclick="clearDemo()">Hapus data contoh</button><button class="btn danger" onclick="resetAll()">Kosongkan data Library</button></div>`}
-function saveRules(e){e.preventDefault();const g=id=>Math.max(0,parseFloat($(id).value)||0);Object.assign(R(),{loanDaysSiswa:g('rDS')||1,loanDaysGuru:g('rDG')||1,maxSiswa:g('rMS'),maxGuru:g('rMG'),maxRenew:g('rMR'),renewDays:g('rRD'),finePerDay:g('rFP'),maxFine:g('rFM'),lostFee:g('rLF'),memberMonths:g('rMM')||12,currency:val('rCur')||'THB',blockIfOverdue:val('rBlk')==='1'});save();render();toast('Aturan disimpan.')}
+function saveRules(e){e.preventDefault();if(!isSuper())return toast('Aturan hanya dapat diubah Admin utama SIB CARE.');const g=id=>Math.max(0,parseFloat($(id).value)||0);Object.assign(R(),{loanDaysSiswa:g('rDS')||1,loanDaysGuru:g('rDG')||1,maxSiswa:g('rMS'),maxGuru:g('rMG'),maxRenew:g('rMR'),renewDays:g('rRD'),finePerDay:g('rFP'),maxFine:g('rFM'),lostFee:g('rLF'),memberMonths:g('rMM')||12,currency:val('rCur')||'THB',blockIfOverdue:val('rBlk')==='1'});save();render();toast('Aturan disimpan.')}
 function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,1)],{type:'application/json'}));a.download='sib-library-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove()}
-function restore(f){if(!f)return;if(!isAdmin())return toast('Hanya Admin.');const rd=new FileReader();rd.onload=()=>{try{const x=JSON.parse(rd.result);if(!x.books||!x.menus)throw 0;if(!confirm('Pulihkan cadangan? Data saat ini akan diganti.'))return;db=normalize(x,defaults());save();render();toast('Cadangan dipulihkan.')}catch(e){toast('Berkas cadangan tidak valid.')}};rd.readAsText(f)}
+function restore(f){if(!f)return;if(!isSuper())return toast('Hanya Admin utama SIB CARE.');const rd=new FileReader();rd.onload=()=>{try{const x=JSON.parse(rd.result);if(!x.books||!x.menus)throw 0;if(!confirm('Pulihkan cadangan? Data saat ini akan diganti.'))return;db=normalize(x,defaults());save();render();toast('Cadangan dipulihkan.')}catch(e){toast('Berkas cadangan tidak valid.')}};rd.readAsText(f)}
 function clearDemo(){if(!confirm('Hapus anggota dan pinjaman contoh (fiktif)?'))return;db.loans=db.loans.filter(l=>!l.demo);db.members=db.members.filter(m=>!m.demo||db.loans.some(l=>l.memberId===m.id));save();render();toast('Data contoh dihapus.')}
-async function resetAll(){if(!isAdmin())return toast('Hanya Admin.');if(!confirm('KOSONGKAN semua data SIB Library di Firestore (buku, anggota, pinjaman, pengaturan)? Tidak dapat dibatalkan.'))return;if(prompt('Ketik HAPUS untuk melanjutkan')!=='HAPUS')return;
+async function resetAll(){if(!isSuper())return toast('Hanya Admin utama SIB CARE.');if(!confirm('KOSONGKAN semua data SIB Library di Firestore (buku, anggota, pinjaman, pengaturan)? Tidak dapat dibatalkan.'))return;if(prompt('Ketik HAPUS untuk melanjutkan')!=='HAPUS')return;
  try{for(const k of ['books','members','loans']){const s=await FS.collection(COL[k]).get();const ids=s.docs.map(d=>d.id);for(let i=0;i<ids.length;i+=400){const bt=FS.batch();ids.slice(i,i+400).forEach(id=>bt.delete(FS.collection(COL[k]).doc(id)));await bt.commit()}}
  await FS.collection(CFG[0]).doc(CFG[1]).delete();seeded=false;lastSnap={books:{},members:{},loans:{},cfg:''};db=startData();page='home';render();toast('Data Library dikosongkan. Muat ulang untuk membuat koleksi awal.')}catch(e){toast('Gagal: '+(e.code||e.message))}}
 render();
@@ -16759,11 +16785,59 @@ startSync();
    - Admin Library = akun Admin SIB CARE (email diperiksa dari Firebase Auth).
    - Data Library: Firestore (lib_books, lib_members, lib_loans, lib_config/main).
 ========================================================= */
+/* --- Mode Pengelola Library ---
+   Guru login ke SIB CARE seperti biasa. Di dalam SIB Library, tombol
+   "Masuk Pengelola" meminta password akun pengelola (perpus@...).
+   Sesi Firebase berpindah ke akun pengelola SELAMA di SIB Library;
+   begitu Guru keluar dari Library / menekan "Keluar Pengelola", sesi
+   Guru dipulihkan otomatis. Password Guru hanya disimpan di memori
+   halaman (tidak ke storage) dan dihapus saat Keluar. */
+var _libGuruPw = null, _libMgr = false;
+function _libRememberGuru(pw){ _libGuruPw = pw; }
+function _libReset(){ _libMgr = false; _libGuruPw = null; }
+function _libNotify(){
+    try{
+        var f = document.getElementById("sibLibFrame");
+        if(f && f.contentWindow && typeof f.contentWindow.libAuthChanged === "function") f.contentWindow.libAuthChanged();
+    }catch(e){}
+}
+async function _libEnterMgr(pw){
+    if(!currentUser || currentUser.role !== "GURU_STAF"){
+        var er = new Error("not-guru"); er.code = "not-guru"; throw er;
+    }
+    await firebaseAuth.signInWithEmailAndPassword(ROLE_ACCOUNTS.libadmin.email, pw);
+    _libMgr = true;
+}
+async function _libExitMgr(){
+    if(!_libMgr) return;
+    _libMgr = false;
+    try{
+        if(!_libGuruPw) throw new Error("no-guru-pw");
+        await firebaseAuth.signInWithEmailAndPassword(ROLE_ACCOUNTS.guru.email, _libGuruPw);
+    }catch(e){
+        console.warn("Pulihkan sesi Guru:", e);
+        showToast("Sesi Guru perlu dimulai ulang. Silakan login kembali.");
+        logout();
+        return;
+    }
+    _libNotify();
+}
+(function(){
+    var orig = window.showPage;
+    window.showPage = function(p){
+        if(p !== "library" && _libMgr){ _libExitMgr(); }
+        return orig.apply(this, arguments);
+    };
+})();
+
 window.SIBLIB_BRIDGE = {
     db: db,
     auth: firebaseAuth,
     adminEmail: ROLE_ACCOUNTS.admin.email,
-    role: function(){ return (typeof currentUser !== "undefined" && currentUser) ? currentUser.role : null; }
+    libEmail: ROLE_ACCOUNTS.libadmin.email,
+    role: function(){ return (typeof currentUser !== "undefined" && currentUser) ? currentUser.role : null; },
+    enterManager: _libEnterMgr,
+    exitManager: _libExitMgr
 };
 
 function sibLibOpen(){
