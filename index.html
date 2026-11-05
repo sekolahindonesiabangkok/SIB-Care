@@ -16525,6 +16525,8 @@ function afterLoad(){
   if(overlaid||!syncReady())return;overlaid=true;
   const n=applyOutbox();
   if(n){save();toast('Perubahan yang belum tersimpan dipulihkan ('+n+'). Menyimpan ke Firestore…')}}
+/* Firestore menolak objek buatan iframe (prototipe 'asing'); urai JSON lewat halaman induk SIB CARE agar objeknya bertipe asli. */
+function toFS(j){return (BR&&typeof BR.parse==='function')?BR.parse(j):JSON.parse(j)}
 function save(){dirty=true;persistLocal();clearTimeout(flushT);flushT=setTimeout(flush,250)}
 async function flush(){
   if(!FS){persistLocal();dirty=false;return}
@@ -16550,7 +16552,7 @@ async function flush(){
     if(cur.length)parts.push(cur);
     const sendPart=async part=>{
       const batch=FS.batch();
-      part.forEach(o=>{if(o.t==='set')batch.set(FS.collection(COL[o.k]).doc(o.id),JSON.parse(o.json));else if(o.t==='del')batch.delete(FS.collection(COL[o.k]).doc(o.id));else if(o.t==='cfgsub')batch.set(FS.collection(CFG[0]).doc(CFG[1]),JSON.parse(o.c),{merge:true});else batch.set(FS.collection(CFG[0]).doc(CFG[1]),JSON.parse(o.c))});
+      part.forEach(o=>{if(o.t==='set')batch.set(FS.collection(COL[o.k]).doc(o.id),toFS(o.json));else if(o.t==='del')batch.delete(FS.collection(COL[o.k]).doc(o.id));else if(o.t==='cfgsub')batch.set(FS.collection(CFG[0]).doc(CFG[1]),toFS(o.c),{merge:true});else batch.set(FS.collection(CFG[0]).doc(CFG[1]),toFS(o.c))});
       await Promise.race([batch.commit(),new Promise((_,rej)=>setTimeout(()=>rej(Object.assign(new Error('timeout'),{code:'timeout'})),25000))]);
       part.forEach(o=>{if(o.t==='set')lastSnap[o.k][o.id]=o.s;else if(o.t==='del')delete lastSnap[o.k][o.id];else if(o.t==='cfgsub')lastSnap.cfgSub=o.c;else lastSnap.cfg=o.c});
     };
@@ -16996,6 +16998,7 @@ async function _libExitMgr(){
 window.addEventListener('pagehide', function(){ try{ var f=document.getElementById('sibLibFrame'); if(f&&f.contentWindow&&f.contentWindow.persistLocal) f.contentWindow.persistLocal(); }catch(e){} });
 
 window.SIBLIB_BRIDGE = {
+    parse: function(j){ return JSON.parse(j); },
     db: db,
     auth: firebaseAuth,
     adminEmail: ROLE_ACCOUNTS.admin.email,
