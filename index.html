@@ -16504,7 +16504,7 @@ function diffPending(){
     for(const id of Object.keys(lastSnap[k]))if(!cur.has(id)){o[k][id]=null;n++}
   }
   if(isSuper()){if(lastSnap.cfg!==jstr(cfgObj())){o.cfg=cfgObj();n++}}
-  else if(lastSnap.cfgSub!==jstr(cfgSub())){o.cfgSub=cfgSub();n++}
+  else if(lastSnap.cfgSub!==undefined&&lastSnap.cfgSub!==jstr(cfgSub())){o.cfgSub=cfgSub();n++}
   o.n=n;return n?o:null}
 function persistLocal(){
   try{
@@ -16526,6 +16526,9 @@ function afterLoad(){
   const n=applyOutbox();
   if(n){save();toast('Perubahan yang belum tersimpan dipulihkan ('+n+'). Menyimpan ke Firestore…')}}
 /* Firestore menolak objek buatan iframe (prototipe 'asing'); urai JSON lewat halaman induk SIB CARE agar objeknya bertipe asli. */
+let probe={};
+function deniedMsg(){const u=authUser(),d=Object.keys(probe).filter(k=>probe[k]==='DITOLAK');const who=u&&u.email?u.email:'(tidak diketahui)';
+  return 'Firestore MENOLAK (permission-denied). Akun: '+who+(d.length?'. Koleksi yang ditolak: '+d.join(', ')+'.':'.')+(d.includes('lib_config')&&isLibMgr()?' (Pengelola hanya boleh mengubah menus, programs, seq.)':'')+' Buka Firebase Console → Firestore → Rules, pastikan blok lib_* ada dan sudah di-Publish. Data aman di perangkat ini dan dikirim ulang otomatis.'}
 function toFS(j){return (BR&&typeof BR.parse==='function')?BR.parse(j):JSON.parse(j)}
 function save(){dirty=true;persistLocal();clearTimeout(flushT);flushT=setTimeout(flush,250)}
 async function flush(){
@@ -16541,7 +16544,7 @@ async function flush(){
       if(admin)for(const id of Object.keys(lastSnap[k]))if(!cur.has(id))ops.push({t:'del',k,id})
     }
     if(sup){const c=jstr(cfgObj());if(lastSnap.cfg!==c)ops.push({t:'cfg',c})}
-    else if(admin){const c=jstr(cfgSub());if(lastSnap.cfgSub!==c)ops.push({t:'cfgsub',c})}
+    else if(admin&&lastSnap.cfgSub!==undefined){const c=jstr(cfgSub());if(lastSnap.cfgSub!==c)ops.push({t:'cfgsub',c})}
     // pengguna biasa hanya boleh menambah permintaan pinjam ('Menunggu'); sisanya diabaikan
     const todo=admin?ops:ops.filter(o=>o.t==='set'&&o.k==='loans'&&!(o.id in lastSnap.loans)&&o.x.status==='Menunggu');
     const t0=performance.now();
@@ -16558,9 +16561,14 @@ async function flush(){
     };
     /* Bila satu dokumen ditolak (invalid-argument), pisahkan: dokumen lain tetap tersimpan,
        dokumen bermasalah dilaporkan lengkap dengan nama koleksi, ID, dan pesan Firestore. */
-    const bad=[];
+    const bad=[];probe={};
     const sendSafe=async part=>{
       try{await sendPart(part)}catch(e){
+        if(e.code==='permission-denied'){
+          /* cari koleksi mana yang ditolak: uji satu dokumen per koleksi */
+          const g={};part.forEach(o=>{const key=(o.t==='cfg'||o.t==='cfgsub')?'lib_config':COL[o.k];(g[key]=g[key]||[]).push(o)});
+          for(const key of Object.keys(g)){if(probe[key]==='DITOLAK')continue;try{await sendPart([g[key][0]]);probe[key]='ok'}catch(e2){probe[key]=e2.code==='permission-denied'?'DITOLAK':'error'}}
+        }
         if(e.code!=='invalid-argument')throw e;
         if(part.length===1){bad.push({o:part[0],e});return}
         for(const o of part){try{await sendPart([o])}catch(e2){if(e2.code==='invalid-argument')bad.push({o,e:e2});else throw e2}}}};
@@ -16570,7 +16578,7 @@ async function flush(){
     fsState.status='terhubung';fsState.err='';{const was=unsaved;unsaved=false;hideSync();clearTimeout(retryT);persistLocal();if(was&&window.resyncAll)window.resyncAll()}
   }catch(e){pill('',1);
     console.error('SIB Library simpan:',e);fsState.status='ditolak';fsState.err=e.code||String(e);unsaved=true;
-    persistLocal();showSync(e.code==='permission-denied'?'Firestore MENOLAK menyimpan (permission-denied): Rules belum mengizinkan koleksi lib_* untuk akun ini. Data aman di perangkat ini dan akan dikirim ulang otomatis setelah Rules diperbarui.':'Belum tersimpan ke server ('+(e.code||'error')+'): '+String(e.message||'').slice(0,260)+' — Data aman di perangkat ini; mencoba lagi otomatis.');clearTimeout(retryT);retryT=setTimeout(()=>{if(unsaved&&!saving)flush()},(e.code==='permission-denied'||e.code==='invalid-argument')?60000:15000);
+    persistLocal();showSync(e.code==='permission-denied'?deniedMsg():'Belum tersimpan ke server ('+(e.code||'error')+'): '+String(e.message||'').slice(0,260)+' — Data aman di perangkat ini; mencoba lagi otomatis.');clearTimeout(retryT);retryT=setTimeout(()=>{if(unsaved&&!saving)flush()},(e.code==='permission-denied'||e.code==='invalid-argument')?60000:15000);
   }finally{saving=false;if(saveAgain){saveAgain=false;save()}else dirty=false}
 }
 function pill(t,ms){let p=$('savePill');if(!p){p=document.createElement('div');p.id='savePill';p.className='save-pill';document.body.appendChild(p)}p.textContent=t;p.style.display='block';clearTimeout(p._t);if(ms)p._t=setTimeout(()=>{p.style.display='none'},ms)}
