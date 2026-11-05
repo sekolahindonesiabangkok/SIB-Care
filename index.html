@@ -6795,6 +6795,7 @@ async function logout(){
 
     try{ _libReset(); }catch(error){}
 
+    try{ await _libFlush(); }catch(error){ console.warn("flush Library:", error); }
     try{ journalStopListeners(); }catch(error){ console.warn("journalStopListeners:", error); }
     try{ gbStop(); }catch(error){ console.warn("gbStop:", error); }
     stopNotificationListener();
@@ -16429,6 +16430,7 @@ function normalize(x,d){
 /* Data awal tampil dari bawaan (tanpa anggota/pinjaman contoh); data asli datang dari Firestore. */
 function startData(){const d=defaults();d.members=[];d.loans=[];return d}
 let db=startData();
+if(!BR){try{const _x=JSON.parse(localStorage.getItem(STORE));if(_x&&_x.books)db=normalize(_x,defaults())}catch(e){}}
 let page='home',category='Semua',query='',level='Semua jenjang',ctype='Semua jenis';
 let adminTab='overview',editingBook=null,editingMember=null,circFilter='aktif',memSearch='',memStatus='Semua',menuEdit=null,cardEdit=null;
 const R=()=>db.settings.rules, S=()=>db.settings;
@@ -16467,7 +16469,7 @@ function parseToken(s){return String(s||'').split(' — ')[0].trim()}
    lokal, tidak ada "pembuat sandi pertama", dan tidak bisa dipalsukan lewat
    penyimpanan browser. Hak tulis dipaksa oleh Firestore Rules (lihat firestore.rules). */
 function authUser(){try{return BR&&BR.auth.currentUser}catch(e){return null}}
-function isSuper(){const u=authUser();return !!(u&&u.email&&BR&&u.email.toLowerCase()===BR.adminEmail.toLowerCase())}
+function isSuper(){if(!BR)return true;const u=authUser();return !!(u&&u.email&&u.email.toLowerCase()===BR.adminEmail.toLowerCase())}
 function isLibMgr(){const u=authUser();return !!(u&&u.email&&BR&&BR.libEmail&&u.email.toLowerCase()===BR.libEmail.toLowerCase())}
 /* isAdmin = boleh mengelola ISI Library (Admin utama ATAU Pengelola Library). Tampilan & aturan = isSuper(). */
 function isAdmin(){return isSuper()||isLibMgr()}
@@ -16476,10 +16478,10 @@ function canRequest(){return !!authUser()&&!!BR&&BR.role()!=='TAMU'}
 function backToCare(){try{parent.showPage('home')}catch(e){}}
 function goAdmin(){if(!isAdmin()&&!canEnterMgr())return toast('Dashboard hanya untuk Pengelola Library.');go('admin')}
 async function mgrLogin(e){e.preventDefault();const pw=$('mgrPw').value;if(!pw)return toast('Masukkan password pengelola.');const b=$('mgrBtn');if(b){b.disabled=true;b.textContent='Memeriksa...'}
-  try{await BR.enterManager(pw);adminTab='overview';page='admin';render();toast('Masuk sebagai Pengelola Library.')}
+  try{await BR.enterManager(pw);restartSync();adminTab='overview';page='admin';render();toast('Masuk sebagai Pengelola Library.')}
   catch(err){const c=err&&err.code;toast(c==='not-guru'?'Hanya akun Guru/Staf yang dapat masuk sebagai pengelola.':c==='auth/network-request-failed'?'Koneksi gagal. Coba lagi.':c==='auth/too-many-requests'?'Terlalu banyak percobaan. Coba lagi nanti.':'Password pengelola tidak benar.');if(b){b.disabled=false;b.textContent='Masuk sebagai Pengelola'}}}
 async function mgrLogout(){try{await BR.exitManager()}catch(e){}page='home';render();toast('Keluar dari mode Pengelola.')}
-function libAuthChanged(){if(page==='admin')page='home';render()}
+function libAuthChanged(){if(page==='admin')page='home';restartSync();render()}
 
 let flushT=null,dirty=false,unsaved=false,saving=false,saveAgain=false,pendingRender=false,seeded=false;
 const jstr=o=>JSON.stringify(o);
@@ -16487,9 +16489,46 @@ const sig=x=>{const c=x&&x.cover;return jstr(c&&c.length>200?{...x,cover:c.lengt
 function cfgObj(){return {v:db.v||2,settings:db.settings,menus:db.menus,programs:db.programs,seq:db.seq}}
 /* Bagian konfigurasi yang boleh ditulis Pengelola Library (tanpa tampilan/aturan). */
 function cfgSub(){return {menus:db.menus,programs:db.programs,seq:db.seq}}
-function save(){dirty=true;clearTimeout(flushT);flushT=setTimeout(flush,250)}
+/* ---- Penyimpanan di perangkat (anti-hilang) ----
+   Mode mandiri: seluruh data di localStorage. Mode online: setiap perubahan yang BELUM
+   terkonfirmasi Firestore disimpan di antrean lokal (OBX) dan dipulihkan + dikirim ulang
+   saat Library dibuka lagi, jadi tidak lenyap walau koneksi/rules menolak atau halaman ditutup. */
+const OBX='sibLibOutboxV1';
+let overlaid=false,unsubs=[],syncUid=null,retryT=null;
+const syncReady=()=>!!(fsState.loaded.books&&fsState.loaded.members&&fsState.loaded.loans&&fsState.loaded.cfg);
+function diffPending(){
+  const o={books:{},members:{},loans:{}};let n=0;
+  for(const k of ['books','members','loans']){
+    const cur=new Map(db[k].map(x=>[x.id,x]));
+    for(const [id,x] of cur){if(lastSnap[k][id]!==sig(x)){o[k][id]=x;n++}}
+    for(const id of Object.keys(lastSnap[k]))if(!cur.has(id)){o[k][id]=null;n++}
+  }
+  if(isSuper()){if(lastSnap.cfg!==jstr(cfgObj())){o.cfg=cfgObj();n++}}
+  else if(lastSnap.cfgSub!==jstr(cfgSub())){o.cfgSub=cfgSub();n++}
+  o.n=n;return n?o:null}
+function persistLocal(){
+  try{
+    if(!BR){localStorage.setItem(STORE,JSON.stringify(db));return}
+    if(!FS||!isAdmin()||!syncReady())return;
+    const p=diffPending();
+    if(p)localStorage.setItem(OBX,JSON.stringify(p));else localStorage.removeItem(OBX);
+  }catch(e){console.warn('SIB Library simpan lokal:',e);if(!BR)toast('Gagal menyimpan di browser (penyimpanan penuh/diblokir).')}}
+function applyOutbox(){
+  let x=null;try{x=JSON.parse(localStorage.getItem(OBX))}catch(e){}
+  if(!x||!isAdmin())return 0;let n=0;
+  for(const k of ['books','members','loans']){const o=x[k]||{};for(const id of Object.keys(o)){const v=o[id],i=db[k].findIndex(y=>y.id===id);
+    if(v===null){if(i>=0)db[k].splice(i,1)}else if(i>=0)db[k][i]=v;else db[k].push(v);n++}}
+  const c=x.cfg||x.cfgSub;
+  if(c){if(x.cfg&&isSuper()){db.settings=c.settings;db.v=c.v||db.v}if(c.menus)db.menus=c.menus;if(c.programs)db.programs=c.programs;if(c.seq)db.seq=c.seq;n++}
+  return n}
+function afterLoad(){
+  if(overlaid||!syncReady())return;overlaid=true;
+  const n=applyOutbox();
+  if(n){save();toast('Perubahan yang belum tersimpan dipulihkan ('+n+'). Menyimpan ke Firestore…')}}
+function save(){dirty=true;persistLocal();clearTimeout(flushT);flushT=setTimeout(flush,250)}
 async function flush(){
-  if(!FS||!authUser()){unsaved=true;return showSync('Belum terhubung ke Firestore. Perubahan belum tersimpan.')}
+  if(!FS){persistLocal();dirty=false;return}
+  if(!authUser()){unsaved=true;return showSync('Sesi login berakhir. Perubahan disimpan sementara di perangkat ini dan dikirim ulang setelah login.')}
   if(saving){saveAgain=true;return}
   saving=true;
   try{
@@ -16512,15 +16551,15 @@ async function flush(){
     const sendPart=async part=>{
       const batch=FS.batch();
       part.forEach(o=>{if(o.t==='set')batch.set(FS.collection(COL[o.k]).doc(o.id),JSON.parse(o.json));else if(o.t==='del')batch.delete(FS.collection(COL[o.k]).doc(o.id));else if(o.t==='cfgsub')batch.set(FS.collection(CFG[0]).doc(CFG[1]),JSON.parse(o.c),{merge:true});else batch.set(FS.collection(CFG[0]).doc(CFG[1]),JSON.parse(o.c))});
-      await batch.commit();
+      await Promise.race([batch.commit(),new Promise((_,rej)=>setTimeout(()=>rej(Object.assign(new Error('timeout'),{code:'timeout'})),25000))]);
       part.forEach(o=>{if(o.t==='set')lastSnap[o.k][o.id]=o.s;else if(o.t==='del')delete lastSnap[o.k][o.id];else if(o.t==='cfgsub')lastSnap.cfgSub=o.c;else lastSnap.cfg=o.c});
     };
     for(let i=0;i<parts.length;i+=4)await Promise.all(parts.slice(i,i+4).map(sendPart));
     if(todo.length)pill('✓ Tersimpan ('+((performance.now()-t0)/1000).toFixed(1).replace('.',',')+' dtk)',2500);
-    fsState.status='terhubung';fsState.err='';{const was=unsaved;unsaved=false;hideSync();if(was&&window.resyncAll)window.resyncAll()}
+    fsState.status='terhubung';fsState.err='';{const was=unsaved;unsaved=false;hideSync();clearTimeout(retryT);persistLocal();if(was&&window.resyncAll)window.resyncAll()}
   }catch(e){pill('',1);
     console.error('SIB Library simpan:',e);fsState.status='ditolak';fsState.err=e.code||String(e);unsaved=true;
-    showSync(e.code==='permission-denied'?'Perubahan BELUM tersimpan: Firestore menolak akun ini menulis data Library (permission-denied). Data hanya ada di layar ini.':'Perubahan BELUM tersimpan ('+(e.code||e.message||'error')+'). Periksa koneksi lalu coba lagi.');
+    persistLocal();showSync(e.code==='permission-denied'?'Firestore MENOLAK menyimpan (permission-denied): Rules belum mengizinkan koleksi lib_* untuk akun ini. Data aman di perangkat ini dan akan dikirim ulang otomatis setelah Rules diperbarui.':'Belum tersimpan ke server ('+(e.code||e.message||'error')+'). Data aman di perangkat ini; mencoba lagi otomatis.');clearTimeout(retryT);retryT=setTimeout(()=>{if(unsaved&&!saving)flush()},e.code==='permission-denied'?60000:15000);
   }finally{saving=false;if(saveAgain){saveAgain=false;save()}else dirty=false}
 }
 function pill(t,ms){let p=$('savePill');if(!p){p=document.createElement('div');p.id='savePill';p.className='save-pill';document.body.appendChild(p)}p.textContent=t;p.style.display='block';clearTimeout(p._t);if(ms)p._t=setTimeout(()=>{p.style.display='none'},ms)}
@@ -16529,15 +16568,24 @@ function hideSync(){const b=$('syncBar');if(b)b.style.display='none'}
 function retrySync(){hideSync();flush()}
 /* dipanggil jembatan SIB CARE sebelum sesi login berpindah (Pengelola <-> Guru) */
 async function flushNow(){clearTimeout(flushT);let n=0;while(saving&&n++<80)await new Promise(r=>setTimeout(r,100));if(dirty||unsaved)await flush()}
-addEventListener('beforeunload',e=>{if(dirty||unsaved){e.preventDefault();e.returnValue=''}});
+addEventListener('beforeunload',e=>{persistLocal();if(dirty||unsaved){e.preventDefault();e.returnValue=''}});
+addEventListener('pagehide',()=>{persistLocal();if(dirty||unsaved)flush()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){persistLocal();if(dirty||unsaved)flush()}});
+addEventListener('online',()=>{if(unsaved&&!saving)flush()});
 function softRender(){
   const ae=document.activeElement,app=$('app');
   if(ae&&app&&app.contains(ae)&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)||document.querySelector('#modal-root .modal-backdrop')){pendingRender=true;return}
   pendingRender=false;render()}
 document.addEventListener('focusout',()=>{if(pendingRender)setTimeout(()=>{const ae=document.activeElement;if(!(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)))softRender()},120)});
 function onErr(name){return e=>{console.error('SIB Library '+name+':',e);fsState.status='ditolak';fsState.err=e.code||String(e);softRender()}}
+function stopSync(){unsubs.forEach(f=>{try{f()}catch(e){}});unsubs=[]}
+function restartSync(){
+  persistLocal();stopSync();clearTimeout(flushT);
+  fsState.loaded={};fsState.status='memuat';fsState.err='';lastSnap={books:{},members:{},loans:{},cfg:''};
+  overlaid=false;unsaved=false;dirty=false;saving=false;seeded=false;syncUid=authUser()?authUser().uid:null;startSync()}
 function startSync(){
   if(!FS||!authUser()){fsState.status='offline';return}
+  syncUid=authUser().uid;
   const maps={books:new Map(),members:new Map(),loans:new Map()},stale={};
   const sortArr=(k,arr)=>{if(k==='books')arr.sort((a,b)=>String(a.id).localeCompare(String(b.id),'id',{numeric:true}));if(k==='loans')arr.sort((a,b)=>String(b.loanDate||'').localeCompare(String(a.loanDate||'')));return arr};
   window.resyncAll=async()=>{for(const k of ['books','members','loans']){if(!stale[k])continue;stale[k]=false;try{const s=await FS.collection(COL[k]).get();maps[k].clear();lastSnap[k]={};s.forEach(d=>{const x={...d.data(),id:d.id};maps[k].set(d.id,x);lastSnap[k][d.id]=sig(x)});db[k]=sortArr(k,[...maps[k].values()])}catch(e){stale[k]=true}}softRender()};
@@ -16548,15 +16596,15 @@ function startSync(){
       if(dirty||saving)return void setTimeout(()=>apply(snap),400);
       const M=maps[k];
       snap.docChanges().forEach(ch=>{const id=ch.doc.id;if(ch.type==='removed'){M.delete(id);delete lastSnap[k][id]}else{const x={...ch.doc.data(),id};M.set(id,x);lastSnap[k][id]=sig(x)}});
-      db[k]=sortArr(k,[...M.values()]);fsState.loaded[k]=true;fsState.status='terhubung';fsState.err='';maybeSeed();softRender()
+      db[k]=sortArr(k,[...M.values()]);fsState.loaded[k]=true;fsState.status='terhubung';fsState.err='';afterLoad();maybeSeed();softRender()
     };
-    FS.collection(COL[k]).onSnapshot(apply,onErr(k))});
+    unsubs.push(FS.collection(COL[k]).onSnapshot(apply,onErr(k)))});
   const applyCfg=s=>{
     if(unsaved)return;if(dirty||saving)return void setTimeout(()=>applyCfg(s),400);
     fsState.loaded.cfg=true;
     if(s.exists){const x=s.data();db=normalize({...db,...x},defaults());db.members=db.members;lastSnap.cfg=jstr(cfgObj());lastSnap.cfgSub=jstr(cfgSub())}
-    fsState.status='terhubung';maybeSeed();softRender()};
-  FS.collection(CFG[0]).doc(CFG[1]).onSnapshot(applyCfg,onErr('config'))}
+    fsState.status='terhubung';afterLoad();maybeSeed();softRender()};
+  unsubs.push(FS.collection(CFG[0]).doc(CFG[1]).onSnapshot(applyCfg,onErr('config')))}
 /* Admin pertama yang membuka Library mengisi Firestore dengan koleksi awal (sekali saja). */
 function maybeSeed(){
   if(seeded||!isSuper())return;const L=fsState.loaded;if(!(L.books&&L.cfg))return;
@@ -16860,11 +16908,12 @@ function saveRules(e){e.preventDefault();if(!isSuper())return toast('Aturan hany
 function backup(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db,null,1)],{type:'application/json'}));a.download='sib-library-backup-'+today()+'.json';document.body.appendChild(a);a.click();a.remove()}
 function restore(f){if(!f)return;if(!isSuper())return toast('Hanya Admin utama SIB CARE.');const rd=new FileReader();rd.onload=()=>{try{const x=JSON.parse(rd.result);if(!x.books||!x.menus)throw 0;if(!confirm('Pulihkan cadangan? Data saat ini akan diganti.'))return;db=normalize(x,defaults());save();render();toast('Cadangan dipulihkan.')}catch(e){toast('Berkas cadangan tidak valid.')}};rd.readAsText(f)}
 function clearDemo(){if(!confirm('Hapus anggota dan pinjaman contoh (fiktif)?'))return;db.loans=db.loans.filter(l=>!l.demo);db.members=db.members.filter(m=>!m.demo||db.loans.some(l=>l.memberId===m.id));save();render();toast('Data contoh dihapus.')}
-async function resetAll(){if(!isSuper())return toast('Hanya Admin utama SIB CARE.');if(!confirm('KOSONGKAN semua data SIB Library di Firestore (buku, anggota, pinjaman, pengaturan)? Tidak dapat dibatalkan.'))return;if(prompt('Ketik HAPUS untuk melanjutkan')!=='HAPUS')return;
+async function resetAll(){if(!isSuper())return toast('Hanya Admin utama SIB CARE.');if(!FS){if(!confirm('Kosongkan data lokal Library di browser ini?'))return;try{localStorage.removeItem(STORE)}catch(e){}db=startData();page='home';render();return toast('Data lokal dikosongkan.')}if(!confirm('KOSONGKAN semua data SIB Library di Firestore (buku, anggota, pinjaman, pengaturan)? Tidak dapat dibatalkan.'))return;if(prompt('Ketik HAPUS untuk melanjutkan')!=='HAPUS')return;
  try{for(const k of ['books','members','loans']){const s=await FS.collection(COL[k]).get();const ids=s.docs.map(d=>d.id);for(let i=0;i<ids.length;i+=400){const bt=FS.batch();ids.slice(i,i+400).forEach(id=>bt.delete(FS.collection(COL[k]).doc(id)));await bt.commit()}}
  await FS.collection(CFG[0]).doc(CFG[1]).delete();seeded=false;lastSnap={books:{},members:{},loans:{},cfg:''};db=startData();page='home';render();toast('Data Library dikosongkan. Muat ulang untuk membuat koleksi awal.')}catch(e){toast('Gagal: '+(e.code||e.message))}}
 render();
 startSync();
+try{if(BR&&BR.auth)BR.auth.onAuthStateChanged(function(u){const id=u?u.uid:null;if(id===syncUid)return;if(id)restartSync();else{persistLocal();stopSync();syncUid=null}})}catch(e){}
 @@SE@@>
 </body>
 </html>
@@ -16896,7 +16945,9 @@ function _libNotify(){
 async function _libFlush(){
     try{
         var f = document.getElementById("sibLibFrame");
-        if(f && f.contentWindow && typeof f.contentWindow.flushNow === "function") await f.contentWindow.flushNow();
+        if(f && f.contentWindow && typeof f.contentWindow.flushNow === "function"){
+            await Promise.race([ f.contentWindow.flushNow(), new Promise(function(r){ setTimeout(r, 8000); }) ]);
+        }
     }catch(e){ console.warn("flush Library:", e); }
 }
 async function _libEnterMgr(pw){
@@ -16926,9 +16977,12 @@ async function _libExitMgr(){
     var orig = window.showPage;
     window.showPage = function(p){
         if(p !== "library" && _libMgr){ _libExitMgr(); }
+        else if(p !== "library"){ _libFlush(); }
         return orig.apply(this, arguments);
     };
 })();
+
+window.addEventListener('pagehide', function(){ try{ var f=document.getElementById('sibLibFrame'); if(f&&f.contentWindow&&f.contentWindow.persistLocal) f.contentWindow.persistLocal(); }catch(e){} });
 
 window.SIBLIB_BRIDGE = {
     db: db,
@@ -16953,6 +17007,7 @@ function sibLibOpen(){
 function sibLibUnload(){
     var f = document.getElementById("sibLibFrame");
     if(!f) return;
+    try{ if(f.contentWindow && typeof f.contentWindow.persistLocal === "function") f.contentWindow.persistLocal(); }catch(e){}
     f.removeAttribute("data-loaded");
     f.removeAttribute("srcdoc");
     f.src = "about:blank";
