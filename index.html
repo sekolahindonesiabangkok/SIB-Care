@@ -16345,6 +16345,7 @@ footer{background:#0b1b2e;color:#c6d4e4;padding:30px 0;margin-top:35px}.footer-g
 .cover-prev img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .sync-bar{position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;display:none;gap:12px;align-items:center;justify-content:space-between;background:#b42318;color:#fff;border-radius:12px;padding:12px 16px;box-shadow:0 8px 28px #0006;font-size:14px;font-weight:600}
 .sync-bar .btn{background:#fff;color:#b42318}
+.save-pill{position:fixed;left:14px;bottom:14px;z-index:9998;display:none;background:#10243d;color:#fff;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;box-shadow:0 6px 20px #0004}
 </style>
 </head>
 <body>
@@ -16482,6 +16483,7 @@ function libAuthChanged(){if(page==='admin')page='home';render()}
 
 let flushT=null,dirty=false,unsaved=false,saving=false,saveAgain=false,pendingRender=false,seeded=false;
 const jstr=o=>JSON.stringify(o);
+const sig=x=>{const c=x&&x.cover;return jstr(c&&c.length>200?{...x,cover:c.length+':'+c.slice(-48)}:x)};
 function cfgObj(){return {v:db.v||2,settings:db.settings,menus:db.menus,programs:db.programs,seq:db.seq}}
 /* Bagian konfigurasi yang boleh ditulis Pengelola Library (tanpa tampilan/aturan). */
 function cfgSub(){return {menus:db.menus,programs:db.programs,seq:db.seq}}
@@ -16494,25 +16496,34 @@ async function flush(){
     const admin=isAdmin(),sup=isSuper(),ops=[];
     for(const k of ['books','members','loans']){
       const cur=new Map(db[k].map(x=>[x.id,x]));
-      for(const [id,x] of cur){const s=jstr(x);if(lastSnap[k][id]!==s)ops.push({t:'set',k,id,x,s})}
+      for(const [id,x] of cur){const s=sig(x);if(lastSnap[k][id]!==s)ops.push({t:'set',k,id,x,s})}
       if(admin)for(const id of Object.keys(lastSnap[k]))if(!cur.has(id))ops.push({t:'del',k,id})
     }
     if(sup){const c=jstr(cfgObj());if(lastSnap.cfg!==c)ops.push({t:'cfg',c})}
     else if(admin){const c=jstr(cfgSub());if(lastSnap.cfgSub!==c)ops.push({t:'cfgsub',c})}
     // pengguna biasa hanya boleh menambah permintaan pinjam ('Menunggu'); sisanya diabaikan
     const todo=admin?ops:ops.filter(o=>o.t==='set'&&o.k==='loans'&&!(o.id in lastSnap.loans)&&o.x.status==='Menunggu');
-    for(let i=0;i<todo.length;i+=400){
-      const batch=FS.batch(),part=todo.slice(i,i+400);
-      part.forEach(o=>{if(o.t==='set')batch.set(FS.collection(COL[o.k]).doc(o.id),JSON.parse(o.s));else if(o.t==='del')batch.delete(FS.collection(COL[o.k]).doc(o.id));else if(o.t==='cfgsub')batch.set(FS.collection(CFG[0]).doc(CFG[1]),JSON.parse(o.c),{merge:true});else batch.set(FS.collection(CFG[0]).doc(CFG[1]),JSON.parse(o.c))});
+    const t0=performance.now();
+    if(todo.length)pill('⏳ Menyimpan '+todo.length+' perubahan...');
+    /* pecah per jumlah (maks 300) DAN per ukuran (maks ~1,2 MB) agar tidak melebihi batas Firestore, lalu kirim paralel */
+    const parts=[];let cur=[],sz=0;
+    todo.forEach(o=>{o.json=o.t==='set'?jstr(o.x):o.t==='del'?'':o.c;const w=o.json.length+80;if(cur.length&&(cur.length>=300||sz+w>1200000)){parts.push(cur);cur=[];sz=0}cur.push(o);sz+=w});
+    if(cur.length)parts.push(cur);
+    const sendPart=async part=>{
+      const batch=FS.batch();
+      part.forEach(o=>{if(o.t==='set')batch.set(FS.collection(COL[o.k]).doc(o.id),JSON.parse(o.json));else if(o.t==='del')batch.delete(FS.collection(COL[o.k]).doc(o.id));else if(o.t==='cfgsub')batch.set(FS.collection(CFG[0]).doc(CFG[1]),JSON.parse(o.c),{merge:true});else batch.set(FS.collection(CFG[0]).doc(CFG[1]),JSON.parse(o.c))});
       await batch.commit();
       part.forEach(o=>{if(o.t==='set')lastSnap[o.k][o.id]=o.s;else if(o.t==='del')delete lastSnap[o.k][o.id];else if(o.t==='cfgsub')lastSnap.cfgSub=o.c;else lastSnap.cfg=o.c});
-    }
-    fsState.status='terhubung';fsState.err='';unsaved=false;hideSync();
-  }catch(e){
+    };
+    for(let i=0;i<parts.length;i+=4)await Promise.all(parts.slice(i,i+4).map(sendPart));
+    if(todo.length)pill('✓ Tersimpan ('+((performance.now()-t0)/1000).toFixed(1).replace('.',',')+' dtk)',2500);
+    fsState.status='terhubung';fsState.err='';{const was=unsaved;unsaved=false;hideSync();if(was&&window.resyncAll)window.resyncAll()}
+  }catch(e){pill('',1);
     console.error('SIB Library simpan:',e);fsState.status='ditolak';fsState.err=e.code||String(e);unsaved=true;
     showSync(e.code==='permission-denied'?'Perubahan BELUM tersimpan: Firestore menolak akun ini menulis data Library (permission-denied). Data hanya ada di layar ini.':'Perubahan BELUM tersimpan ('+(e.code||e.message||'error')+'). Periksa koneksi lalu coba lagi.');
   }finally{saving=false;if(saveAgain){saveAgain=false;save()}else dirty=false}
 }
+function pill(t,ms){let p=$('savePill');if(!p){p=document.createElement('div');p.id='savePill';p.className='save-pill';document.body.appendChild(p)}p.textContent=t;p.style.display='block';clearTimeout(p._t);if(ms)p._t=setTimeout(()=>{p.style.display='none'},ms)}
 function showSync(msg){let b=$('syncBar');if(!b){b=document.createElement('div');b.id='syncBar';b.className='sync-bar';document.body.appendChild(b)}b.innerHTML='<span>⚠ '+esc(msg)+'</span><button class="btn small" onclick="retrySync()">Coba lagi</button>';b.style.display='flex'}
 function hideSync(){const b=$('syncBar');if(b)b.style.display='none'}
 function retrySync(){hideSync();flush()}
@@ -16527,14 +16538,17 @@ document.addEventListener('focusout',()=>{if(pendingRender)setTimeout(()=>{const
 function onErr(name){return e=>{console.error('SIB Library '+name+':',e);fsState.status='ditolak';fsState.err=e.code||String(e);softRender()}}
 function startSync(){
   if(!FS||!authUser()){fsState.status='offline';return}
+  const maps={books:new Map(),members:new Map(),loans:new Map()},stale={};
+  const sortArr=(k,arr)=>{if(k==='books')arr.sort((a,b)=>String(a.id).localeCompare(String(b.id),'id',{numeric:true}));if(k==='loans')arr.sort((a,b)=>String(b.loanDate||'').localeCompare(String(a.loanDate||'')));return arr};
+  window.resyncAll=async()=>{for(const k of ['books','members','loans']){if(!stale[k])continue;stale[k]=false;try{const s=await FS.collection(COL[k]).get();maps[k].clear();lastSnap[k]={};s.forEach(d=>{const x={...d.data(),id:d.id};maps[k].set(d.id,x);lastSnap[k][d.id]=sig(x)});db[k]=sortArr(k,[...maps[k].values()])}catch(e){stale[k]=true}}softRender()};
+  window.__markStale=()=>{['books','members','loans'].forEach(k=>stale[k]=true)};
   ['books','members','loans'].forEach(k=>{
     const apply=snap=>{
-      if(unsaved)return;if(dirty||saving)return void setTimeout(()=>apply(snap),400);
-      const arr=[];lastSnap[k]={};
-      snap.forEach(d=>{const x={...d.data(),id:d.id};arr.push(x);lastSnap[k][d.id]=jstr(x)});
-      if(k==='books')arr.sort((a,b)=>String(a.id).localeCompare(String(b.id),'id',{numeric:true}));
-      if(k==='loans')arr.sort((a,b)=>String(b.loanDate||'').localeCompare(String(a.loanDate||'')));
-      db[k]=arr;fsState.loaded[k]=true;fsState.status='terhubung';fsState.err='';maybeSeed();softRender()
+      if(unsaved){stale[k]=true;return}
+      if(dirty||saving)return void setTimeout(()=>apply(snap),400);
+      const M=maps[k];
+      snap.docChanges().forEach(ch=>{const id=ch.doc.id;if(ch.type==='removed'){M.delete(id);delete lastSnap[k][id]}else{const x={...ch.doc.data(),id};M.set(id,x);lastSnap[k][id]=sig(x)}});
+      db[k]=sortArr(k,[...M.values()]);fsState.loaded[k]=true;fsState.status='terhubung';fsState.err='';maybeSeed();softRender()
     };
     FS.collection(COL[k]).onSnapshot(apply,onErr(k))});
   const applyCfg=s=>{
@@ -16635,9 +16649,9 @@ function adminContent(){
  if(!isAdmin()){
     if(canEnterMgr())return `<div class="panel login-card"><div style="font-size:32px">🔑</div><h2>Masuk Pengelola SIB Library</h2><p>Khusus Guru/Staf yang diberi password pengelola perpustakaan. Anda tetap login di SIB CARE sebagai Guru; mode pengelola hanya berlaku selama Anda berada di SIB Library.</p><form onsubmit="mgrLogin(event)"><div class="field"><label>Password Pengelola Library</label><input id="mgrPw" type="password" autocomplete="off" placeholder="Masukkan password pengelola"></div><div class="form-actions"><button class="btn primary" id="mgrBtn" type="submit">Masuk sebagai Pengelola</button><button class="btn ghost" type="button" onclick="go('home')">Batal</button></div></form></div>`;
     return `<div class="panel login-card"><div style="font-size:32px">🔐</div><h2>Khusus Pengelola</h2><p>Dashboard ini hanya untuk Pengelola SIB Library dan Admin SIB CARE.</p><div class="form-actions"><button class="btn primary" onclick="backToCare()">← Kembali ke SIB CARE</button></div></div>`}
- const sup=isSuper(),t=(!sup&&['home','settings'].includes(adminTab))?'overview':adminTab,allTabs=[['overview','▦ Ringkasan'],['circ','🔄 Sirkulasi'],['members','👥 Anggota'],['books','📚 Manajemen Buku'],['import','📥 Impor Koleksi'],['menus','🧭 Menu & Halaman'],['home','🎨 Personalisasi'],['programs','🌱 Program Belajar'],['reports','📊 Laporan'],['settings','⚙ Pengaturan']],tabs=allTabs.filter(x=>sup||!['home','settings'].includes(x[0]));
+ const sup=isSuper(),t=(!sup&&['home','settings'].includes(adminTab))?'overview':adminTab,allTabs=[['overview','▦ Ringkasan'],['circ','🔄 Sirkulasi'],['members','👥 Anggota'],['memimport','📥 Impor Anggota'],['books','📚 Manajemen Buku'],['import','📥 Impor Koleksi'],['menus','🧭 Menu & Halaman'],['home','🎨 Personalisasi'],['programs','🌱 Program Belajar'],['reports','📊 Laporan'],['settings','⚙ Pengaturan']],tabs=allTabs.filter(x=>sup||!['home','settings'].includes(x[0]));
  const pend=db.loans.filter(l=>l.status==='Menunggu').length;
- return `<div class="admin-layout"><aside class="panel admin-side"><h3>Menu Pengelola</h3><small style="display:block;margin:-4px 0 10px;color:var(--muted,#6b7280)">${sup?'Mode: Admin utama':'Mode: Pengelola Library'}</small>${tabs.map(x=>`<button class="${t===x[0]?'active':''}" onclick="adminTab='${x[0]}';editingBook=null;editingMember=null;menuEdit=null;cardEdit=null;render()">${x[1]}${x[0]==='circ'&&pend?` (${pend})`:''}</button>`).join('')}<button onclick="go('home')">← Ke beranda Library</button>${isLibMgr()?`<button onclick="mgrLogout()">🚪 Keluar Pengelola</button>`:''}</aside><div class="panel admin-content">${({overview:overviewAdmin,circ:circAdmin,members:membersAdmin,books:booksAdmin,import:importAdmin,menus:menusAdmin,home:homeAdmin,programs:programAdmin,reports:reportsAdmin,settings:settingsAdmin})[t]()}</div></div>`}
+ return `<div class="admin-layout"><aside class="panel admin-side"><h3>Menu Pengelola</h3><small style="display:block;margin:-4px 0 10px;color:var(--muted,#6b7280)">${sup?'Mode: Admin utama':'Mode: Pengelola Library'}</small>${tabs.map(x=>`<button class="${t===x[0]?'active':''}" onclick="adminTab='${x[0]}';editingBook=null;editingMember=null;menuEdit=null;cardEdit=null;render()">${x[1]}${x[0]==='circ'&&pend?` (${pend})`:''}</button>`).join('')}<button onclick="go('home')">← Ke beranda Library</button>${isLibMgr()?`<button onclick="mgrLogout()">🚪 Keluar Pengelola</button>`:''}</aside><div class="panel admin-content">${({overview:overviewAdmin,circ:circAdmin,members:membersAdmin,memimport:memImportAdmin,books:booksAdmin,import:importAdmin,menus:menusAdmin,home:homeAdmin,programs:programAdmin,reports:reportsAdmin,settings:settingsAdmin})[t]()}</div></div>`}
 
 /* --- Ringkasan --- */
 function stats(){const act=db.loans.filter(l=>l.status==='Dipinjam');return{titles:db.books.length,copies:db.books.filter(isPhysical).reduce((s,b)=>s+(b.copies||0),0),out:act.length,late:act.filter(l=>l.dueDate<today()).length,members:db.members.filter(m=>m.status==='Aktif').length,fines:db.loans.reduce((s,l)=>s+unpaidFine(l),0),pend:db.loans.filter(l=>l.status==='Menunggu').length,dueToday:act.filter(l=>l.dueDate===today()).length}}
@@ -16675,8 +16689,8 @@ function renderMemberRows(){const el=$('memTable');if(el)el.innerHTML=memberTabl
 function membersAdmin(){const m=editingMember?memberById(editingMember):null;
  return `<h2>Keanggotaan Perpustakaan</h2><p>Kelola data anggota, status, masa berlaku, dan kartu anggota. Kumpulkan data seminimal mungkin dan jaga kerahasiaannya.</p>
 <form onsubmit="saveMember(event)"><div class="form-grid"><div class="field"><label>Nama lengkap *</label><input id="mName" required value="${esc(m?.name||'')}"></div><div class="field"><label>Nomor anggota</label><input id="mNo" value="${esc(m?.no||'')}" placeholder="otomatis jika kosong"></div><div class="field"><label>Jenis</label><select id="mType">${['Siswa','Guru','Staf'].map(x=>`<option ${m?.type===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="field"><label>Kelas / unit</label><input id="mCls" value="${esc(m?.cls||'')}" placeholder="Kelas 5 / Guru IPA"></div><div class="field"><label>Status</label><select id="mStatus">${['Aktif','Nonaktif','Diblokir'].map(x=>`<option ${m?.status===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="field"><label>Berlaku sampai</label><input id="mExp" type="date" value="${m?.expiry||addDays(today(),Math.round(R().memberMonths*30.4))}"></div><div class="field full"><label>Kontak (opsional)</label><input id="mContact" value="${esc(m?.contact||'')}" placeholder="email sekolah / nomor orang tua"></div><div class="field full"><label>Catatan</label><input id="mNote" value="${esc(m?.note||'')}"></div></div><div class="form-actions"><button class="btn primary" type="submit">${m?'Simpan perubahan':'Tambah anggota'}</button>${m?`<button class="btn ghost" type="button" onclick="editingMember=null;render()">Batal</button><button class="btn danger" type="button" onclick="deleteMember('${m.id}')">Hapus</button>`:''}</div></form>
-<h3>Daftar anggota (${db.members.length})</h3><div class="toolbar"><input placeholder="Cari nama / nomor / kelas..." value="${esc(memSearch)}" oninput="memSearch=this.value;renderMemberRows()"><select onchange="memStatus=this.value;renderMemberRows()">${['Semua','Aktif','Nonaktif','Diblokir'].map(x=>`<option ${memStatus===x?'selected':''}>${x}</option>`).join('')}</select><button class="btn secondary small" onclick="exportMembers()">⬇ Ekspor CSV</button></div><div class="table-wrap" id="memTable">${memberTable()}</div>
-<h3>Impor cepat</h3><div class="info">Tempel satu anggota per baris: <b>nama, jenis, kelas</b> (jenis: Siswa/Guru/Staf). Contoh: <code>Budi Santoso, Siswa, Kelas 6</code></div><textarea id="bulkMem" class="mini" style="min-height:90px;width:100%"></textarea><div class="form-actions"><button class="btn secondary" onclick="bulkMembers()">Impor</button></div>`}
+<h3>Daftar anggota (${db.members.length})</h3><div class="toolbar"><input placeholder="Cari nama / nomor / kelas..." value="${esc(memSearch)}" oninput="memSearch=this.value;renderMemberRows()"><select onchange="memStatus=this.value;renderMemberRows()">${['Semua','Aktif','Nonaktif','Diblokir'].map(x=>`<option ${memStatus===x?'selected':''}>${x}</option>`).join('')}</select><button class="btn primary small" onclick="adminTab='memimport';render()">📥 Impor Anggota (CSV/Excel)</button><button class="btn secondary small" onclick="exportMembers()">⬇ Ekspor CSV</button></div><div class="table-wrap" id="memTable">${memberTable()}</div>
+<h3>Impor cepat (sedikit anggota)</h3><div class="info">Untuk banyak anggota, pakai menu <b>📥 Impor Anggota</b> (CSV/Excel, pratinjau, cek duplikat). Tempel satu anggota per baris: <b>nama, jenis, kelas</b> (jenis: Siswa/Guru/Staf). Contoh: <code>Budi Santoso, Siswa, Kelas 6</code></div><textarea id="bulkMem" class="mini" style="min-height:90px;width:100%"></textarea><div class="form-actions"><button class="btn secondary" onclick="bulkMembers()">Impor</button></div>`}
 function nextNo(){db.seq.member=(db.seq.member||0)+1;return 'SIB-'+String(db.seq.member).padStart(4,'0')}
 function saveMember(e){e.preventDefault();const old=editingMember?memberById(editingMember):null;let no=val('mNo').toUpperCase();
  if(no&&db.members.some(x=>x.no.toUpperCase()===no&&x.id!==(old&&old.id)))return toast('Nomor anggota sudah dipakai.');
@@ -16684,6 +16698,53 @@ function saveMember(e){e.preventDefault();const old=editingMember?memberById(edi
  if(old)db.members=db.members.map(x=>x.id===m.id?m:x);else db.members.push(m);save();editingMember=null;render();toast(old?'Data anggota diperbarui.':'Anggota ditambahkan: '+m.no)}
 function deleteMember(id){if(activeOf(id).length)return toast('Masih ada pinjaman aktif. Selesaikan dulu.');if(db.loans.some(l=>l.memberId===id))return toast('Anggota punya riwayat pinjaman. Ubah status menjadi Nonaktif agar riwayat tetap utuh.');if(!confirm('Hapus anggota ini?'))return;db.members=db.members.filter(m=>m.id!==id);save();editingMember=null;render();toast('Anggota dihapus.')}
 function bulkMembers(){const lines=val('bulkMem').split('\n').map(x=>x.trim()).filter(Boolean);let n=0;lines.forEach(ln=>{const [name,type,cls]=ln.split(',').map(x=>x.trim());if(!name)return;const t=['Siswa','Guru','Staf'].find(x=>x.toLowerCase()===(type||'').toLowerCase())||'Siswa';db.members.push({id:uid('M'),no:nextNo(),name,type:t,cls:cls||'',status:'Aktif',joined:today(),expiry:addDays(today(),Math.round(R().memberMonths*30.4)),contact:'',note:'',demo:false});n++});save();render();toast(n+' anggota diimpor.')}
+
+/* --- Impor Anggota (CSV / Excel / tempel) --- */
+let memRows=[];
+const MEM_TYPES=['Siswa','Guru','Staf'],MEM_STATUS=['Aktif','Nonaktif','Diblokir'];
+const pick=(list,v)=>list.find(x=>x.toLowerCase()===String(v||'').trim().toLowerCase());
+function buildMemImport(){
+ const lines=$('memText').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).slice(0,2000);
+ let map={nama:0,jenis:1,kelas:2,nomor:3,status:4,kontak:5};
+ if(lines.length){const h=parseCsvLine(lines[0]).map(x=>x.toLowerCase().replace(/[^a-z]/g,''));
+  if(h.some(x=>/^(nama|name|namalengkap)$/.test(x))){map={};h.forEach((x,i)=>{const k=/^(nama|name|namalengkap)$/.test(x)?'nama':/^(jenis|tipe|type)$/.test(x)?'jenis':/^(kelas|unit|kelasunit)$/.test(x)?'kelas':/^(nomor|no|nomoranggota|noanggota)$/.test(x)?'nomor':/^status$/.test(x)?'status':/^(kontak|contact|email|telepon)$/.test(x)?'kontak':null;if(k&&!(k in map))map[k]=i});lines.shift()}}
+ const usedNo=new Set(db.members.map(m=>String(m.no).toUpperCase())),seen=new Set(db.members.map(m=>normT(m.name)+'|'+normT(m.cls)));memRows=[];
+ lines.forEach(ln=>{const c=parseCsvLine(ln),g=k=>k in map?(c[map[k]]||'').trim():'';let err='';
+  const name=g('nama'),tv=g('jenis'),sv=g('status'),no=g('nomor').toUpperCase(),cls=g('kelas'),contact=g('kontak');
+  const type=tv?pick(MEM_TYPES,tv):'Siswa',status=sv?pick(MEM_STATUS,sv):'Aktif';
+  if(!name)err='Nama kosong';else if(!type)err='Jenis harus Siswa/Guru/Staf';else if(!status)err='Status harus Aktif/Nonaktif/Diblokir';else if(no&&usedNo.has(no))err='Nomor sudah dipakai';
+  let st=err?'Tidak valid: '+err:'Baru';const key=normT(name)+'|'+normT(cls);
+  if(!err&&!no&&seen.has(key))st='Duplikat';
+  if(!err){seen.add(key);if(no)usedNo.add(no)}
+  memRows.push({m:{name,type,cls,no,status:status||'Aktif',contact},st,sel:st==='Baru'})});
+ renderMemPreview()}
+function renderMemPreview(){const el=$('memPreview');if(!el)return;
+ if(!memRows.length){el.innerHTML='<div class="info">Belum ada data. Tempel daftar atau muat berkas, lalu klik Pratinjau.</div>';return}
+ const n=memRows.filter(r=>r.sel).length,dup=memRows.filter(r=>r.st==='Duplikat').length,bad=memRows.filter(r=>r.st.startsWith('Tidak')).length;
+ el.innerHTML=`<div class="stats-grid"><div class="metric"><span>Baris dibaca</span><strong>${memRows.length}</strong></div><div class="metric"><span>Akan diimpor</span><strong>${n}</strong></div><div class="metric"><span>Duplikat</span><strong>${dup}</strong></div><div class="metric ${bad?'warn':''}"><span>Tidak valid</span><strong>${bad}</strong></div></div>
+<div class="table-wrap"><table><thead><tr><th><input type="checkbox" ${n&&n===memRows.filter(r=>!r.st.startsWith('Tidak')).length?'checked':''} onchange="memToggleAll(this.checked)"></th><th>Nama</th><th>Jenis</th><th>Kelas/Unit</th><th>No.</th><th>Status</th><th>Hasil</th></tr></thead><tbody>${memRows.slice(0,300).map((r,i)=>`<tr><td><input type="checkbox" ${r.sel?'checked':''} ${r.st.startsWith('Tidak')?'disabled':''} onchange="memRows[${i}].sel=this.checked;renderMemPreview()"></td><td>${esc(r.m.name)}</td><td>${esc(r.m.type||'')}</td><td>${esc(r.m.cls)}</td><td>${esc(r.m.no||'otomatis')}</td><td>${esc(r.m.status||'')}</td><td>${esc(r.st)}</td></tr>`).join('')}</tbody></table></div>${memRows.length>300?`<div class="info">Menampilkan 300 baris pertama; semua ${memRows.length} baris tetap diproses.</div>`:''}
+<div class="form-actions"><button class="btn primary" ${n?'':'disabled'} onclick="doImportMembers()">✅ Impor ${n} anggota</button><button class="btn ghost" onclick="memRows=[];renderMemPreview()">Batal</button></div>`}
+function memToggleAll(v){memRows.forEach(r=>{if(!r.st.startsWith('Tidak'))r.sel=v});renderMemPreview()}
+function doImportMembers(){
+ if(!isAdmin())return toast('Hanya Pengelola/Admin.');
+ const sel=memRows.filter(r=>r.sel&&!r.st.startsWith('Tidak'));if(!sel.length)return;
+ const used=new Set(db.members.map(m=>String(m.no).toUpperCase()));sel.forEach(r=>{if(r.m.no)used.add(r.m.no)});
+ const exp=addDays(today(),Math.round(R().memberMonths*30.4));let n=0;
+ sel.forEach(r=>{let no=r.m.no;if(!no){do{no=nextNo()}while(used.has(no.toUpperCase()));used.add(no.toUpperCase())}
+  db.members.push({id:uid('M')+n,no,name:r.m.name,type:r.m.type||'Siswa',cls:r.m.cls,status:r.m.status||'Aktif',joined:today(),expiry:exp,contact:r.m.contact||'',note:'',demo:false});n++});
+ save();memRows=[];render();toast(n+' anggota diimpor. Menyimpan ke Firestore...')}
+function memTemplate(){download('templat_impor_anggota.csv',csv([['nama','jenis','kelas','nomor','status','kontak'],['Budi Santoso','Siswa','Kelas 6','','Aktif',''],['Siti Aminah','Guru','Guru IPA','','Aktif','siti@sekolah.sch.id']]))}
+function memFile(f){if(!f)return;if(f.size>3e6)return toast('Berkas terlalu besar (maks. 3 MB).');
+ const add=t=>{$('memText').value=($('memText').value?$('memText').value+'\n':'')+t;buildMemImport();toast('Berkas dimuat. Periksa pratinjau lalu klik Impor.')};
+ if(/\.xlsx?$/i.test(f.name)){const X=(()=>{try{return parent.XLSX}catch(e){return null}})();if(!X)return toast('Pembaca Excel tidak tersedia. Simpan sebagai CSV lalu muat lagi.');
+  const rd=new FileReader();rd.onload=()=>{try{const wb=X.read(new Uint8Array(rd.result),{type:'array'});add(X.utils.sheet_to_csv(wb.Sheets[wb.SheetNames[0]],{FS:'\t',blankrows:false}))}catch(e){toast('Berkas Excel tidak dapat dibaca.')}};rd.readAsArrayBuffer(f);return}
+ const rd=new FileReader();rd.onload=()=>add(String(rd.result).replace(/^\ufeff/,''));rd.readAsText(f)}
+function memImportAdmin(){return `<h2>Impor Anggota</h2><p>Tambah banyak anggota sekaligus dari berkas <b>Excel/CSV</b> atau tempel dari spreadsheet.</p>
+<div class="info"><b>Kolom:</b> <code>nama, jenis, kelas, nomor, status, kontak</code> — hanya <b>nama</b> yang wajib. Jenis: Siswa/Guru/Staf (kosong = Siswa). Nomor kosong = dibuat otomatis (SIB-0001, dst). Baris pertama boleh berupa judul kolom. Pemisah koma, titik koma, atau tab (bisa langsung tempel dari Excel).</div>
+<textarea id="memText" class="mini" style="min-height:150px;width:100%" placeholder="Budi Santoso, Siswa, Kelas 6&#10;Siti Aminah, Guru, Guru IPA"></textarea>
+<div class="form-actions"><button class="btn primary" onclick="buildMemImport()">🔍 Pratinjau</button><label class="btn secondary" style="cursor:pointer">📄 Muat berkas Excel/CSV<input type="file" accept=".csv,.txt,.xlsx,.xls,text/csv,text/plain" class="hidden" onchange="memFile(this.files[0])"></label><button class="btn ghost" onclick="memTemplate()">⬇ Templat CSV</button><button class="btn ghost" onclick="adminTab='members';render()">← Kembali ke Anggota</button></div>
+<div id="memPreview"><div class="info">Belum ada data. Tempel daftar atau muat berkas, lalu klik Pratinjau.</div></div>
+<div class="notice">Pratinjau menandai duplikat (nama + kelas sama) dan nomor yang sudah dipakai. Duplikat tidak ikut diimpor kecuali Anda centang. Maksimal 2.000 baris per impor. Kumpulkan data seminimal mungkin dan jaga kerahasiaannya.</div>`}
 function memberDetail(id){const m=memberById(id);const ls=db.loans.filter(l=>l.memberId===id);showModal('Profil Anggota',`<h3 style="margin:0;color:var(--navy)">${esc(m.name)}</h3><p style="color:var(--muted);font-size:13px">${esc(m.no)} · ${esc(m.type)} · ${esc(m.cls)}<br>Status: ${esc(m.status)} · Bergabung ${fmtDate(m.joined)} · Berlaku s.d. ${fmtDate(m.expiry)}${m.contact?`<br>Kontak: ${esc(m.contact)}`:''}${m.note?`<br>Catatan: ${esc(m.note)}`:''}</p><div class="stats-grid"><div class="metric"><span>Pinjaman aktif</span><strong>${activeOf(id).length}</strong></div><div class="metric"><span>Total pinjam</span><strong>${ls.filter(l=>!['Menunggu','Ditolak'].includes(l.status)).length}</strong></div><div class="metric"><span>Denda</span><strong>${money(memberFines(id))}</strong></div></div><div class="table-wrap">${ls.length?`<table><thead><tr><th>Buku</th><th>Pinjam</th><th>Kembali</th><th>Status</th></tr></thead><tbody>${ls.map(l=>`<tr><td>${esc(bookById(l.bookId)?.title||'—')}</td><td>${fmtDate(l.loanDate)}</td><td>${fmtDate(l.returnDate)}</td><td>${lState(l)}</td></tr>`).join('')}</tbody></table>`:'<div class="info">Belum ada riwayat.</div>'}</div>`)}
 function memberCard(id){const m=memberById(id);showModal('Kartu Anggota',`<div id="printArea"><div class="idcard"><div class="hd"><span style="font-size:26px">📚</span><div><b>${esc(S().name)}</b><br><small>${esc(S().school)}</small></div></div><div><b style="font-size:17px;color:var(--navy)">${esc(m.name)}</b><br><small>${esc(m.type)} · ${esc(m.cls)}</small></div><div class="no">${esc(m.no)}</div><small>Berlaku s.d. ${fmtDate(m.expiry)}</small></div></div><div class="form-actions" style="justify-content:center"><button class="btn primary" onclick="window.print()">🖨 Cetak kartu</button></div>`)}
 
