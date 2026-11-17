@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIB 3D — Denah Interaktif Sekolah Indonesia Bangkok</title>
+<style>
+:root{--navy:#09264a;--blue:#1267b2;--gold:#e8b85c;--ink:#172b42;--muted:#66788c;--panel:rgba(255,255,255,.94)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Inter,Arial,sans-serif;color:var(--ink);background:#e9eff5}
+#app{position:relative;width:100%;height:100%;background:linear-gradient(135deg,#eaf0f5,#dce6ef)}
+#scene{position:absolute;inset:0}
+header{position:absolute;z-index:5;top:18px;left:20px;right:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;pointer-events:none}
+.brand{pointer-events:auto;display:flex;align-items:center;gap:12px;background:var(--panel);padding:11px 16px;border:1px solid #d6e0e9;border-radius:15px;box-shadow:0 8px 28px #19395b18}
+.logo{width:39px;height:39px;border-radius:11px;background:linear-gradient(145deg,#0b3768,#1687ce);display:grid;place-items:center;color:#fff;font-weight:800;letter-spacing:-1px}
+.brand h1{font-size:15px;margin:0 0 3px}.brand p{font-size:11px;margin:0;color:var(--muted)}
+.top-actions{pointer-events:auto;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+button{font:inherit;cursor:pointer;border:1px solid #cfdae5;background:#fff;color:#183653;border-radius:10px;padding:10px 13px;font-size:12px;font-weight:650;box-shadow:0 4px 14px #17375412}
+button:hover{border-color:#7ba9d2;background:#f5faff}button.active{background:#0d5c9e;color:white;border-color:#0d5c9e}
+.panel{position:absolute;z-index:5;top:91px;left:20px;width:255px;max-height:calc(100% - 115px);overflow:auto;background:var(--panel);border:1px solid #d7e1ea;border-radius:16px;padding:15px;box-shadow:0 12px 35px #18375420}
+.panel h2{font-size:13px;margin:0 0 10px}.panel .hint{font-size:11px;color:var(--muted);line-height:1.55;margin:0 0 12px}
+.search{width:100%;padding:10px;border:1px solid #d6e0e9;border-radius:9px;font-size:12px;outline:none;margin-bottom:10px}
+.room-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.room-btn{text-align:left;padding:8px 9px;font-size:10px;box-shadow:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.room-btn.selected{background:#e7f3ff;border-color:#2384d1;color:#07589b}
+.detail{position:absolute;z-index:5;right:20px;top:91px;width:285px;background:var(--panel);border:1px solid #d7e1ea;border-radius:16px;padding:17px;box-shadow:0 12px 35px #18375420}
+.eyebrow{font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:#4382b6;font-weight:800}
+.detail h2{font-size:19px;margin:5px 0 4px}.detail p{font-size:11px;line-height:1.6;color:var(--muted);margin:0 0 12px}
+.stat{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid #e7edf2;font-size:11px}.stat b{color:#1b3b5a}
+.legend{position:absolute;z-index:5;bottom:18px;left:20px;background:var(--panel);border:1px solid #d7e1ea;border-radius:12px;padding:10px 13px;display:flex;gap:13px;flex-wrap:wrap;box-shadow:0 8px 25px #18375415;font-size:10px;color:#52677b}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+.help{position:absolute;z-index:5;bottom:18px;right:20px;background:#092b4fe8;color:#fff;border-radius:11px;padding:10px 13px;font-size:10px}
+#loading{position:absolute;inset:0;display:grid;place-items:center;z-index:10;background:#e9eff5;color:#21415f;font-weight:700}
+#loading small{display:block;font-weight:400;color:#73869a;margin-top:8px;text-align:center}
+@media(max-width:800px){header{left:10px;right:10px;top:10px;align-items:flex-start}.brand{padding:8px}.brand h1{font-size:12px}.top-actions{max-width:48%}button{padding:8px;font-size:10px}.panel{left:10px;top:auto;bottom:64px;width:190px;max-height:43%;padding:11px}.detail{right:10px;top:auto;bottom:64px;width:calc(100% - 220px);padding:12px}.detail h2{font-size:15px}.legend{left:10px;bottom:10px;max-width:55%;font-size:9px}.help{right:10px;bottom:10px;font-size:9px}}
+</style>
+</head>
+<body>
+<div id="app">
+ <div id="scene"></div>
+ <div id="loading">Membangun model 3D SIB…<small>Memuat Three.js dan menyusun ruang berdasarkan denah lantai 1</small></div>
+ <header>
+  <div class="brand"><div class="logo">SIB</div><div><h1>DENAH 3D SEKOLAH INDONESIA BANGKOK</h1><p>Interactive School Facility · Prototype 01</p></div></div>
+  <div class="top-actions">
+   <button id="reset">↺ Tampilan awal</button><button id="walls" class="active">Dinding</button><button id="labels" class="active">Label ruang</button><button id="explode">Potong atap</button>
+  </div>
+ </header>
+ <aside class="panel">
+  <h2>JELAJAHI RUANGAN</h2>
+  <p class="hint">Pilih nama ruangan atau klik langsung pada model 3D. Susunan mengikuti gambar denah yang diberikan.</p>
+  <input id="search" class="search" placeholder="Cari ruang…">
+  <div id="roomList" class="room-list"></div>
+ </aside>
+ <aside class="detail" id="detail">
+  <div class="eyebrow">Informasi fasilitas</div><h2 id="roomTitle">Selamat datang</h2>
+  <p id="roomDesc">Klik salah satu ruangan pada model atau daftar di sebelah kiri untuk melihat informasi fasilitas.</p>
+  <div class="stat"><span>Area</span><b id="roomArea">Lantai 1</b></div>
+  <div class="stat"><span>Tinggi dinding</span><b>3,5 meter*</b></div>
+  <div class="stat"><span>Status model</span><b>Prototipe visual</b></div>
+  <p style="font-size:9px;margin-top:10px">*Tinggi dinding mengikuti spesifikasi awal. Dimensi ruang masih proporsional, belum hasil pengukuran lapangan.</p>
+ </aside>
+ <div class="legend"><span><i class="dot" style="background:#d7e0e7"></i>Area umum</span><span><i class="dot" style="background:#dcebdc"></i>Ruang belajar/kerja</span><span><i class="dot" style="background:#f2e5c9"></i>Fasilitas</span><span><i class="dot" style="background:#79b8e6"></i>Terpilih</span></div>
+ <div class="help">Drag: putar · Scroll: zoom · Klik: pilih ruangan</div>
+</div>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+const sceneHost=document.getElementById('scene');
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0xe9eff5);
+scene.fog=new THREE.Fog(0xe9eff5,42,85);
+const camera=new THREE.PerspectiveCamera(37,innerWidth/innerHeight,.1,200);
+camera.position.set(25,27,31);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+sceneHost.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.06;controls.maxPolarAngle=Math.PI/2.05;controls.minDistance=12;controls.maxDistance=65;controls.target.set(18,0,8);
+scene.add(new THREE.HemisphereLight(0xffffff,0x8293a4,2.1));
+const sun=new THREE.DirectionalLight(0xfff1d8,3.1);sun.position.set(-12,25,18);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-30;sun.shadow.camera.right=50;sun.shadow.camera.top=35;sun.shadow.camera.bottom=-25;scene.add(sun);
+const mat=(color,rough=.82)=>new THREE.MeshStandardMaterial({color,roughness:rough});
+const floorMat=mat(0xc9cdd0),wallMat=mat(0xf0eee8),outerMat=mat(0xe5e2d9),glassMat=new THREE.MeshPhysicalMaterial({color:0x9bc8dc,transparent:true,opacity:.35,roughness:.12,metalness:.05});
+const woodMat=mat(0x9b6843),darkWood=mat(0x64452f),metalMat=mat(0x687987,.55),whiteMat=mat(0xf5f4ef),greenMat=mat(0x7a9a78),boardMat=mat(0x315b50);
+const root=new THREE.Group();scene.add(root);
+const roomMeshes=[],wallMeshes=[],labelSprites=[];
+const SCALE=.04,OX=0,OZ=0,H=3.5;
+function X(px){return (px-8)*SCALE} function Z(py){return (py-62)*SCALE}
+function box(parent,w,h,d,x,y,z,material,cast=true,receive=true){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=cast;m.receiveShadow=receive;parent.add(m);return m}
+function plane(parent,w,d,x,y,z,material){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),material);m.rotation.x=-Math.PI/2;m.position.set(x,y,z);m.receiveShadow=true;parent.add(m);return m}
+function wall(x1,z1,x2,z2,height=H,thick=.13,material=wallMat){
+ const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz);if(len<.05)return;
+ const m=box(root,len,height,thick,(x1+x2)/2,height/2,(z1+z2)/2,material);
+ m.rotation.y=-Math.atan2(dz,dx);wallMeshes.push(m);return m;
+}
+function label(text,x,z){
+ const c=document.createElement('canvas');c.width=512;c.height=128;const ctx=c.getContext('2d');
+ ctx.fillStyle='rgba(255,255,255,.88)';roundRect(ctx,8,8,496,112,20);ctx.fill();
+ ctx.strokeStyle='rgba(32,65,91,.18)';ctx.lineWidth=3;ctx.stroke();
+ ctx.fillStyle='#17344e';ctx.font='bold 36px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,256,66,470);
+ const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));s.position.set(x,4.05,z);s.scale.set(3.1,.78,1);root.add(s);labelSprites.push(s);return s;
+}
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function furniture(type,cx,cz,w,d){
+ const g=new THREE.Group();root.add(g);
+ const desk=(x,z,ww=.9,dd=.52)=>{box(g,ww,.09,dd,x,.82,z,woodMat);for(const sx of [-ww*.42,ww*.42])for(const sz of [-dd*.36,dd*.36])box(g,.045,.78,.045,x+sx,.39,z+sz,metalMat)};
+ const chair=(x,z)=>{box(g,.48,.07,.45,x,.48,z,woodMat);box(g,.48,.48,.07,x,.76,z-.19,woodMat);for(const sx of [-.19,.19])for(const sz of [-.16,.16])box(g,.035,.46,.035,x+sx,.23,z+sz,metalMat)};
+ if(type==='class'){
+  const cols=Math.max(2,Math.min(4,Math.floor(w/1.45))),rows=Math.max(2,Math.min(3,Math.floor(d/1.65)));
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){const x=cx+(c-(cols-1)/2)*Math.min(1.35,(w-1)/cols),z=cz+(r-(rows-1)/2)*Math.min(1.35,(d-1)/rows);desk(x,z,.85,.5);chair(x,z+.48)}
+  box(g,Math.min(2.1,w*.65),1.05,.09,cx,.95,cz-d*.38,boardMat);
+ }else if(type==='office'){
+  desk(cx,cz,.0+Math.min(1.5,w*.48),.72);chair(cx,cz+.8);
+  for(let i=0;i<2;i++)box(g,.65,1.55,.38,cx-w*.3+i*.72,.78,cz+d*.25,woodMat);
+ }else if(type==='canteen'){
+  for(let i=0;i<2;i++){desk(cx,cz+(i-.5)*1.15,Math.min(1.65,w*.55),.55);chair(cx-.65,cz+(i-.5)*1.15+.55);chair(cx+.65,cz+(i-.5)*1.15+.55)}
+ }else if(type==='kitchen'){
+  box(g,Math.min(w*.75,2.2),.95,.65,cx,.48,cz-d*.25,whiteMat);
+  box(g,.75,.95,.7,cx-w*.25,.48,cz+d*.2,metalMat);
+ }else if(type==='toilet'){
+  for(let i=0;i<2;i++){box(g,.42,.42,.58,cx+(i-.5)*.7,.22,cz,whiteMat);box(g,.48,1.15,.07,cx+(i-.5)*.7,.57,cz-.48,whiteMat)}
+ }else if(type==='medical'){
+  box(g,1.45,.48,.72,cx,.42,cz,whiteMat);box(g,.18,.12,.76,cx,.72,cz,mat(0xffffff));
+  box(g,.5,.9,.45,cx+w*.28,.45,cz+d*.22,woodMat);
+ }else{
+  for(let i=0;i<2;i++)box(g,Math.min(1.5,w*.6),.95,.42,cx+(i-.5)*Math.min(1.1,w*.5),.48,cz,woodMat);
+ }
+ return g;
+}
+const rooms=[
+{name:'Ruang 112',x1:8,y1:62,x2:96,y2:178,type:'class'},
+{name:'Ruang 111',x1:8,y1:178,x2:96,y2:327,type:'class'},
+{name:'Ruang 110',x1:8,y1:327,x2:96,y2:469,type:'class'},
+{name:'Ruang 113',x1:96,y1:62,x2:214,y2:144,type:'class'},
+{name:'Ruang 114',x1:214,y1:62,x2:310,y2:144,type:'class'},
+{name:'Ruang 115',x1:310,y1:62,x2:460,y2:144,type:'class'},
+{name:'Tempat Wudu',x1:460,y1:62,x2:500,y2:144,type:'facility'},
+{name:'Ruang Kristen',x1:500,y1:62,x2:528,y2:144,type:'facility'},
+{name:'Toilet Cewe',x1:528,y1:62,x2:593,y2:144,type:'toilet'},
+{name:'Toilet Cowo',x1:593,y1:62,x2:655,y2:144,type:'toilet'},
+{name:'Dapur',x1:728,y1:62,x2:911,y2:147,type:'kitchen'},
+{name:'Kedai 109',x1:144,y1:186,x2:200,y2:254,type:'canteen'},
+{name:'Ruang 108',x1:200,y1:186,x2:274,y2:254,type:'class'},
+{name:'Ruang 107',x1:274,y1:186,x2:347,y2:254,type:'class'},
+{name:'Ruang 106',x1:347,y1:186,x2:423,y2:254,type:'class'},
+{name:'Ruang 105',x1:423,y1:186,x2:500,y2:254,type:'class'},
+{name:'Kepala Sekolah 104',x1:500,y1:186,x2:564,y2:254,type:'office'},
+{name:'Multimedia 103',x1:564,y1:186,x2:652,y2:254,type:'office'},
+{name:'Ruang Admin 102',x1:564,y1:274,x2:652,y2:310,type:'office'},
+{name:'Ruang Guru 101',x1:564,y1:310,x2:652,y2:469,type:'office'},
+{name:'UKS',x1:728,y1:147,x2:821,y2:206,type:'medical'},
+{name:'Ruang 119',x1:728,y1:206,x2:821,y2:277,type:'class'},
+{name:'Ruang 120',x1:728,y1:277,x2:821,y2:387,type:'class'},
+{name:'Ruang 121',x1:728,y1:387,x2:821,y2:469,type:'class'},
+{name:'Ruang 122 SBK',x1:922,y1:135,x2:1058,y2:280,type:'class'}
+];
+const descriptions={class:'Ruang belajar/aktivitas. Detail perabot dan fungsi dapat disesuaikan dengan kondisi aktual sekolah.',office:'Area kerja dan administrasi. Furnitur pada model merupakan ilustrasi awal.',canteen:'Area kedai sekolah. Tata letak meja dan kursi masih berupa contoh.',kitchen:'Area dapur sekolah. Peralatan pada model merupakan ilustrasi awal.',toilet:'Fasilitas sanitasi. Detail perlengkapan dapat disesuaikan setelah verifikasi lapangan.',medical:'Ruang UKS. Model awal menampilkan tempat tidur dan lemari fasilitas.',facility:'Ruang/fasilitas khusus sesuai penamaan pada denah.'};
+// Building ground and base
+const minX=X(8),maxX=X(911),minZ=Z(62),maxZ=Z(469),W=maxX-minX,D=maxZ-minZ,cx=(minX+maxX)/2,cz=(minZ+maxZ)/2;
+plane(root,W+1.2,D+1.2,cx,-.16,cz,mat(0xbfc8cf));
+plane(root,W,D,cx,-.015,cz,floorMat);
+// corridors and central open zones are the remaining floor surface; all rooms overlay with subtle floor colors
+for(const r of rooms){
+ const x1=X(r.x1),x2=X(r.x2),z1=Z(r.y1),z2=Z(r.y2),rw=x2-x1,rd=z2-z1,rx=(x1+x2)/2,rz=(z1+z2)/2;
+ const color=(r.type==='class'||r.type==='office')?0xdce7df:(r.type==='toilet'||r.type==='kitchen'||r.type==='medical')?0xeee2cc:0xe7e5dc;
+ const rm=plane(root,rw-.04,rd-.04,rx,.012,rz,mat(color));rm.userData.room=r;roomMeshes.push(rm);
+ // room boundary walls (all sides in prototype; openings/door positions are intentionally simplified)
+ wall(x1,z1,x2,z1);wall(x2,z1,x2,z2);wall(x2,z2,x1,z2);wall(x1,z2,x1,z1);
+ const fw=Math.max(.6,rw-.8),fd=Math.max(.6,rd-.8);
+ furniture(r.type,rx,rz,fw,fd);
+ label(r.name,rx,rz);
+}
+// Outer perimeter emphasis and corridor floor
+// detached SBK room sits to the right of main building
+const sbk=rooms.find(r=>r.name==='Ruang 122 SBK');
+const bx1=X(sbk.x1),bx2=X(sbk.x2),bz1=Z(sbk.y1),bz2=Z(sbk.y2);
+plane(root,bx2-bx1,bz2-bz1,(bx1+bx2)/2,.012,(bz1+bz2)/2,mat(0xdce7df));
+wall(bx1,bz1,bx2,bz1);wall(bx2,bz1,bx2,bz2);wall(bx2,bz2,bx1,bz2);wall(bx1,bz2,bx1,bz1);
+// Add visible windows on perimeter sections as blue inset panels
+function windowPanel(x,z,w,h,rot=0){const m=box(root,w,h,.035,x,1.85,z,glassMat,false);m.rotation.y=rot}
+windowPanel(X(50),Z(62),1.5,1.05,0);windowPanel(X(145),Z(62),1.8,1.05,0);windowPanel(X(865),Z(62),1.7,1.05,0);
+windowPanel(X(8),Z(250),1.5,1.05,Math.PI/2);windowPanel(X(8),Z(390),1.5,1.05,Math.PI/2);
+windowPanel(X(821),Z(245),1.5,1.05,Math.PI/2);
+// corridor floor hints, subtle tiled grid
+const grid=new THREE.GridHelper(48,48,0xb5c0c9,0xd2d9df);grid.position.set(cx,-.145,cz);grid.material.transparent=true;grid.material.opacity=.24;root.add(grid);
+// selection highlight
+const highlight=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({color:0x48a9ee,transparent:true,opacity:.32,side:THREE.DoubleSide,depthWrite:false}));highlight.rotation.x=-Math.PI/2;highlight.position.y=.055;highlight.visible=false;root.add(highlight);
+let selected=null;
+function selectRoom(r){
+ selected=r;const m=roomMeshes.find(x=>x.userData.room===r);
+ if(m){highlight.geometry.dispose();highlight.geometry=new THREE.PlaneGeometry((X(r.x2)-X(r.x1))-.12,(Z(r.y2)-Z(r.y1))-.12);highlight.position.set((X(r.x1)+X(r.x2))/2,.055,(Z(r.y1)+Z(r.y2))/2);highlight.visible=true;}
+ document.getElementById('roomTitle').textContent=r.name;
+ document.getElementById('roomDesc').textContent=descriptions[r.type]||'Informasi ruangan.';
+ document.getElementById('roomArea').textContent='Lantai 1 · '+r.type;
+ document.querySelectorAll('.room-btn').forEach(b=>b.classList.toggle('selected',b.dataset.name===r.name));
+}
+const list=document.getElementById('roomList');
+function renderList(filter=''){list.innerHTML='';rooms.filter(r=>r.name.toLowerCase().includes(filter.toLowerCase())).forEach(r=>{const b=document.createElement('button');b.className='room-btn'+(selected===r?' selected':'');b.textContent=r.name;b.dataset.name=r.name;b.onclick=()=>{selectRoom(r);controls.target.set((X(r.x1)+X(r.x2))/2,0,(Z(r.y1)+Z(r.y2))/2)};list.appendChild(b)})}
+renderList();document.getElementById('search').addEventListener('input',e=>renderList(e.target.value));
+const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
+renderer.domElement.addEventListener('click',e=>{const rect=renderer.domElement.getBoundingClientRect();pointer.x=((e.clientX-rect.left)/rect.width)*2-1;pointer.y=-((e.clientY-rect.top)/rect.height)*2+1;raycaster.setFromCamera(pointer,camera);const hits=raycaster.intersectObjects(roomMeshes,false);if(hits.length)selectRoom(hits[0].object.userData.room)});
+document.getElementById('reset').onclick=()=>{camera.position.set(25,27,31);controls.target.set(18,0,8);controls.update()};
+let showWalls=true,showLabels=true,cut=false;
+document.getElementById('walls').onclick=e=>{showWalls=!showWalls;wallMeshes.forEach(m=>m.visible=showWalls);e.currentTarget.classList.toggle('active',showWalls)};
+document.getElementById('labels').onclick=e=>{showLabels=!showLabels;labelSprites.forEach(s=>s.visible=showLabels);e.currentTarget.classList.toggle('active',showLabels)};
+document.getElementById('explode').onclick=e=>{cut=!cut;wallMeshes.forEach(m=>m.position.y=cut?m.position.y-.7:m.position.y+.7);e.currentTarget.classList.toggle('active',cut);e.currentTarget.textContent=cut?'Pulihkan dinding':'Potong atap'};
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+document.getElementById('loading').style.display='none';
+function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
+</script>
+</body></html>
