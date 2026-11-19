@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#09264a">
+<title>Tur 3D — Sekolah Indonesia Bangkok</title>
+<style>
+:root{
+  --navy:#09264a;--blue:#1267b2;--sky:#48a9ee;--gold:#e8b85c;--ink:#14283d;--muted:#5f7387;
+  --glass:rgba(255,255,255,.82);--glass-b:rgba(255,255,255,.55);--line:rgba(20,40,61,.12);
+  --shadow:0 10px 34px rgba(9,38,74,.18);--r:16px;
+}
+body.night{--glass:rgba(13,28,48,.80);--glass-b:rgba(255,255,255,.08);--line:rgba(255,255,255,.14);--ink:#e8f0f8;--muted:#9db2c6}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:#dbe9f4}
+#scene{position:fixed;inset:0;touch-action:none}
+#scene canvas{display:block;outline:none}
+button{font:inherit;color:inherit;cursor:pointer}
+.glass{background:var(--glass);backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);border:1px solid var(--glass-b);box-shadow:var(--shadow);border-radius:var(--r)}
+/* bar atas */
+#top{position:fixed;z-index:20;top:max(12px,env(safe-area-inset-top));left:12px;right:12px;display:flex;gap:10px;align-items:flex-start;pointer-events:none}
+#brand{pointer-events:auto;display:flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;flex:none}
+#brand .lg{width:38px;height:38px;border-radius:11px;background:linear-gradient(145deg,#0b3768,#1687ce);display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px;letter-spacing:-.5px}
+#brand b{display:block;font-size:13.5px;line-height:1.15}#brand small{font-size:10.5px;color:var(--muted)}
+#tools{pointer-events:auto;display:flex;gap:6px;overflow-x:auto;padding:6px;margin-left:auto;max-width:100%;scrollbar-width:none}
+#tools::-webkit-scrollbar{display:none}
+.tb{flex:none;border:1px solid transparent;background:transparent;padding:8px 11px;border-radius:11px;font-size:12px;font-weight:650;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.tb:hover{background:rgba(18,103,178,.1)}
+.tb.on{background:var(--blue);color:#fff}
+.tb.primary{background:linear-gradient(135deg,#0d5c9e,#1687ce);color:#fff}
+.tb:focus-visible,.chip:focus-visible,.room:focus-visible,.btn:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+/* panel daftar */
+#listPanel{position:fixed;z-index:15;left:12px;top:78px;bottom:12px;width:268px;display:flex;flex-direction:column;padding:14px;transition:transform .28s ease}
+#listPanel h2{margin:0 0 4px;font-size:13px;letter-spacing:.4px}
+#listPanel .hint{margin:0 0 10px;font-size:11px;color:var(--muted);line-height:1.5}
+#q{width:100%;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.6);font:inherit;font-size:12.5px;color:#14283d;outline:none}
+body.night #q{background:rgba(255,255,255,.08);color:#e8f0f8}
+#q:focus{border-color:var(--sky)}
+#chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:650}
+.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+#rooms{overflow:auto;display:grid;gap:5px;align-content:start;flex:1;padding-right:2px}
+.room{display:flex;align-items:center;gap:9px;text-align:left;width:100%;border:1px solid transparent;background:transparent;padding:8px 9px;border-radius:10px;font-size:12px}
+.room:hover{background:rgba(18,103,178,.09)}
+.room.sel{background:rgba(72,169,238,.2);border-color:var(--sky)}
+.room i{width:9px;height:9px;border-radius:50%;flex:none;background:var(--c,#9ab)}
+.room span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.room em{font-style:normal;font-size:10px;color:var(--muted)}
+#legend{display:none;gap:10px;flex-wrap:wrap;font-size:10.5px;color:var(--muted);padding-top:10px;border-top:1px solid var(--line);margin-top:8px}
+#legend.show{display:flex}
+#legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+/* panel info */
+#info{position:fixed;z-index:15;right:12px;top:78px;width:300px;padding:16px;transition:transform .28s ease}
+#info .eb{font-size:9.5px;text-transform:uppercase;letter-spacing:1.3px;color:var(--blue);font-weight:800}
+body.night #info .eb{color:var(--sky)}
+#info h2{margin:5px 0 6px;font-size:20px;line-height:1.2}
+#info p{margin:0 0 12px;font-size:12px;line-height:1.65;color:var(--muted)}
+.facs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.fac{font-size:10.5px;padding:4px 9px;border-radius:999px;background:rgba(232,184,92,.22);border:1px solid rgba(232,184,92,.5)}
+.stat{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:11.5px}
+.stat b{font-weight:700}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.btn{border:1px solid var(--line);background:rgba(255,255,255,.55);padding:10px;border-radius:11px;font-size:12px;font-weight:700}
+body.night .btn{background:rgba(255,255,255,.08)}
+.btn.pri{background:linear-gradient(135deg,#0d5c9e,#1687ce);color:#fff;border-color:transparent}
+.btn.wide{grid-column:1/-1}
+.note{font-size:10px!important;margin:10px 0 0!important;opacity:.85}
+/* kartu tur */
+#tour{position:fixed;z-index:18;left:50%;bottom:16px;transform:translateX(-50%);width:min(560px,calc(100% - 24px));padding:14px 16px;display:none}
+#tour.show{display:block}
+#tour .st{font-size:10px;font-weight:800;letter-spacing:1.2px;color:var(--blue);text-transform:uppercase}
+body.night #tour .st{color:var(--sky)}
+#tour h3{margin:3px 0 4px;font-size:17px}
+#tour p{margin:0 0 10px;font-size:12.5px;line-height:1.6;color:var(--muted)}
+#tour .row{display:flex;align-items:center;gap:8px}
+#bar{flex:1;height:5px;border-radius:5px;background:var(--line);overflow:hidden}
+#bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--gold));transition:width .4s}
+.sq{width:38px;height:38px;border-radius:50%;padding:0;display:grid;place-items:center;font-size:14px}
+/* minimap */
+#mini{position:fixed;z-index:14;left:292px;bottom:12px;padding:8px;width:236px}
+#mini canvas{display:block;width:100%;border-radius:10px;cursor:pointer}
+#mini small{display:block;font-size:10px;color:var(--muted);margin-top:5px;text-align:center}
+/* walk */
+#walkHud{position:fixed;z-index:19;left:50%;top:78px;transform:translateX(-50%);padding:8px 14px;font-size:12px;font-weight:600;display:none;text-align:center}
+#joy{position:fixed;z-index:19;left:24px;bottom:34px;width:118px;height:118px;border-radius:50%;display:none;touch-action:none}
+#joy i{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:var(--blue);opacity:.85;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+body.walk #walkHud{display:block}
+body.walk.touch #joy{display:block}
+body.walk #listPanel,body.walk #info{display:none}
+body.walk #mini{left:auto;right:12px;bottom:auto;top:78px;width:180px}
+body.walk #tour{display:none!important}
+/* fade, bantuan, loading */
+#fade{position:fixed;inset:0;z-index:40;background:#000;opacity:0;pointer-events:none;transition:opacity .25s}
+#fade.on{opacity:1}
+#help{position:fixed;inset:0;z-index:45;background:rgba(9,38,74,.45);display:none;place-items:center;padding:16px}
+#help.show{display:grid}
+#help .box{max-width:460px;width:100%;padding:20px;max-height:90vh;overflow:auto}
+#help h2{margin:0 0 10px;font-size:18px}#help li{margin:6px 0;font-size:12.5px;line-height:1.55}
+#help ul{padding-left:18px;margin:0 0 14px}
+kbd{background:rgba(18,103,178,.12);border-radius:5px;padding:1px 6px;font-size:11px;font-family:inherit;font-weight:700}
+#loading{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:linear-gradient(160deg,#eaf3fa,#cfe0ee);text-align:center;padding:24px}
+#loading .in{max-width:380px}
+#loading .lg{width:56px;height:56px;margin:0 auto 14px;border-radius:16px;background:linear-gradient(145deg,#0b3768,#1687ce);display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px}
+#loading b{font-size:16px;color:#09264a}#loading p{font-size:12.5px;color:#4a6176;line-height:1.6;margin:8px 0 0}
+#loading .sp{width:30px;height:30px;border-radius:50%;border:3px solid #b9d0e3;border-top-color:#1267b2;margin:16px auto 0;animation:spin 1s linear infinite}
+#loading.err .sp{display:none}#loading.err b{color:#a4262c}
+@keyframes spin{to{transform:rotate(360deg)}}
+#toast{position:fixed;z-index:60;left:50%;bottom:84px;transform:translateX(-50%) translateY(20px);background:#09264a;color:#fff;padding:9px 16px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;transition:.25s}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* editor tata ruangan (admin) */
+#editor{position:fixed;z-index:22;right:12px;top:78px;width:310px;max-height:calc(100% - 92px);overflow:auto;padding:14px;display:none}
+body.edit #editor{display:block}
+body.edit #listPanel,body.edit #info,body.edit #mini,body.edit #tour,body.edit #tools,body.edit #walkHud{display:none!important}
+#editor .eh{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+#editor .eb{font-size:9.5px;text-transform:uppercase;letter-spacing:1.3px;color:var(--blue);font-weight:800}
+#editor b#edTitle{font-size:16px}
+#editor .es{font-size:11px;color:var(--muted);line-height:1.5;margin:6px 0}
+#editor h4{margin:10px 0 5px;font-size:10.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+#editor .cg{display:flex;flex-wrap:wrap;gap:5px}
+#editor .cg button{border:1px solid var(--line);background:rgba(255,255,255,.6);border-radius:999px;padding:5px 9px;font-size:11px;font-weight:650}
+#editor .cg button:hover{background:rgba(18,103,178,.12)}
+#editor .er{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
+#editor .er .btn{padding:8px 6px;font-size:11.5px}
+#editor .btn:disabled{opacity:.4;cursor:default}
+#editor .ar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0}
+#editor .ar label{font-size:10.5px;color:var(--muted);display:grid;gap:3px}
+#editor .ar input,#editor .ar select{width:100%;padding:6px;border:1px solid var(--line);border-radius:8px;font:inherit;font-size:12px;background:rgba(255,255,255,.7);color:#14283d}
+#editor .ck{display:flex;gap:6px;align-items:center;font-size:11.5px;margin:4px 0 8px}
+body.edit #scene{cursor:grab}
+@media (max-width:860px){
+  #editor{top:auto;bottom:8px;left:8px;right:8px;width:auto;max-height:44%;padding:10px}
+}
+#menuBtn{display:none}
+@media (max-width:860px){
+  #brand small{display:none}
+  #brand{padding:6px 10px 6px 6px}#brand b{font-size:12px}#brand .lg{width:32px;height:32px}
+  #top{flex-wrap:wrap}
+  #tools{margin-left:0;width:100%}
+  #menuBtn{display:flex}
+  #listPanel{top:122px;bottom:auto;max-height:calc(100% - 300px);width:calc(100% - 24px);transform:translateX(-120%)}
+  #listPanel.open{transform:none}
+  #info{top:auto;bottom:12px;right:12px;left:12px;width:auto;max-height:46%;overflow:auto;padding:14px}
+  #info h2{font-size:17px}
+  body.touring #info{display:none}
+  #mini{display:none}
+  body.walk #mini{display:block;width:120px;top:116px}
+  #tour{bottom:12px}
+  #toast{bottom:150px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="scene"></div>
+
+<div id="loading"><div class="in"><div class="lg">SIB</div><b id="loadTitle">Membangun tur 3D…</b><p id="loadMsg">Memuat Three.js dan menyusun ruangan berdasarkan denah lantai 1.</p><div class="sp"></div></div></div>
+
+<aside id="editor" class="glass" aria-label="Editor tata ruangan"></aside>
+
+<div id="top">
+  <div id="brand" class="glass"><div class="lg">SIB</div><div><b>Tur 3D Sekolah Indonesia Bangkok</b><small>Jelajahi gedung dan ruang kelas secara virtual</small></div></div>
+  <div id="tools" class="glass">
+    <button class="tb" id="menuBtn" aria-label="Daftar ruangan">☰ Ruangan</button>
+    <button class="tb primary" id="tourBtn">▶ Tur Terpandu</button>
+    <button class="tb" id="walkBtn">🚶 Jalan</button>
+    <button class="tb" id="homeBtn">↺ Tampilan awal</button>
+    <button class="tb on" id="labelBtn">Label</button>
+    <button class="tb on" id="wallBtn">Dinding</button>
+    <button class="tb" id="roofBtn">Atap</button>
+    <button class="tb" id="cutBtn">Potongan</button>
+    <button class="tb" id="nightBtn">🌙 Malam</button>
+    <button class="tb" id="lowBtn">Grafis hemat</button>
+    <button class="tb" id="fsBtn">⛶</button>
+    <button class="tb" id="helpBtn">?</button>
+  </div>
+</div>
+
+<aside id="listPanel" class="glass">
+  <h2>JELAJAHI RUANGAN</h2>
+  <p class="hint">Pilih ruangan di daftar atau klik langsung pada model 3D.</p>
+  <input id="q" type="search" placeholder="Cari ruangan…" autocomplete="off" aria-label="Cari ruangan">
+  <div id="chips"></div>
+  <div id="rooms"></div>
+  <div id="legend"><span><i style="background:#6cc49a"></i>Kondisi baik</span><span><i style="background:#f0a24a"></i>Perlu perhatian</span></div>
+</aside>
+
+<aside id="info" class="glass">
+  <div class="eb" id="iCat">Informasi ruangan</div>
+  <h2 id="iName">Selamat datang</h2>
+  <p id="iDesc">Pilih ruangan pada model atau daftar untuk melihat informasinya. Coba <b>Tur Terpandu</b> untuk diajak berkeliling, atau <b>Jalan</b> untuk menjelajah sendiri seperti di dalam gedung.</p>
+  <div class="facs" id="iFac"></div>
+  <div class="stat"><span>Perkiraan luas</span><b id="iArea">—</b></div>
+  <div class="stat"><span>Lokasi</span><b id="iLoc">Lantai 1</b></div>
+  <div class="acts" id="iActs" style="display:none">
+    <button class="btn pri wide" id="enterBtn">🚪 Masuk ruangan</button>
+    <button class="btn" id="topBtn">Lihat dari atas</button>
+    <button class="btn" id="shareBtn">🔗 Salin tautan</button>
+  </div>
+  <p class="note">Model ini prototipe: ukuran masih proporsional dari denah, dan posisi pintu diperkirakan.</p>
+</aside>
+
+<div id="tour" class="glass" role="dialog" aria-label="Tur terpandu">
+  <div class="st" id="tStep">Tur 1 / 1</div>
+  <h3 id="tTitle"></h3><p id="tText"></p>
+  <div class="row">
+    <button class="btn sq" id="tPrev" aria-label="Sebelumnya">◀</button>
+    <button class="btn sq pri" id="tPlay" aria-label="Putar atau jeda">⏸</button>
+    <button class="btn sq" id="tNext" aria-label="Berikutnya">▶</button>
+    <div id="bar"><i></i></div>
+    <button class="btn" id="tClose">Selesai</button>
+  </div>
+</div>
+
+<div id="mini" class="glass"><canvas id="miniC" width="440" height="180"></canvas><small id="miniS">Klik peta untuk memilih ruangan</small></div>
+<div id="walkHud" class="glass">Mode jalan · <kbd>W A S D</kbd> / panah: bergerak · seret layar: menoleh · <kbd>Esc</kbd>: keluar <button class="tb" id="exitWalk" style="display:inline-flex;margin-left:6px">Keluar</button></div>
+<div id="joy" class="glass" aria-label="Joystick"><i></i></div>
+
+<div id="help"><div class="box glass">
+  <h2>Cara menjelajah</h2>
+  <ul>
+    <li><b>Putar</b>: seret dengan mouse / satu jari. <b>Zoom</b>: scroll / cubit dua jari. <b>Geser</b>: klik kanan / dua jari.</li>
+    <li><b>Tur Terpandu</b>: kamera berpindah otomatis dari satu area ke area berikutnya, lengkap dengan penjelasan.</li>
+    <li><b>Jalan</b>: berjalan di dalam gedung. Di komputer pakai <kbd>W A S D</kbd> atau panah (tahan <kbd>Shift</kbd> untuk cepat), seret mouse untuk menoleh. Di HP pakai joystick di kiri bawah dan seret layar untuk menoleh.</li>
+    <li>Pilih ruangan lalu tekan <b>Masuk ruangan</b> untuk berdiri tepat di pintunya.</li>
+    <li><b>Potongan</b> merendahkan dinding agar tata ruang terlihat. <b>Atap</b> menampilkan atap bangunan.</li>
+    <li>Layar terasa berat? Aktifkan <b>Grafis hemat</b>.</li>
+  </ul>
+  <button class="btn pri" id="helpClose" style="width:100%">Mulai menjelajah</button>
+</div></div>
+<div id="fade"></div>
+<div id="toast" role="status"></div>
+
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+/* =====================================================================
+   TUR 3D SIB — Tahap 1 (berdiri sendiri, tanpa Firebase, aman untuk umum)
+   ---------------------------------------------------------------------
+   Mengubah isi ruangan: edit daftar ROOMS di bawah (name, desc, facs).
+   Mengubah isi Tur Terpandu: edit daftar TOUR.
+   Koordinat x1,y1,x2,y2 memakai piksel gambar denah lantai 1.
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+
+const ROOMS = [
+ {id:'R112',name:'Ruang 112',x1:8,y1:62,x2:96,y2:178,type:'class',desc:'Ruang belajar di sisi barat bangunan utama, berada di ujung koridor.',facs:['Papan tulis','Meja & kursi siswa']},
+ {id:'R111',name:'Ruang 111',x1:8,y1:178,x2:96,y2:327,type:'class',desc:'Ruang belajar yang luas di sisi barat bangunan.',facs:['Papan tulis','Meja & kursi siswa']},
+ {id:'R110',name:'Ruang 110',x1:8,y1:327,x2:96,y2:469,type:'class',desc:'Ruang belajar di sudut barat daya bangunan.',facs:['Papan tulis','Meja & kursi siswa']},
+ {id:'R113',name:'Ruang 113',x1:96,y1:62,x2:214,y2:144,type:'class',desc:'Ruang belajar di deretan utara.',facs:['Papan tulis','Meja & kursi siswa']},
+ {id:'R114',name:'Ruang 114',x1:214,y1:62,x2:310,y2:144,type:'class',desc:'Ruang belajar di deretan utara.',facs:['Papan tulis','Meja & kursi siswa']},
+ {id:'R115',name:'Ruang 115',x1:310,y1:62,x2:460,y2:144,type:'class',desc:'Ruang belajar terluas di deretan utara.',facs:['Papan tulis','Meja & kursi siswa']},
+ {id:'WUDU',name:'Tempat Wudu',x1:460,y1:62,x2:500,y2:144,type:'facility',desc:'Tempat berwudu untuk kegiatan ibadah.',facs:['Keran wudu']},
+ {id:'KRISTEN',name:'Ruang Kristen',x1:500,y1:62,x2:528,y2:144,type:'facility',desc:'Ruang kegiatan keagamaan Kristen.',facs:['Ruang ibadah']},
+ {id:'TOILET-PUTRI',name:'Toilet Putri',x1:528,y1:62,x2:593,y2:144,type:'toilet',desc:'Fasilitas sanitasi putri.',facs:['Toilet','Wastafel']},
+ {id:'TOILET-PUTRA',name:'Toilet Putra',x1:593,y1:62,x2:655,y2:144,type:'toilet',desc:'Fasilitas sanitasi putra.',facs:['Toilet','Wastafel']},
+ {id:'DAPUR',name:'Dapur',x1:728,y1:62,x2:911,y2:147,type:'kitchen',desc:'Dapur sekolah untuk menyiapkan makanan kegiatan.',facs:['Meja dapur','Peralatan masak']},
+ {id:'R109',name:'Kedai 109',x1:144,y1:186,x2:200,y2:254,type:'canteen',desc:'Kedai sekolah tempat siswa membeli makanan dan minuman ringan.',facs:['Meja makan','Kursi']},
+ {id:'R108',name:'Ruang 108',x1:200,y1:186,x2:274,y2:254,type:'class',desc:'Ruang belajar di deretan tengah.',facs:['Papan tulis','Meja & kursi siswa']},
+ {id:'R107',name:'Ruang 107',x1:274,y1:186,x2:347,y2:254,type:'class',desc:'Ruang belajar di deretan tengah.',facs:['Papan tulis','Meja & kursi siswa']},
+ {id:'R106',name:'Ruang 106',x1:347,y1:186,x2:423,y2:254,type:'class',desc:'Ruang belajar di deretan tengah.',facs:['Papan tulis','Meja & kursi siswa']},
+ {id:'R105',name:'Ruang 105',x1:423,y1:186,x2:500,y2:254,type:'class',desc:'Ruang belajar di deretan tengah.',facs:['Papan tulis','Meja & kursi siswa']},
+ {id:'R104',name:'Kepala Sekolah 104',x1:500,y1:186,x2:564,y2:254,type:'office',desc:'Ruang kerja Kepala Sekolah.',facs:['Meja kerja','Lemari arsip']},
+ {id:'R103',name:'Multimedia 103',x1:564,y1:186,x2:652,y2:254,type:'office',desc:'Ruang multimedia untuk kegiatan digital dan dokumentasi sekolah.',facs:['Perangkat multimedia']},
+ {id:'R102',name:'Ruang Admin 102',x1:564,y1:274,x2:652,y2:310,type:'office',desc:'Ruang tata usaha dan layanan administrasi sekolah.',facs:['Meja layanan','Lemari arsip']},
+ {id:'R101',name:'Ruang Guru 101',x1:564,y1:310,x2:652,y2:469,type:'office',desc:'Ruang kerja guru dan staf.',facs:['Meja guru','Lemari arsip']},
+ {id:'UKS',name:'UKS',x1:728,y1:147,x2:821,y2:206,type:'medical',desc:'Unit Kesehatan Sekolah untuk pertolongan pertama dan istirahat siswa yang kurang sehat.',facs:['Tempat tidur','Lemari obat']},
+ {id:'R119',name:'Ruang 119',x1:728,y1:206,x2:821,y2:277,type:'class',desc:'Ruang belajar di sisi timur.',facs:['Papan tulis','Meja & kursi siswa']},
+ {id:'R120',name:'Ruang 120',x1:728,y1:277,x2:821,y2:387,type:'class',desc:'Ruang belajar di sisi timur.',facs:['Papan tulis','Meja & kursi siswa']},
+ {id:'R121',name:'Ruang 121',x1:728,y1:387,x2:821,y2:469,type:'class',desc:'Ruang belajar di sudut tenggara.',facs:['Papan tulis','Meja & kursi siswa']},
+ {id:'R122',name:'Ruang 122 SBK',x1:922,y1:135,x2:1058,y2:280,type:'class',desc:'Ruang Seni Budaya dan Keterampilan (SBK) yang berdiri terpisah di sebelah timur bangunan utama.',facs:['Meja kerja seni','Rak karya']}
+];
+const TYPE_LABEL = {class:'Ruang belajar',office:'Kantor & layanan',canteen:'Fasilitas',kitchen:'Fasilitas',toilet:'Fasilitas',medical:'Layanan kesehatan',facility:'Fasilitas'};
+const TYPE_GROUP = {class:'Ruang belajar',office:'Kantor',canteen:'Fasilitas',kitchen:'Fasilitas',toilet:'Fasilitas',medical:'Fasilitas',facility:'Fasilitas'};
+const TYPE_COLOR = {class:'#4f9d6b',office:'#1267b2',canteen:'#d99a2b',kitchen:'#d99a2b',toilet:'#8a7fc7',medical:'#d6566b',facility:'#8a7fc7'};
+
+const TOUR = [
+ {title:'Selamat datang di SIB',text:'Inilah bangunan lantai 1 Sekolah Indonesia Bangkok dari atas. Ikuti tur singkat ini; kamu bisa berhenti, mundur, atau memutar sendiri kapan saja.',rooms:null},
+ {title:'Pusat layanan',text:'Di sisi tengah-timur terdapat Ruang Guru, Ruang Admin, Multimedia, dan ruang Kepala Sekolah — tempat guru bekerja dan orang tua dilayani.',rooms:['R101','R102','R103','R104']},
+ {title:'Deretan ruang belajar tengah',text:'Ruang 105 sampai 108 berjajar menghadap koridor, bersebelahan dengan Kedai 109 tempat siswa jajan saat istirahat.',rooms:['R105','R106','R107','R108','R109']},
+ {title:'Sayap barat',text:'Ruang 110, 111, dan 112 menempati sisi barat bangunan sebagai ruang belajar yang luas.',rooms:['R110','R111','R112']},
+ {title:'Deretan utara',text:'Ruang 113, 114, dan 115 berada di sisi utara, dekat tempat wudu dan ruang kegiatan keagamaan.',rooms:['R113','R114','R115','WUDU','KRISTEN']},
+ {title:'Toilet',text:'Toilet putri dan putra berdampingan di sisi utara, mudah dijangkau dari koridor.',rooms:['TOILET-PUTRI','TOILET-PUTRA']},
+ {title:'Dapur dan UKS',text:'Dapur sekolah dan Unit Kesehatan Sekolah (UKS) berada di sisi timur laut.',rooms:['DAPUR','UKS']},
+ {title:'Sayap timur',text:'Ruang 119, 120, dan 121 menjadi ruang belajar di sisi timur bangunan.',rooms:['R119','R120','R121']},
+ {title:'Ruang SBK',text:'Terakhir, Ruang Seni Budaya dan Keterampilan berdiri terpisah di sebelah timur. Selamat menjelajah sendiri!',rooms:['R122']}
+];
+
+/* ------------------------------------------------------------------ */
+const SC=.04, H=3.5, DOOR_W=1.2, DOOR_H=2.3, WT=.13, EYE=1.62, RAD=.3;
+const PX0=8, PY0=62, BX2=911, BY2=469;                      // batas bangunan utama (piksel denah)
+const X=px=>(px-PX0)*SC, Z=py=>(py-PY0)*SC;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const coarse = matchMedia('(pointer: coarse)').matches;
+const DAY = {bg:0xdbe9f4, hemi:2.1, sun:3.1, sunC:0xfff1d8, hSky:0xffffff, hGnd:0x8293a4};
+const NIGHT = {bg:0x0a1a2e, hemi:.7, sun:.35, sunC:0x8fb0ff, hSky:0x7f9cd6, hGnd:0x1d2a3d};
+
+function fail(title,msg,detail){
+  console.error('[Tur3D]',title,detail||'');
+  const l=$('loading'); l.classList.add('err'); l.style.display='grid';
+  $('loadTitle').textContent=title; $('loadMsg').textContent=msg+(detail?'  ('+String(detail.message||detail).slice(0,140)+')':'');
+}
+function webglOK(){try{const c=document.createElement('canvas');return !!(c.getContext('webgl2')||c.getContext('webgl'))}catch(e){return false}}
+function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),2400)}
+
+(async function main(){
+  let THREE, OrbitControls;
+  try{
+    THREE = await import('three');
+    ({OrbitControls} = await import('three/addons/controls/OrbitControls.js'));
+  }catch(e){ return fail('Pustaka 3D tidak dapat dimuat','Periksa koneksi internet lalu muat ulang halaman ini.',e) }
+  if(!webglOK()) return fail('Perangkat tidak mendukung 3D','Browser ini tidak menyediakan WebGL. Coba Chrome, Edge, Safari, atau Firefox terbaru.');
+  try{ build(THREE,OrbitControls) }catch(e){ fail('Terjadi kesalahan saat membangun model','Muat ulang halaman. Jika berulang, hubungi admin sekolah.',e) }
+})();
+
+function build(THREE,OrbitControls){
+  /* ---------- Data turunan ---------- */
+  const byId=new Map();
+  for(const r of ROOMS){
+    r.x1m=X(r.x1);r.x2m=X(r.x2);r.z1m=Z(r.y1);r.z2m=Z(r.y2);
+    r.cx=(r.x1m+r.x2m)/2;r.cz=(r.z1m+r.z2m)/2;r.w=r.x2m-r.x1m;r.d=r.z2m-r.z1m;
+    r.area=Math.round(r.w*r.d);byId.set(r.id,r);
+  }
+  const inRoom=(px,py,pad=0)=>ROOMS.find(r=>px>r.x1-pad&&px<r.x2+pad&&py>r.y1-pad&&py<r.y2+pad);
+  const isFree=(px,py)=>px>PX0&&px<BX2&&py>PY0&&py<BY2&&!inRoom(px,py,1);
+
+  /* Pintu: sisi ruangan yang menghadap area terbuka/koridor */
+  function planDoor(r){
+    const sides={
+      S:{len:r.x2-r.x1,pt:t=>[r.x1+(r.x2-r.x1)*t,r.y2+7],n:[0,-1]},
+      N:{len:r.x2-r.x1,pt:t=>[r.x1+(r.x2-r.x1)*t,r.y1-7],n:[0,1]},
+      E:{len:r.y2-r.y1,pt:t=>[r.x2+7,r.y1+(r.y2-r.y1)*t],n:[-1,0]},
+      W:{len:r.y2-r.y1,pt:t=>[r.x1-7,r.y1+(r.y2-r.y1)*t],n:[1,0]}
+    };
+    let best=null;
+    for(const k of ['S','N','E','W']){
+      const s=sides[k],free=[];
+      for(let i=1;i<=9;i++){const t=i/10,[px,py]=s.pt(t);if(isFree(px,py))free.push(t)}
+      if(free.length&&(!best||free.length>best.free.length))best={k,free};
+    }
+    let k,t;
+    if(best){k=best.k;t=best.free.reduce((a,b)=>a+b,0)/best.free.length}
+    else{k='W';t=.5}                                         // ruang terpisah (SBK): pintu menghadap bangunan utama
+    const lenM=(k==='N'||k==='S'?r.w:r.d);
+    const width=clamp(DOOR_W,.8,lenM-.4);
+    const c=clamp(t*lenM,width/2+.15,lenM-width/2-.15);       // posisi pada sisi (meter dari awal sisi)
+    let wx,wz;
+    if(k==='N'){wx=r.x1m+c;wz=r.z1m}else if(k==='S'){wx=r.x1m+c;wz=r.z2m}
+    else if(k==='W'){wx=r.x1m;wz=r.z1m+c}else{wx=r.x2m;wz=r.z1m+c}
+    const n=sides[k].n;                                       // normal ke dalam ruangan (arah piksel = arah dunia)
+    r.door={side:k,c,width,wx,wz,nx:n[0],nz:n[1]};
+  }
+  ROOMS.forEach(planDoor);
+
+  /* ---------- Renderer, scene, kamera ---------- */
+  let low = coarse || (navigator.hardwareConcurrency||8)<=4 || devicePixelRatio>2.4;
+  const host=$('scene');
+  const scene=new THREE.Scene(); scene.background=new THREE.Color(DAY.bg); scene.fog=new THREE.Fog(DAY.bg,48,110);
+  const camera=new THREE.PerspectiveCamera(37,innerWidth/innerHeight,.1,240);
+  const HOME={pos:new THREE.Vector3(25,27,31),tgt:new THREE.Vector3(18,0,8)};
+  camera.position.copy(HOME.pos);
+  const renderer=new THREE.WebGLRenderer({antialias:!low,powerPreference:'high-performance'});
+  const dpr=()=>Math.min(devicePixelRatio||1,low?1.25:2);
+  renderer.setPixelRatio(dpr());renderer.setSize(innerWidth,innerHeight);
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
+  host.appendChild(renderer.domElement);
+  const controls=new OrbitControls(camera,renderer.domElement);
+  controls.enableDamping=true;controls.dampingFactor=.07;controls.maxPolarAngle=Math.PI/2.05;controls.minDistance=7;controls.maxDistance=75;
+  controls.target.copy(HOME.tgt);controls.update();
+
+  const hemi=new THREE.HemisphereLight(DAY.hSky,DAY.hGnd,DAY.hemi);scene.add(hemi);
+  const sun=new THREE.DirectionalLight(DAY.sunC,DAY.sun);sun.position.set(-12,25,18);sun.castShadow=!low;
+  sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-30;sun.shadow.camera.right=55;sun.shadow.camera.top=35;sun.shadow.camera.bottom=-25;scene.add(sun);
+
+  /* ---------- Util geometri/material (di-cache) ---------- */
+  const gcache=new Map(), mcache=new Map();
+  const boxGeo=(w,h,d)=>{const k=w.toFixed(3)+'_'+h.toFixed(3)+'_'+d.toFixed(3);let g=gcache.get(k);if(!g){g=new THREE.BoxGeometry(w,h,d);gcache.set(k,g)}return g};
+  const mat=(c,rough=.82)=>{const k=c+'_'+rough;let m=mcache.get(k);if(!m){m=new THREE.MeshStandardMaterial({color:c,roughness:rough});mcache.set(k,m)}return m};
+  function box(parent,w,h,d,x,y,z,m,cast=true){const o=new THREE.Mesh(boxGeo(w,h,d),m);o.position.set(x,y,z);o.castShadow=cast;o.receiveShadow=true;parent.add(o);return o}
+  function plane(parent,w,d,x,y,z,m){const o=new THREE.Mesh(new THREE.PlaneGeometry(w,d),m);o.rotation.x=-Math.PI/2;o.position.set(x,y,z);o.receiveShadow=true;parent.add(o);return o}
+  const M={wall:mat(0xf1efe9),outer:mat(0xe6e2d8),wood:mat(0x9b6843),dark:mat(0x64452f),metal:mat(0x687987,.55),white:mat(0xf5f4ef),board:mat(0x315b50),roof:mat(0xd9dee3,.9),
+           trunk:mat(0x6b4b34),leaf:mat(0x5f9460,.9),lintel:mat(0xe8e4da)};
+  const glass=new THREE.MeshStandardMaterial({color:0x9bc8dc,transparent:true,opacity:.45,roughness:.15});
+
+  const root=new THREE.Group();scene.add(root);
+  const wallGroup=new THREE.Group(),roofGroup=new THREE.Group(),labelGroup=new THREE.Group(),furnGroup=new THREE.Group(),hlGroup=new THREE.Group();
+  [wallGroup,roofGroup,labelGroup,furnGroup,hlGroup].forEach(g=>root.add(g));
+  roofGroup.visible=false;
+
+  /* ---------- Lantai, tanah, pohon ---------- */
+  const minX=X(PX0),maxX=X(BX2),minZ=Z(PY0),maxZ=Z(BY2);
+  plane(root,160,160,(minX+maxX)/2,-.03,(minZ+maxZ)/2,mat(0xc7d7ca,1));
+  plane(root,maxX-minX+1.6,maxZ-minZ+1.6,(minX+maxX)/2,-.02,(minZ+maxZ)/2,mat(0xbcc5cc,.95));
+  plane(root,maxX-minX,maxZ-minZ,(minX+maxX)/2,-.005,(minZ+maxZ)/2,mat(0xc9cdd0,.9));
+  const sbk=byId.get('R122');
+  plane(root,sbk.w+1.2,sbk.d+1.2,sbk.cx,-.02,sbk.cz,mat(0xbcc5cc,.95));
+  {
+    const tg=new THREE.CylinderGeometry(.1,.15,1.3,8), lg=new THREE.SphereGeometry(.95,12,10);
+    const tree=(x,z,s=1)=>{const t=new THREE.Mesh(tg,M.trunk);t.position.set(x,.65*s,z);t.scale.set(s,s,s);root.add(t);const l=new THREE.Mesh(lg,M.leaf);l.position.set(x,1.9*s,z);l.scale.set(s,s,s);root.add(l)};
+    for(let x=-1;x<=44;x+=4.2){tree(x,-3.2,.9+((x*7)%3)/10);tree(x+1.5,maxZ+3.4,.8+((x*5)%3)/10)}
+    tree(-3,4,1);tree(-3.4,12,.9);tree(45,13,1);tree(46,0,.95);
+  }
+
+  /* ---------- Dinding (dengan celah pintu), jendela, atap ---------- */
+  const wallRects=[], wallMeshes=[], edgeMap=new Map();
+  const key=(a,b,c,d)=>[a,b,c,d].map(v=>v.toFixed(3)).join('|');
+  function pushRect(x1,z1,x2,z2){wallRects.push({a:Math.min(x1,x2),b:Math.max(x1,x2),c:Math.min(z1,z2),d:Math.max(z1,z2)})}
+  function wallPiece(horizontal,fixed,from,to,y0,y1){            // sepotong dinding dari 'from' ke 'to'
+    const len=to-from; if(len<.02) return;
+    const h=y1-y0, mid=(from+to)/2, y=(y0+y1)/2;
+    const m= horizontal? box(wallGroup,len,h,WT,mid,y,fixed,M.wall) : box(wallGroup,WT,h,len,fixed,y,mid,M.wall);
+    m.userData.y=y;wallMeshes.push(m);
+  }
+  function addWall(horizontal,fixed,from,to,door){                 // door:{c,width} c = posisi mutlak sepanjang sumbu
+    const k=horizontal?key(from,fixed,to,fixed):key(fixed,from,fixed,to);
+    const old=edgeMap.get(k); if(old){ if(door&&!old.door) old.pending=door; return }   // sisi bersama: jangan gambar dua kali
+    edgeMap.set(k,{horizontal,fixed,from,to,door});
+  }
+  for(const r of ROOMS){
+    const d=r.door;
+    const edges=[
+      {h:true,f:r.z1m,a:r.x1m,b:r.x2m,side:'N'},{h:true,f:r.z2m,a:r.x1m,b:r.x2m,side:'S'},
+      {h:false,f:r.x1m,a:r.z1m,b:r.z2m,side:'W'},{h:false,f:r.x2m,a:r.z1m,b:r.z2m,side:'E'}];
+    for(const e of edges){
+      const doorHere = d.side===e.side ? {c:(e.side==='N'||e.side==='S'?r.x1m:r.z1m)+d.c,width:d.width} : null;
+      addWall(e.h,e.f,e.a,e.b,doorHere);
+    }
+  }
+  for(const e of edgeMap.values()){
+    const dr=e.door||e.pending;
+    if(!dr){ wallPiece(e.horizontal,e.fixed,e.from,e.to,0,H); pushRect(...(e.horizontal?[e.from,e.fixed-WT/2,e.to,e.fixed+WT/2]:[e.fixed-WT/2,e.from,e.fixed+WT/2,e.to])); continue }
+    const g0=dr.c-dr.width/2,g1=dr.c+dr.width/2;
+    wallPiece(e.horizontal,e.fixed,e.from,g0,0,H); wallPiece(e.horizontal,e.fixed,g1,e.to,0,H);
+    wallPiece(e.horizontal,e.fixed,g0,g1,DOOR_H,H);               // ambang atas pintu
+    if(e.horizontal){pushRect(e.from,e.fixed-WT/2,g0,e.fixed+WT/2);pushRect(g1,e.fixed-WT/2,e.to,e.fixed+WT/2)}
+    else{pushRect(e.fixed-WT/2,e.from,e.fixed+WT/2,g0);pushRect(e.fixed-WT/2,g1,e.fixed+WT/2,e.to)}
+  }
+  // jendela pada sisi yang menghadap luar/koridor
+  const windowMeshes=[];
+  for(const r of ROOMS){
+    for(const side of ['N','S','E','W']){
+      const hor=(side==='N'||side==='S'), len=hor?r.w:r.d;
+      const fixed= side==='N'?r.z1m: side==='S'?r.z2m: side==='W'?r.x1m: r.x2m;
+      const start= hor?r.x1m:r.z1m;
+      const sample=(t)=>{ if(hor){const px=r.x1+(r.x2-r.x1)*t,py=(side==='N'?r.y1-7:r.y2+7);return isFree(px,py)||px<PX0||py<PY0||py>BY2||px>BX2}
+                          else{const py=r.y1+(r.y2-r.y1)*t,px=(side==='W'?r.x1-7:r.x2+7);return isFree(px,py)||px<PX0||py<PY0||py>BY2||px>BX2} };
+      if(!sample(.5)) continue;
+      const n=Math.floor(len/3.4); if(n<1) continue;
+      for(let i=0;i<n;i++){
+        const pos=start+len*(i+.5)/n;
+        if(r.door.side===side&&Math.abs(pos-(start+r.door.c))<r.door.width/2+1.0) continue;
+        const wm=hor? box(root,1.5,1.05,WT+.04,pos,1.85,fixed,glass,false) : box(root,WT+.04,1.05,1.5,fixed,1.85,pos,glass,false);
+        windowMeshes.push(wm);
+      }
+    }
+  }
+  // atap per ruang (opsional)
+  for(const r of ROOMS) box(roofGroup,r.w+.1,.14,r.d+.1,r.cx,H+.07,r.cz,M.roof);
+
+  /* ---------- Lantai ruangan, sorotan, label, perabot ---------- */
+  const FLOOR={class:0xdce7df,office:0xdde6ef,canteen:0xf2e5c9,kitchen:0xeee2cc,toilet:0xe3e1f1,medical:0xf1dfe2,facility:0xe7e5dc};
+  const STATUS_COLOR={good:0xcdebd8,warning:0xffd9a8};
+  const floorMeshes=[];
+  for(const r of ROOMS){
+    r.floorMat=new THREE.MeshStandardMaterial({color:FLOOR[r.type]||0xe7e5dc,roughness:.9});
+    r.floor=plane(root,r.w-.04,r.d-.04,r.cx,.012,r.cz,r.floorMat);r.floor.userData.room=r;floorMeshes.push(r.floor);
+    r.hl=plane(hlGroup,r.w-.1,r.d-.1,r.cx,.05,r.cz,new THREE.MeshBasicMaterial({color:0x48a9ee,transparent:true,opacity:.42,depthWrite:false}));r.hl.visible=false;
+    r.label=makeLabel(r.name,r.cx,r.cz);
+  }
+  function makeLabel(text,x,z){
+    const c=document.createElement('canvas');c.width=512;c.height=128;const g=c.getContext('2d');
+    g.fillStyle='rgba(255,255,255,.92)';rr(g,8,8,496,112,28);g.fill();g.strokeStyle='rgba(32,65,91,.2)';g.lineWidth=3;g.stroke();
+    g.fillStyle='#14344e';g.font='bold 40px Arial, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(text,256,66,460);
+    const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;
+    const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+    s.position.set(x,4.1,z);s.scale.set(3.1,.78,1);s.renderOrder=5;labelGroup.add(s);return s;
+  }
+  function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()}
+
+  function desk(g,x,z,ww,dd){ if(low){box(g,ww,.8,dd,x,.4,z,M.wood);return}
+    box(g,ww,.09,dd,x,.82,z,M.wood);for(const sx of [-ww*.42,ww*.42])for(const sz of [-dd*.36,dd*.36])box(g,.045,.78,.045,x+sx,.39,z+sz,M.metal)}
+  function chair(g,x,z){ if(low){box(g,.45,.5,.45,x,.25,z,M.dark);return}
+    box(g,.48,.07,.45,x,.48,z,M.wood);box(g,.48,.48,.07,x,.76,z-.19,M.wood);for(const sx of [-.19,.19])for(const sz of [-.16,.16])box(g,.035,.46,.035,x+sx,.23,z+sz,M.metal)}
+  function furniture(r,g){
+    const {cx,cz}=r,w=Math.max(.6,r.w-.8),d=Math.max(.6,r.d-.8);
+    if(r.type==='class'){
+      const cols=Math.max(2,Math.min(4,Math.floor(w/1.45))),rows=Math.max(2,Math.min(3,Math.floor(d/1.65)));
+      for(let a=0;a<rows;a++)for(let b=0;b<cols;b++){const x=cx+(b-(cols-1)/2)*Math.min(1.35,(w-1)/cols),z=cz+(a-(rows-1)/2)*Math.min(1.35,(d-1)/rows);desk(g,x,z,.85,.5);chair(g,x,z+.48)}
+      box(g,Math.min(2.1,w*.65),1.05,.09,cx,.95,cz-d*.38,M.board);
+    }else if(r.type==='office'){
+      desk(g,cx,cz,Math.min(1.5,w*.48),.72);chair(g,cx,cz+.8);
+      for(let i=0;i<2;i++)box(g,.65,1.55,.38,cx-w*.3+i*.72,.78,cz+d*.25,M.wood);
+    }else if(r.type==='canteen'){
+      for(let i=0;i<2;i++){desk(g,cx,cz+(i-.5)*1.15,Math.min(1.65,w*.55),.55);chair(g,cx-.65,cz+(i-.5)*1.15+.55);chair(g,cx+.65,cz+(i-.5)*1.15+.55)}
+    }else if(r.type==='kitchen'){
+      box(g,Math.min(w*.75,2.2),.95,.65,cx,.48,cz-d*.25,M.white);box(g,.75,.95,.7,cx-w*.25,.48,cz+d*.2,M.metal);
+    }else if(r.type==='toilet'){
+      for(let i=0;i<2;i++){box(g,.42,.42,.58,cx+(i-.5)*.7,.22,cz,M.white);box(g,.48,1.15,.07,cx+(i-.5)*.7,.57,cz-.48,M.white)}
+    }else if(r.type==='medical'){
+      box(g,1.45,.48,.72,cx,.42,cz,M.white);box(g,.5,.9,.45,cx+w*.28,.45,cz+d*.22,M.wood);
+    }else{
+      for(let i=0;i<2;i++)box(g,Math.min(1.5,w*.6),.95,.42,cx+(i-.5)*Math.min(1.1,w*.5),.48,cz,M.wood);
+    }
+  }
+
+  /* ---------- Perabot yang bisa ditata admin (katalog + render) ---------- */
+  // k: floor (benda lantai), desk (meja), chair (kursi/bangku, boleh masuk kolong meja), mount (dipasang tinggi)
+  // wall: otomatis menempel ke dinding terdekat; ceil: tinggi (tidak terhalang pintu)
+  const CAT={
+    desk:{l:'Meja siswa',g:'Kelas',w:.85,d:.5,k:'desk',solid:1},
+    chair:{l:'Kursi siswa',g:'Kelas',w:.45,d:.45,k:'chair'},
+    tdesk:{l:'Meja guru',g:'Kelas',w:1.3,d:.65,k:'desk',solid:1},
+    tchair:{l:'Kursi guru',g:'Kelas',w:.5,d:.5,k:'chair'},
+    board:{l:'Papan tulis',g:'Kelas',w:2.1,d:.09,k:'mount',wall:1},
+    cabinet:{l:'Lemari',g:'Kelas',w:.8,d:.4,k:'floor',solid:1},
+    shelf:{l:'Rak buku',g:'Kelas',w:.9,d:.3,k:'floor',solid:1},
+    tv:{l:'TV',g:'Elektronik',w:.95,d:.08,k:'mount',wall:1},
+    ac:{l:'AC',g:'Elektronik',w:.9,d:.25,k:'mount',wall:1,ceil:1},
+    projector:{l:'Proyektor',g:'Elektronik',w:.3,d:.3,k:'mount',ceil:1},
+    screen:{l:'Layar proyektor',g:'Elektronik',w:1.8,d:.05,k:'mount',wall:1},
+    speaker:{l:'Speaker',g:'Elektronik',w:.25,d:.25,k:'mount',ceil:1},
+    fan:{l:'Kipas angin',g:'Elektronik',w:.45,d:.45,k:'floor',solid:1},
+    pc:{l:'Meja komputer',g:'Elektronik',w:.9,d:.6,k:'desk',solid:1},
+    ltable:{l:'Meja panjang',g:'Lain-lain',w:1.8,d:.6,k:'desk',solid:1},
+    bench:{l:'Bangku',g:'Lain-lain',w:1.2,d:.35,k:'chair'},
+    locker:{l:'Loker',g:'Lain-lain',w:.6,d:.45,k:'floor',solid:1},
+    plant:{l:'Tanaman',g:'Lain-lain',w:.5,d:.5,k:'floor',solid:1},
+    dispenser:{l:'Dispenser',g:'Lain-lain',w:.35,d:.35,k:'floor',solid:1}
+  };
+  const layouts={}, furnRects=new Map(); let uidc=1;
+  const MX={black:mat(0x1d2329,.5),blue:mat(0x4aa3d9,.5),lt:mat(0xe9edf0,.7),paper:mat(0xcfa97a),pot:mat(0x7a5a45)};
+  function legs(g,w,d,h,m,inset,th){inset=inset||.05;th=th||.04;for(const sx of [-1,1])for(const sz of [-1,1])box(g,th,h,th,sx*(w/2-inset),h/2,sz*(d/2-inset),m)}
+  // Depan benda = arah -z (rotasi 0 menghadap utara)
+  function makeFurn(t){
+    const c=CAT[t],g=new THREE.Group(),w=c.w,d=c.d;
+    switch(t){
+      case 'desk':case 'ltable':box(g,w,.05,d,0,.77,0,M.wood);legs(g,w,d,.75,M.metal);break;
+      case 'tdesk':box(g,w,.05,d,0,.74,0,M.wood);box(g,.04,.72,d-.06,-(w/2-.04),.36,0,M.dark);box(g,.04,.72,d-.06,w/2-.04,.36,0,M.dark);box(g,w-.1,.4,.03,0,.5,d/2-.06,M.dark);break;
+      case 'pc':box(g,w,.05,d,0,.74,0,M.wood);legs(g,w,d,.72,M.metal);box(g,.5,.32,.03,0,1.0,.06,MX.black);box(g,.1,.2,.05,0,.86,.06,MX.black);box(g,.4,.02,.14,0,.78,-.14,MX.lt);break;
+      case 'chair':box(g,.42,.05,.42,0,.45,0,M.wood);box(g,.42,.38,.04,0,.69,.19,M.wood);legs(g,.42,.42,.45,M.metal,.03,.03);break;
+      case 'tchair':box(g,.5,.06,.5,0,.47,0,M.dark);box(g,.5,.45,.05,0,.74,.22,M.dark);legs(g,.5,.5,.47,M.metal,.04,.04);break;
+      case 'bench':box(g,w,.05,d,0,.42,0,M.wood);legs(g,w,d,.42,M.metal,.06,.05);break;
+      case 'board':box(g,w+.06,1.11,d,0,1.35,0,M.white);box(g,w,1.05,d+.01,0,1.35,0,M.board);box(g,w*.6,.03,.1,0,.8,-d/2-.04,M.white);break;
+      case 'tv':box(g,w,.55,d,0,1.45,0,MX.black);break;
+      case 'ac':box(g,w,.28,d,0,2.6,0,M.white);box(g,w*.9,.03,d*.6,0,2.47,-d*.15,M.metal);break;
+      case 'projector':box(g,.3,.1,.3,0,3.2,0,M.white);box(g,.1,.08,.08,0,3.2,-.18,MX.black);box(g,.03,.3,.03,0,3.36,0,M.metal);break;
+      case 'screen':box(g,w,1.3,d,0,1.9,0,M.white);box(g,w+.06,.06,d+.02,0,2.57,0,M.dark);break;
+      case 'speaker':box(g,.22,.34,.22,0,2.3,0,MX.black);break;
+      case 'cabinet':box(g,w,1.8,d,0,.9,0,M.wood);box(g,.015,1.6,.01,0,.9,-d/2,M.dark);break;
+      case 'shelf':box(g,w,1.6,d,0,.8,0,M.wood);for(const y of [.4,.8,1.2]){box(g,w-.06,.02,d-.02,0,y,-.005,MX.lt);box(g,w*.55,.22,d*.7,-w*.12,y+.12,0,MX.paper)}break;
+      case 'fan':box(g,.34,.04,.34,0,.02,0,M.dark);box(g,.04,.85,.04,0,.47,0,M.metal);box(g,.42,.42,.1,0,1.1,0,M.white);break;
+      case 'locker':box(g,w,1.8,d,0,.9,0,M.metal);box(g,.01,1.7,.01,0,.9,-d/2,M.dark);box(g,w*.7,.05,.01,0,1.5,-d/2,M.dark);break;
+      case 'plant':box(g,.32,.3,.32,0,.15,0,MX.pot);box(g,.42,.5,.42,0,.62,0,M.leaf);break;
+      case 'dispenser':box(g,.32,1.0,.32,0,.5,0,M.white);box(g,.3,.4,.3,0,1.2,0,MX.blue);break;
+    }
+    return g;
+  }
+  function fpOf(it){const c=CAT[it.t],sw=it.r%2===1;return{hw:(sw?c.d:c.w)/2,hd:(sw?c.w:c.d)/2}}
+  function clearG(g){while(g.children.length)g.remove(g.children[0])}
+  function renderItems(r,g,items,rects){
+    items.forEach(it=>{const c=CAT[it.t];if(!c)return;const m=makeFurn(it.t);it.g=m;m.position.set(it.x,0,it.z);m.rotation.y=it.r*Math.PI/2;g.add(m);
+      if(c.solid&&rects){const f=fpOf(it);rects.push({a:it.x-f.hw,b:it.x+f.hw,c:it.z-f.hd,d:it.z+f.hd})}});
+  }
+  function buildRoomFurn(r){
+    if(r.furnG)furnGroup.remove(r.furnG);
+    const g=r.furnG=new THREE.Group();furnGroup.add(g);
+    const L=layouts[r.id];
+    if(L){const rects=[];renderItems(r,g,L,rects);furnRects.set(r.id,rects)}
+    else{furnRects.delete(r.id);furniture(r,g)}
+  }
+  function buildFurniture(){ while(furnGroup.children.length)furnGroup.remove(furnGroup.children[0]); ROOMS.forEach(r=>{r.layKey='';buildRoomFurn(r)}) }
+  buildFurniture();
+
+  /* ---------- Tabrakan (untuk mode jalan) ---------- */
+  function blocked(x,z,rad=RAD){
+    for(const w of wallRects){
+      const nx=clamp(x,w.a,w.b),nz=clamp(z,w.c,w.d),dx=x-nx,dz=z-nz;
+      if(dx*dx+dz*dz<rad*rad) return true;
+    }
+    const fr=Math.min(rad,.17);
+    for(const arr of furnRects.values())for(const w of arr){
+      const nx=clamp(x,w.a,w.b),nz=clamp(z,w.c,w.d),dx=x-nx,dz=z-nz;
+      if(dx*dx+dz*dz<fr*fr) return true;
+    }
+    return false;
+  }
+
+  /* ---------- Status & pemilihan ---------- */
+  let selected=null, multiSel=[], statuses={}, facOv={};
+  function layoutChips(r){const L=layouts[r.id];if(!L)return null;const c={};L.forEach(i=>{c[i.t]=(c[i.t]||0)+1});return Object.keys(c).map(t=>CAT[t].l+(c[t]>1?' ×'+c[t]:''))}
+  function facList(r){
+    const o=facOv[r.id],lc=layoutChips(r);
+    if(!lc) return Array.isArray(o)?o:(r.facs||[]);
+    const pres=new Set((layouts[r.id]||[]).map(i=>CAT[i.t].l.toLowerCase()));
+    const base=Array.isArray(o)?o.filter(x=>!pres.has(String(x).replace(/\s*[×(].*$/,'').trim().toLowerCase())):[];
+    return lc.concat(base);
+  }
+  function showFacs(r){$('iFac').innerHTML='';facList(r).forEach(f=>{const s=document.createElement('span');s.className='fac';s.textContent=String(f).slice(0,60);$('iFac').appendChild(s)});if(!facList(r).length){const s=document.createElement('span');s.className='fac';s.textContent='Belum ada data fasilitas';$('iFac').appendChild(s)}}
+  function applyFloor(r){const s=statuses[r.id];r.floorMat.color.set(s&&STATUS_COLOR[s]?STATUS_COLOR[s]:(FLOOR[r.type]||0xe7e5dc))}
+  function setStatuses(map){
+    statuses=map||{}; ROOMS.forEach(applyFloor); $('legend').classList.toggle('show',Object.keys(statuses).length>0); renderList(); drawMini();
+  }
+  function highlight(list){ ROOMS.forEach(r=>r.hl.visible=false); list.forEach(r=>r.hl.visible=true) }
+  function selectRoom(r,{fly=false}={}){
+    selected=r; multiSel=[]; highlight(r?[r]:[]);
+    $('iActs').style.display=r?'grid':'none';
+    if(r){
+      $('iCat').textContent=TYPE_LABEL[r.type]||'Ruangan';$('iName').textContent=r.name;$('iDesc').textContent=r.desc;
+      showFacs(r);
+      $('iArea').textContent='± '+r.area+' m²';$('iLoc').textContent='Lantai 1';
+      try{history.replaceState(null,'','#r='+encodeURIComponent(r.id))}catch(e){}
+      if(fly) flyTo(...framePose([r]));
+    }else{
+      $('iCat').textContent='Informasi ruangan';$('iName').textContent='Selamat datang';$('iFac').innerHTML='';
+      $('iDesc').textContent='Pilih ruangan pada model atau daftar untuk melihat informasinya.';$('iArea').textContent='—';
+      try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
+    }
+    renderList(); drawMini();
+    try{ if(window.parent!==window) window.parent.postMessage({type:'sib3d:selected',room:r?r.id:null},'*') }catch(e){}
+  }
+
+
+  /* ---------- Editor tata ruangan (hanya aktif bila diperintah SIB CARE oleh Admin) ---------- */
+  const EDIT={on:false,r:null,items:[],sel:null,undo:[],redo:[],drag:null,pre:null,cam:null,dirty:false};
+  const GRID=.05, MAXITEMS=150, snapG=v=>Math.round(v/GRID)*GRID;
+  const post=m=>{try{if(window.parent!==window)window.parent.postMessage(m,'*')}catch(e){}};
+  const selBox=new THREE.Mesh(boxGeo(1,.04,1),new THREE.MeshBasicMaterial({color:0x2fbf71,transparent:true,opacity:.55,depthWrite:false}));selBox.visible=false;hlGroup.add(selBox);
+  const cloneItems=a=>a.map(i=>({t:i.t,x:i.x,z:i.z,r:i.r}));
+  const mkItem=(t,x,z,rot)=>({uid:uidc++,t,x,z,r:rot|0});
+  const insetOf=it=>CAT[it.t].wall?.07:.16;
+  function clampIn(r,it){const f=fpOf(it),m=insetOf(it);it.x=clamp(it.x,r.x1m+m+f.hw,r.x2m-m-f.hw);it.z=clamp(it.z,r.z1m+m+f.hd,r.z2m-m-f.hd)}
+  function inBounds(r,it){const f=fpOf(it),m=insetOf(it),e=1e-6;return it.x-f.hw>=r.x1m+m-e&&it.x+f.hw<=r.x2m-m+e&&it.z-f.hd>=r.z1m+m-e&&it.z+f.hd<=r.z2m-m+e}
+  const ovl=(a,b)=>{const fa=fpOf(a),fb=fpOf(b);return Math.abs(a.x-b.x)<fa.hw+fb.hw-.005&&Math.abs(a.z-b.z)<fa.hd+fb.hd-.005};
+  function kindClash(a,b){const ka=CAT[a.t].k,kb=CAT[b.t].k;if(ka==='mount'||kb==='mount')return false;if((ka==='desk'&&kb==='chair')||(ka==='chair'&&kb==='desk'))return false;return true}
+  function doorZone(r){const d=r.door;return{x:d.wx+d.nx*.6,z:d.wz+d.nz*.6}}
+  function isValid(r,it,items){
+    const c=CAT[it.t]; if(!inBounds(r,it)) return false;
+    if(!c.ceil){const z=doorZone(r),f=fpOf(it);if(Math.abs(it.x-z.x)<f.hw+.8&&Math.abs(it.z-z.z)<f.hd+.8)return false}
+    for(const o of items){ if(o===it)continue;
+      if(c.wall&&CAT[o.t].wall&&ovl(it,o))return false;
+      if(c.k!=='mount'&&CAT[o.t].k!=='mount'&&kindClash(it,o)&&ovl(it,o))return false }
+    return true;
+  }
+  function snapWall(r,it,x,z){
+    const c=CAT[it.t],m=.07,dS=r.z2m-z,dN=z-r.z1m,dE=r.x2m-x,dW=x-r.x1m,mn=Math.min(dS,dN,dE,dW);
+    if(mn===dS){it.r=0;it.z=r.z2m-m-c.d/2;it.x=snapG(x)}
+    else if(mn===dN){it.r=2;it.z=r.z1m+m+c.d/2;it.x=snapG(x)}
+    else if(mn===dW){it.r=3;it.x=r.x1m+m+c.d/2;it.z=snapG(z)}
+    else{it.r=1;it.x=r.x2m-m-c.d/2;it.z=snapG(z)}
+    clampIn(r,it);
+  }
+  const rd2=v=>Math.round(v*100)/100;
+  function moveTo(r,it,x,z){ if(CAT[it.t].wall) snapWall(r,it,x,z); else {it.x=snapG(x);it.z=snapG(z);clampIn(r,it)} it.x=rd2(it.x);it.z=rd2(it.z) }
+  const OFFS=(()=>{const a=[];for(let i=-40;i<=40;i++)for(let j=-40;j<=40;j++)a.push([i*.1,j*.1,i*i+j*j]);a.sort((p,q)=>p[2]-q[2]);return a})();
+  function findFree(r,t,items,ox,oz,rot){
+    for(const o of OFFS){const it={t,x:ox+o[0],z:oz+o[1],r:rot|0};moveTo(r,it,it.x,it.z);if(isValid(r,it,items))return it}
+    return null;
+  }
+  function pushUndo(snapshot){EDIT.undo.push(snapshot||cloneItems(EDIT.items));if(EDIT.undo.length>60)EDIT.undo.shift();EDIT.redo=[];EDIT.dirty=true;uiSync()}
+  function rerender(){const r=EDIT.r;clearG(r.furnG);renderItems(r,r.furnG,EDIT.items,null);if(EDIT.sel&&!EDIT.items.find(i=>i.uid===EDIT.sel))EDIT.sel=null;updSel();uiSync()}
+  function loadItems(arr){EDIT.items=arr.map(i=>mkItem(i.t,i.x,i.z,i.r))}
+  function selItem(){return EDIT.items.find(i=>i.uid===EDIT.sel)||null}
+  function updSel(){
+    const it=selItem(); if(!it){selBox.visible=false;return}
+    const f=fpOf(it),ok=isValid(EDIT.r,it,EDIT.items);
+    selBox.visible=true;selBox.scale.set(f.hw*2+.06,1,f.hd*2+.06);selBox.position.set(it.x,.07,it.z);selBox.material.color.set(ok?0x2fbf71:0xe5484d);
+  }
+  function syncGroup(it){if(it.g){it.g.position.set(it.x,0,it.z);it.g.rotation.y=it.r*Math.PI/2}}
+  function counts(items){const c={};items.forEach(i=>{c[i.t]=(c[i.t]||0)+1});return Object.keys(c).map(t=>CAT[t].l+' ×'+c[t]).join(' · ')}
+  /* aksi */
+  function addItem(t){
+    if(!EDIT.on||!CAT[t])return null;
+    if(EDIT.items.length>=MAXITEMS){toast('Maksimal '+MAXITEMS+' perabot per ruangan.');return null}
+    const r=EDIT.r,f=findFree(r,t,EDIT.items,r.cx,r.cz,0);
+    if(!f){toast('Tidak ada tempat kosong untuk '+CAT[t].l+'.');return null}
+    pushUndo();const it=mkItem(t,f.x,f.z,f.r);EDIT.items.push(it);EDIT.sel=it.uid;rerender();return it;
+  }
+  function rotateSel(dir){
+    const it=selItem(); if(!it)return false;
+    if(CAT[it.t].wall){toast('Benda ini otomatis menempel ke dinding terdekat.');return false}
+    const old=it.r;it.r=(it.r+dir+4)%4;clampIn(EDIT.r,it);
+    if(!isValid(EDIT.r,it,EDIT.items)){it.r=old;toast('Tidak muat jika diputar.');return false}
+    const keep=cloneItems(EDIT.items);keep.find((x,i)=>EDIT.items[i]===it).r=old;pushUndo(keep);syncGroup(it);updSel();return true;
+  }
+  function delSel(){const it=selItem();if(!it)return false;pushUndo();EDIT.items=EDIT.items.filter(i=>i!==it);EDIT.sel=null;rerender();return true}
+  function dupSel(){
+    const it=selItem(); if(!it)return null;
+    if(EDIT.items.length>=MAXITEMS){toast('Maksimal '+MAXITEMS+' perabot per ruangan.');return null}
+    const f=fpOf(it),r=EDIT.r;let n=null;
+    for(const [dx,dz] of [[f.hw*2+.05,0],[0,f.hd*2+.05],[-f.hw*2-.05,0],[0,-f.hd*2-.05]]){const c={t:it.t,x:it.x+dx,z:it.z+dz,r:it.r};moveTo(r,c,c.x,c.z);if(isValid(r,c,EDIT.items)){n=c;break}}
+    if(!n)n=findFree(r,it.t,EDIT.items,it.x,it.z,it.r);
+    if(!n){toast('Tidak ada tempat kosong untuk salinan.');return null}
+    pushUndo();const ni=mkItem(n.t,n.x,n.z,n.r);EDIT.items.push(ni);EDIT.sel=ni.uid;rerender();return ni;
+  }
+  function moveSel(x,z){const it=selItem();if(!it)return false;moveTo(EDIT.r,it,x,z);syncGroup(it);updSel();return isValid(EDIT.r,it,EDIT.items)}
+  function autoArrange(rows,cols,face,chairs){
+    const r=EDIT.r; rows=clamp(rows|0,1,12);cols=clamp(cols|0,1,12);face=((face|0)%4+4)%4;
+    const FW=[[0,-1],[-1,0],[0,1],[1,0]][face],B=[-FW[0],-FW[1]],L=[-FW[1],FW[0]],pu=1.2,pv=chairs?1.15:.8;
+    const keep=EDIT.items.filter(i=>i.t!=='desk'&&i.t!=='chair');
+    pushUndo();
+    const attempt=(gx,gz)=>{
+      const out=keep.slice();let skipped=0,placed=0;
+      for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){
+        const lu=(i-(cols-1)/2)*pu,bv=(j-(rows-1)/2)*pv;
+        const dx=snapG(gx+L[0]*lu+B[0]*bv),dz=snapG(gz+L[1]*lu+B[1]*bv);
+        const d=mkItem('desk',dx,dz,face);
+        if(!isValid(r,d,out)){skipped++;continue}
+        const ch=chairs?mkItem('chair',snapG(dx+B[0]*.52),snapG(dz+B[1]*.52),face):null;
+        if(ch&&!isValid(r,ch,out.concat([d]))){skipped++;continue}
+        out.push(d);if(ch)out.push(ch);placed++;
+      }
+      return {out,placed,skipped};
+    };
+    // cari posisi awal grid terbaik (geser ±1,2 m) agar muat sebanyak mungkin
+    const bx=r.cx+B[0]*.5,bz=r.cz+B[1]*.5;let best=null,bd=1e9;
+    for(let a=-8;a<=8;a++)for(let c=-8;c<=8;c++){
+      const res=attempt(bx+a*.15,bz+c*.15),dist=a*a+c*c;
+      if(!best||res.placed>best.placed||(res.placed===best.placed&&dist<bd)){best=res;bd=dist}
+      if(best.skipped===0&&bd===0)break;
+    }
+    const out=best.out,skipped=best.skipped,placed=best.placed;
+    EDIT.items=out.slice(0,MAXITEMS);EDIT.sel=null;rerender();
+    toast(placed+' set meja disusun'+(skipped?'. '+skipped+' dilewati (tidak muat/dekat pintu): kurangi baris/kolom atau ganti arah hadap.':'.'));
+    return {placed,skipped};
+  }
+  function undo(){if(!EDIT.undo.length)return;EDIT.redo.push(cloneItems(EDIT.items));loadItems(EDIT.undo.pop());EDIT.sel=null;rerender()}
+  function redo(){if(!EDIT.redo.length)return;EDIT.undo.push(cloneItems(EDIT.items));loadItems(EDIT.redo.pop());EDIT.sel=null;rerender()}
+  function clearAll(){if(!EDIT.items.length)return;pushUndo();EDIT.items=[];EDIT.sel=null;rerender()}
+  /* mulai / selesai */
+  function startEdit(id){
+    const r=byId.get(String(id||'').toUpperCase()); if(!r||EDIT.on) return false;
+    stopTour(); if(walk.on) exitWalk(true);
+    EDIT.on=true;EDIT.r=r;EDIT.undo=[];EDIT.redo=[];EDIT.sel=null;EDIT.dirty=false;EDIT.drag=null;
+    loadItems(layouts[r.id]||[]);
+    EDIT.cam={pos:camera.position.clone(),tgt:controls.target.clone(),roof:roofGroup.visible,label:labelGroup.visible,cut:cutOn,min:controls.minDistance,rot:controls.enableRotate,pan:controls.enablePan};
+    document.body.classList.add('edit');
+    setCut(true);roofGroup.visible=false;labelGroup.visible=false;
+    controls.enableRotate=false;controls.enablePan=false;controls.minDistance=2.5;
+    $('edTitle').textContent='Tata ruangan — '+r.id+' '+r.name;
+    {const lat=r.w>=r.d?r.w:r.d,dep=r.w>=r.d?r.d:r.w;$('edFace').value=r.w>=r.d?'0':'1';
+     $('edCols').value=clamp(Math.floor((lat-1.2)/1.2)+1,1,12);$('edRows').value=clamp(Math.floor((dep-1.6)/1.15)+1,1,12)}
+    selectRoom(r);rerender();
+    const th=Math.tan(camera.fov*Math.PI/360),mob=innerWidth<=860,ae=Math.max(.5,((mob?innerWidth:innerWidth-340))/(mob?innerHeight*.56:innerHeight));
+    const h=Math.max((r.d/2+.6)/th,(r.w/2+.6)/(th*ae),4);
+    const vw=2*th*h*(innerWidth/innerHeight),vh=2*th*h;
+    const tx=r.cx+(mob?0:(340/innerWidth)/2*vw),tz=r.cz+(mob?vh*.2:0);
+    flyTo(new THREE.Vector3(tx,h,tz+h*.02),new THREE.Vector3(tx,0,tz),1.1);
+    if(!layouts[r.id]) toast('Ruangan dimulai kosong. Tambah perabot atau pakai "Susun otomatis".');
+    return true;
+  }
+  function endEdit(saved){
+    if(!EDIT.on)return;const r=EDIT.r,c=EDIT.cam;
+    EDIT.on=false;EDIT.drag=null;selBox.visible=false;document.body.classList.remove('edit');
+    buildRoomFurn(r);
+    controls.enableRotate=c.rot;controls.enablePan=c.pan;controls.minDistance=c.min;
+    setCut(c.cut);roofGroup.visible=c.roof;labelGroup.visible=c.label;syncToggles();
+    flyTo(c.pos,c.tgt,1.1);if(selected)showFacs(selected);
+    post({type:'sib3d:editEnd',room:r.id,saved:!!saved});
+  }
+  function toSaved(r,items){return items.map(i=>({t:i.t,x:Math.round((i.x-r.cx)*100)/100,z:Math.round((i.z-r.cz)*100)/100,r:i.r}))}
+  function saveEdit(useDefault){
+    if(!EDIT.on)return;const r=EDIT.r;
+    if(useDefault){delete layouts[r.id];r.layKey='';post({type:'sib3d:layoutSave',room:r.id,items:null})}
+    else{
+      const arr=toSaved(r,EDIT.items);layouts[r.id]=EDIT.items.map(i=>({uid:i.uid,t:i.t,x:i.x,z:i.z,r:i.r}));r.layKey=JSON.stringify(arr);
+      post({type:'sib3d:layoutSave',room:r.id,items:arr});
+    }
+    endEdit(true);toast('Tata ruangan dikirim untuk disimpan…');
+  }
+  function cancelEditForce(){ if(EDIT.on) endEdit(false) }
+  function cancelEdit(){
+    if(!EDIT.on)return;
+    if(EDIT.dirty&&!confirm('Buang perubahan tata ruangan yang belum disimpan?'))return;
+    endEdit(false);
+  }
+  /* interaksi pointer: seret perabot */
+  const _v=new THREE.Vector3(), cvE=renderer.domElement;
+  function floorPt(e){
+    const b=cvE.getBoundingClientRect();_v.set(((e.clientX-b.left)/b.width)*2-1,-((e.clientY-b.top)/b.height)*2+1,.5).unproject(camera);
+    const dx=_v.x-camera.position.x,dy=_v.y-camera.position.y,dz=_v.z-camera.position.z;if(Math.abs(dy)<1e-6)return null;
+    const t=-camera.position.y/dy;return{x:camera.position.x+dx*t,z:camera.position.z+dz*t};
+  }
+  function hitAt(x,z){
+    let best=null,ba=1e9;
+    EDIT.items.forEach(it=>{const f=fpOf(it);if(Math.abs(x-it.x)<=f.hw&&Math.abs(z-it.z)<=f.hd){const a=f.hw*f.hd;if(a<ba){ba=a;best=it}}});
+    return best;
+  }
+  function dragStart(x,z){
+    const it=hitAt(x,z);EDIT.sel=it?it.uid:null;
+    EDIT.drag=it?{it,ox:it.x-x,oz:it.z-z,sx:it.x,sz:it.z,sr:it.r,pre:cloneItems(EDIT.items),moved:false}:null;
+    updSel();uiSync();return it;
+  }
+  function dragMove(x,z){
+    const d=EDIT.drag;if(!d)return false;
+    moveTo(EDIT.r,d.it,x+d.ox,z+d.oz);syncGroup(d.it);d.moved=true;updSel();return isValid(EDIT.r,d.it,EDIT.items);
+  }
+  function dragEnd(){
+    const d=EDIT.drag;EDIT.drag=null;if(!d||!d.moved)return null;
+    if(isValid(EDIT.r,d.it,EDIT.items)){if(d.it.x!==d.sx||d.it.z!==d.sz||d.it.r!==d.sr)pushUndo(d.pre);updSel();return true}
+    d.it.x=d.sx;d.it.z=d.sz;d.it.r=d.sr;syncGroup(d.it);updSel();toast('Tidak bisa ditaruh di sini.');return false;
+  }
+  cvE.addEventListener('pointerdown',e=>{
+    if(!EDIT.on)return;const p=floorPt(e);if(!p)return;dragStart(p.x,p.z);
+    if(EDIT.drag){try{cvE.setPointerCapture(e.pointerId)}catch(_){}}
+  });
+  cvE.addEventListener('pointermove',e=>{if(!EDIT.on||!EDIT.drag)return;const p=floorPt(e);if(p)dragMove(p.x,p.z)});
+  cvE.addEventListener('pointerup',e=>{if(EDIT.on)dragEnd()});
+  cvE.addEventListener('pointercancel',e=>{if(EDIT.on)dragEnd()});
+  function editKey(e,k){
+    if(k==='escape'){cancelEdit();return}
+    if((e.ctrlKey||e.metaKey)&&k==='z'){e.preventDefault();e.shiftKey?redo():undo();return}
+    if((e.ctrlKey||e.metaKey)&&k==='y'){e.preventDefault();redo();return}
+    if(k==='r'){rotateSel(1);return}
+    if(k==='q'){rotateSel(-1);return}
+    if(k==='delete'||k==='backspace'){e.preventDefault();delSel();return}
+    const st=e.shiftKey?.5:.1,it=selItem();
+    if(it&&['arrowup','arrowdown','arrowleft','arrowright'].includes(k)){e.preventDefault();const dx=k==='arrowleft'?-st:k==='arrowright'?st:0,dz=k==='arrowup'?-st:k==='arrowdown'?st:0;
+      const old={x:it.x,z:it.z,r:it.r},keep=cloneItems(EDIT.items);moveTo(EDIT.r,it,it.x+dx,it.z+dz);
+      if(isValid(EDIT.r,it,EDIT.items)){keep.find((x,i)=>EDIT.items[i]===it).x=old.x;keep.find((x,i)=>EDIT.items[i]===it).z=old.z;pushUndo(keep);syncGroup(it);updSel()}
+      else{it.x=old.x;it.z=old.z;it.r=old.r}}
+  }
+  /* panel editor */
+  {
+    const ED=$('editor');
+    const groups={};Object.keys(CAT).forEach(t=>{(groups[CAT[t].g]=groups[CAT[t].g]||[]).push(t)});
+    ED.innerHTML='<div class="eh"><div><div class="eb">Mode admin</div><b id="edTitle">Tata ruangan</b></div><button class="btn" id="edX" title="Batal (Esc)">✕</button></div>'+
+      '<p class="es">Klik perabot untuk memilih, <b>seret</b> untuk memindahkan. Kotak hijau = boleh, merah = tidak boleh. TV, AC, papan tulis menempel otomatis ke dinding.</p>'+
+      Object.keys(groups).map(g=>'<h4>'+g+'</h4><div class="cg">'+groups[g].map(t=>'<button type="button" data-t="'+t+'">+ '+CAT[t].l+'</button>').join('')+'</div>').join('')+
+      '<h4>Perabot terpilih</h4><div class="er"><button class="btn" id="edL" title="Putar kiri (Q)">⟲ Putar kiri</button><button class="btn" id="edR" title="Putar kanan (R)">⟳ Putar kanan</button><button class="btn" id="edDup">⧉ Gandakan</button><button class="btn" id="edDel" title="Hapus (Delete)">🗑 Hapus</button></div>'+
+      '<h4>Susun otomatis</h4><div class="ar"><label>Baris<input id="edRows" type="number" min="1" max="12" value="5"></label><label>Kolom<input id="edCols" type="number" min="1" max="12" value="6"></label><label>Hadap<select id="edFace"><option value="0">Utara</option><option value="1">Barat</option><option value="2">Selatan</option><option value="3">Timur</option></select></label></div>'+
+      '<label class="ck"><input type="checkbox" id="edChairs" checked> Sertakan kursi</label><div class="er"><button class="btn wide" id="edAuto" style="grid-column:1/-1">Susun meja siswa</button></div>'+
+      '<p class="es" id="edSum"></p>'+
+      '<div class="er"><button class="btn" id="edUndo">↶ Undo</button><button class="btn" id="edRedo">↷ Redo</button><button class="btn" id="edClear">Kosongkan</button><button class="btn" id="edDefault" title="Hapus tata ruang buatan admin">Kembali bawaan</button></div>'+
+      '<div class="er"><button class="btn" id="edCancel">Batal</button><button class="btn pri" id="edSave">💾 Simpan</button></div>';
+    ED.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.t)addItem(b.dataset.t)});
+    const on=(id,f)=>{$(id).onclick=f};
+    on('edX',cancelEdit);on('edCancel',cancelEdit);on('edL',()=>rotateSel(-1));on('edR',()=>rotateSel(1));on('edDup',dupSel);on('edDel',delSel);
+    on('edAuto',()=>autoArrange(+$('edRows').value,+$('edCols').value,+$('edFace').value,$('edChairs').checked));
+    on('edUndo',undo);on('edRedo',redo);on('edClear',clearAll);
+    on('edDefault',()=>{if(confirm('Kembalikan ruangan ini ke tata ruang bawaan? (Tata ruang buatan admin dihapus)'))saveEdit(true)});
+    on('edSave',()=>saveEdit(false));
+  }
+  function uiSync(){
+    if(!EDIT.on)return;const has=!!selItem(),it=selItem();
+    $('edL').disabled=$('edR').disabled=!has||(it&&CAT[it.t].wall);$('edDup').disabled=$('edDel').disabled=!has;
+    $('edUndo').disabled=!EDIT.undo.length;$('edRedo').disabled=!EDIT.redo.length;
+    $('edSum').textContent=EDIT.items.length?(EDIT.items.length+' perabot: '+counts(EDIT.items)):'Belum ada perabot.';
+  }
+  function setLayouts(map){
+    map=map&&typeof map==='object'?map:{};
+    ROOMS.forEach(r=>{
+      if(EDIT.on&&EDIT.r===r)return;
+      const raw=map[r.id],key=Array.isArray(raw)?JSON.stringify(raw):'';
+      if(r.layKey===key)return; r.layKey=key;
+      if(Array.isArray(raw)){const out=[];for(const sI of raw){if(out.length>=MAXITEMS)break;if(!sI||!CAT[sI.t])continue;const x=+sI.x,z=+sI.z;if(!isFinite(x)||!isFinite(z))continue;
+        out.push(mkItem(sI.t,r.cx+clamp(x,-r.w,r.w),r.cz+clamp(z,-r.d,r.d),((+sI.r|0)%4+4)%4))}layouts[r.id]=out}
+      else delete layouts[r.id];
+      buildRoomFurn(r);
+    });
+    if(selected)showFacs(selected);
+  }
+
+  /* ---------- Daftar & pencarian ---------- */
+  let group='Semua', query='';
+  const GROUPS=['Semua','Ruang belajar','Kantor','Fasilitas'];
+  function renderChips(){
+    const c=$('chips');c.innerHTML='';
+    GROUPS.forEach(g=>{const b=document.createElement('button');b.className='chip'+(g===group?' on':'');b.textContent=g;b.onclick=()=>{group=g;renderChips();renderList()};c.appendChild(b)});
+  }
+  function renderList(){
+    const l=$('rooms');l.innerHTML='';
+    const q=query.trim().toLowerCase();
+    ROOMS.filter(r=>(group==='Semua'||TYPE_GROUP[r.type]===group)&&(!q||r.name.toLowerCase().includes(q)||r.id.toLowerCase().includes(q))).forEach(r=>{
+      const b=document.createElement('button');b.className='room'+(selected===r?' sel':'');
+      b.style.setProperty('--c',statuses[r.id]==='warning'?'#f0a24a':statuses[r.id]==='good'?'#6cc49a':TYPE_COLOR[r.type]);
+      b.innerHTML='<i></i><span></span><em></em>';b.children[1].textContent=r.name;b.children[2].textContent=r.area+' m²';
+      b.onclick=()=>{ if(walk.on) return; stopTour(); selectRoom(r,{fly:true}); $('listPanel').classList.remove('open') };
+      l.appendChild(b);
+    });
+    if(!l.children.length){const p=document.createElement('p');p.className='hint';p.textContent='Tidak ada ruangan yang cocok.';l.appendChild(p)}
+  }
+  renderChips();renderList();
+  $('q').addEventListener('input',e=>{query=e.target.value;renderList()});
+
+  /* ---------- Animasi kamera ---------- */
+  let tween=null;
+  function framePose(rs){
+    let a=1e9,b=-1e9,c=1e9,d=-1e9;
+    rs.forEach(r=>{a=Math.min(a,r.x1m);b=Math.max(b,r.x2m);c=Math.min(c,r.z1m);d=Math.max(d,r.z2m)});
+    const cx=(a+b)/2,cz=(c+d)/2,span=Math.max(b-a,(d-c)*1.4,6),dist=span*1.05+6;
+    return [new THREE.Vector3(cx+span*.12,dist*.72,cz+dist*.78),new THREE.Vector3(cx,0,cz)];
+  }
+  function flyTo(pos,tgt,dur=1.7,done=null){
+    if(walk.on) return;
+    tween={t:0,dur:reduced?.01:dur,p0:camera.position.clone(),g0:controls.target.clone(),p1:pos,g1:tgt,done};
+  }
+  const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+  function stepTween(dt){
+    if(!tween) return;
+    tween.t+=dt;const k=clamp(tween.t/tween.dur,0,1),e=ease(k);
+    camera.position.lerpVectors(tween.p0,tween.p1,e);controls.target.lerpVectors(tween.g0,tween.g1,e);
+    if(k>=1){const d=tween.done;tween=null;if(d)d()}
+  }
+  controls.addEventListener('start',()=>{ tween=null; if(tour.on&&tour.playing){tour.playing=false;updateTourUI()} });
+
+  /* ---------- Tur terpandu ---------- */
+  const tour={on:false,i:0,playing:true,wait:0};
+  function updateTourUI(){
+    const s=TOUR[tour.i];
+    $('tStep').textContent='Tur '+(tour.i+1)+' / '+TOUR.length;$('tTitle').textContent=s.title;$('tText').textContent=s.text;
+    $('bar').firstElementChild.style.width=((tour.i+1)/TOUR.length*100)+'%';
+    $('tPlay').textContent=tour.playing?'⏸':'▶';$('tPrev').disabled=tour.i===0;
+  }
+  function gotoStop(i){
+    tour.i=clamp(i,0,TOUR.length-1);const s=TOUR[tour.i];tour.wait=0;
+    const rs=s.rooms?s.rooms.map(id=>byId.get(id)).filter(Boolean):null;
+    selected=null;highlight(rs||[]);renderList();
+    if(rs&&rs.length) flyTo(...framePose(rs),1.9,()=>{tour.wait=6.5});
+    else flyTo(HOME.pos.clone(),HOME.tgt.clone(),1.9,()=>{tour.wait=6.5});
+    updateTourUI();
+  }
+  function startTour(){
+    if(walk.on) exitWalk(true);
+    tour.on=true;tour.playing=true;document.body.classList.add('touring');$('tour').classList.add('show');$('tourBtn').classList.add('on');
+    $('listPanel').classList.remove('open');selectRoom(null);gotoStop(0);
+  }
+  function stopTour(){
+    if(!tour.on) return; tour.on=false;document.body.classList.remove('touring');$('tour').classList.remove('show');$('tourBtn').classList.remove('on');highlight(selected?[selected]:[]);
+  }
+  $('tourBtn').onclick=()=>tour.on?stopTour():startTour();
+  $('tClose').onclick=()=>{stopTour();flyTo(HOME.pos.clone(),HOME.tgt.clone())};
+  $('tPrev').onclick=()=>{tour.playing=false;gotoStop(tour.i-1)};
+  $('tNext').onclick=()=>{ if(tour.i>=TOUR.length-1){stopTour();flyTo(HOME.pos.clone(),HOME.tgt.clone());toast('Tur selesai. Silakan jelajahi sendiri!');return} gotoStop(tour.i+1)};
+  $('tPlay').onclick=()=>{tour.playing=!tour.playing;if(tour.playing&&!tween)tour.wait=1.2;updateTourUI()};
+  function stepTour(dt){
+    if(!tour.on||!tour.playing||tween||tour.wait<=0) return;
+    tour.wait-=dt;
+    if(tour.wait<=0){ if(tour.i>=TOUR.length-1){tour.playing=false;updateTourUI()} else gotoStop(tour.i+1) }
+  }
+
+  /* ---------- Mode jalan (orang pertama) ---------- */
+  const walk={on:false,x:0,z:0,yaw:0,pitch:0,keys:{},joy:{x:0,y:0},saved:null,fov:37};
+  function fadeThen(fn){ if(reduced){fn();return} $('fade').classList.add('on'); setTimeout(()=>{fn();$('fade').classList.remove('on')},260) }
+  function enterWalk(x,z,yaw){
+    stopTour();
+    fadeThen(()=>{
+      if(!walk.on){ walk.saved={pos:camera.position.clone(),tgt:controls.target.clone(),roof:roofGroup.visible,label:labelGroup.visible,cut:cutOn} }
+      walk.on=true;tween=null;walk.x=x;walk.z=z;walk.yaw=yaw;walk.pitch=0;
+      document.body.classList.add('walk');controls.enabled=false;
+      camera.fov=72;camera.updateProjectionMatrix();camera.rotation.order='YXZ';
+      setCut(false);roofGroup.visible=true;labelGroup.visible=false;
+      $('walkBtn').classList.add('on');applyWalkCam();drawMini();
+    });
+  }
+  function exitWalk(instant){
+    if(!walk.on) return;
+    const go=()=>{
+      walk.on=false;document.body.classList.remove('walk');controls.enabled=true;
+      camera.fov=walk.fov;camera.updateProjectionMatrix();camera.rotation.order='XYZ';
+      const s=walk.saved||{pos:HOME.pos.clone(),tgt:HOME.tgt.clone(),roof:false,label:true,cut:false};
+      camera.position.copy(s.pos);controls.target.copy(s.tgt);controls.update();
+      roofGroup.visible=s.roof;labelGroup.visible=s.label;setCut(s.cut);
+      $('walkBtn').classList.remove('on');syncToggles();drawMini();
+    };
+    if(instant) go(); else fadeThen(go);
+  }
+  function applyWalkCam(){camera.position.set(walk.x,EYE,walk.z);camera.rotation.set(walk.pitch,walk.yaw,0)}
+  function spawnPoint(){ return {x:X(150),z:Z(165),yaw:-Math.PI/2} }
+  function enterRoom(r){
+    const d=r.door, depth=(d.side==='N'||d.side==='S')?r.d:r.w, off=clamp(depth*.42,.55,1.0), sx=d.wx+d.nx*off, sz=d.wz+d.nz*off;
+    enterWalk(sx,sz,Math.atan2(-d.nx,-d.nz));
+  }
+  $('walkBtn').onclick=()=>{ if(walk.on){exitWalk();return} const p=spawnPoint();enterWalk(p.x,p.z,p.yaw) };
+  $('exitWalk').onclick=()=>exitWalk();
+  $('enterBtn').onclick=()=>{ if(selected) enterRoom(selected) };
+  $('topBtn').onclick=()=>{ if(selected) flyTo(new THREE.Vector3(selected.cx,Math.max(selected.w,selected.d)*1.3+9,selected.cz+.01),new THREE.Vector3(selected.cx,0,selected.cz)) };
+  $('shareBtn').onclick=async()=>{
+    if(!selected) return; const url=location.href.split('#')[0]+'#r='+encodeURIComponent(selected.id);
+    try{await navigator.clipboard.writeText(url);toast('Tautan ruangan disalin')}catch(e){prompt('Salin tautan ini:',url)}
+  };
+
+  addEventListener('keydown',e=>{
+    if(e.target&&/INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    const k=e.key.toLowerCase();
+    if(EDIT.on){ editKey(e,k); return }
+    if(k==='escape'){ if($('help').classList.contains('show'))closeHelp(); else if(walk.on)exitWalk(); else if(tour.on){stopTour()} return }
+    if(walk.on&&['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','shift'].includes(k)){walk.keys[k]=true;e.preventDefault()}
+  });
+  addEventListener('keyup',e=>{delete walk.keys[e.key.toLowerCase()]});
+  addEventListener('blur',()=>{walk.keys={}});
+
+  // menoleh: seret pada kanvas
+  let look=null, down=null;
+  const cv=renderer.domElement;
+  cv.addEventListener('pointerdown',e=>{
+    down={x:e.clientX,y:e.clientY,t:performance.now()};
+    if(walk.on){look={id:e.pointerId,x:e.clientX,y:e.clientY};try{cv.setPointerCapture(e.pointerId)}catch(_){}}
+  });
+  cv.addEventListener('pointermove',e=>{
+    if(!walk.on||!look||look.id!==e.pointerId) return;
+    walk.yaw-=(e.clientX-look.x)*.0052;walk.pitch=clamp(walk.pitch-(e.clientY-look.y)*.0045,-1.15,1.15);
+    look.x=e.clientX;look.y=e.clientY;applyWalkCam();
+  });
+  cv.addEventListener('pointerup',e=>{
+    if(look&&look.id===e.pointerId) look=null;
+    if(!walk.on&&!EDIT.on&&down&&Math.hypot(e.clientX-down.x,e.clientY-down.y)<6&&performance.now()-down.t<450) pick(e);
+    down=null;
+  });
+  const ray=new THREE.Raycaster(),ptr=new THREE.Vector2();
+  function pick(e){
+    const b=cv.getBoundingClientRect();ptr.x=((e.clientX-b.left)/b.width)*2-1;ptr.y=-((e.clientY-b.top)/b.height)*2+1;
+    ray.setFromCamera(ptr,camera);const hit=ray.intersectObjects(floorMeshes,false);
+    if(hit.length){ stopTour(); selectRoom(hit[0].object.userData.room) }
+  }
+  // joystick sentuh
+  {
+    const j=$('joy'),knob=j.firstElementChild;let jid=null;
+    const upd=e=>{const b=j.getBoundingClientRect(),cx=b.left+b.width/2,cy=b.top+b.height/2;let dx=(e.clientX-cx)/(b.width/2),dy=(e.clientY-cy)/(b.height/2);const m=Math.hypot(dx,dy);if(m>1){dx/=m;dy/=m}
+      walk.joy.x=dx;walk.joy.y=dy;knob.style.transform='translate('+(dx*34)+'px,'+(dy*34)+'px)'};
+    j.addEventListener('pointerdown',e=>{jid=e.pointerId;try{j.setPointerCapture(jid)}catch(_){}upd(e)});
+    j.addEventListener('pointermove',e=>{if(e.pointerId===jid)upd(e)});
+    const end=e=>{if(e.pointerId===jid){jid=null;walk.joy.x=walk.joy.y=0;knob.style.transform='none'}};
+    j.addEventListener('pointerup',end);j.addEventListener('pointercancel',end);
+  }
+  if(coarse) document.body.classList.add('touch');
+  function stepWalk(dt){
+    if(!walk.on) return;
+    let f=0,s=0; const k=walk.keys;
+    if(k.w||k.arrowup)f+=1;if(k.s||k.arrowdown)f-=1;if(k.d)s+=1;if(k.a)s-=1;
+    if(k.arrowleft){walk.yaw+=1.7*dt}if(k.arrowright){walk.yaw-=1.7*dt}
+    f-=walk.joy.y;s+=walk.joy.x;
+    const m=Math.hypot(f,s); if(m>1){f/=m;s/=m}
+    if(f||s||k.arrowleft||k.arrowright){
+      const sp=(k.shift?4.2:2.3)*dt,sy=Math.sin(walk.yaw),cy=Math.cos(walk.yaw);
+      const dx=(-sy*f+cy*s)*sp, dz=(-cy*f-sy*s)*sp;
+      if(!blocked(walk.x+dx,walk.z))walk.x+=dx; if(!blocked(walk.x,walk.z+dz))walk.z+=dz;
+      applyWalkCam();drawMini();
+    }
+  }
+
+  /* ---------- Peta mini ---------- */
+  const mc=$('miniC'),mg=mc.getContext('2d'),PW=1058-PX0+20,PH=BY2-PY0+20;
+  const mS=mc.width/PW; mc.height=Math.round(PH*mS);
+  const toM=(px,py)=>[(px-PX0+10)*mS,(py-PY0+10)*mS];
+  function drawMini(){
+    mg.clearRect(0,0,mc.width,mc.height);
+    for(const r of ROOMS){
+      const [a,b]=toM(r.x1,r.y1),[c,d]=toM(r.x2,r.y2);
+      mg.fillStyle=statuses[r.id]==='warning'?'#f0a24a':statuses[r.id]==='good'?'#7ccaa4':TYPE_COLOR[r.type]+'99';
+      mg.fillRect(a,b,c-a,d-b);
+      mg.strokeStyle=(selected===r||multiSel.includes(r))?'#09264a':'rgba(9,38,74,.35)';mg.lineWidth=(selected===r)?3:1;mg.strokeRect(a,b,c-a,d-b);
+    }
+    // posisi & arah kamera
+    let px,pz,hd;
+    if(walk.on){px=walk.x;pz=walk.z;hd=walk.yaw}
+    else{px=controls.target.x;pz=controls.target.z;hd=Math.atan2(-(controls.target.x-camera.position.x),-(controls.target.z-camera.position.z))}
+    const [mx,my]=toM(px/SC+PX0,pz/SC+PY0);
+    mg.save();mg.translate(mx,my);mg.rotate(-hd);
+    mg.fillStyle=walk.on?'#e8b85c':'#09264a';mg.strokeStyle='#fff';mg.lineWidth=2;
+    mg.beginPath();mg.moveTo(0,-9);mg.lineTo(6,7);mg.lineTo(0,3);mg.lineTo(-6,7);mg.closePath();mg.fill();mg.stroke();mg.restore();
+    $('miniS').textContent=walk.on?'Klik peta untuk berpindah tempat':'Klik peta untuk memilih ruangan';
+  }
+  mc.addEventListener('click',e=>{
+    const b=mc.getBoundingClientRect(),mx=(e.clientX-b.left)/b.width*mc.width,my=(e.clientY-b.top)/b.height*mc.height;
+    const px=mx/mS+PX0-10,py=my/mS+PY0-10;
+    if(walk.on){ const wx=X(px),wz=Z(py); if(!blocked(wx,wz)){walk.x=wx;walk.z=wz;applyWalkCam();drawMini()} else toast('Tidak bisa berdiri di dalam dinding'); return }
+    const r=inRoom(px,py,0); if(r){stopTour();selectRoom(r,{fly:true})}
+  });
+
+  /* ---------- Tombol tampilan ---------- */
+  let cutOn=false;
+  function setCut(on){cutOn=on;const k=on?.3:1;wallMeshes.forEach(m=>{m.scale.y=k;m.position.y=m.userData.y*k});windowMeshes.forEach(m=>m.visible=!on&&wallGroup.visible)}
+  function syncToggles(){
+    $('labelBtn').classList.toggle('on',labelGroup.visible);$('wallBtn').classList.toggle('on',wallGroup.visible);
+    $('roofBtn').classList.toggle('on',roofGroup.visible);$('cutBtn').classList.toggle('on',cutOn);
+  }
+  $('labelBtn').onclick=()=>{labelGroup.visible=!labelGroup.visible;syncToggles()};
+  $('wallBtn').onclick=()=>{wallGroup.visible=!wallGroup.visible;windowMeshes.forEach(m=>m.visible=wallGroup.visible&&!cutOn);syncToggles()};
+  $('roofBtn').onclick=()=>{roofGroup.visible=!roofGroup.visible;syncToggles()};
+  $('cutBtn').onclick=()=>{setCut(!cutOn);syncToggles()};
+  $('homeBtn').onclick=()=>{ if(walk.on)exitWalk(true); stopTour(); selectRoom(null); flyTo(HOME.pos.clone(),HOME.tgt.clone()) };
+  let night=false;
+  function setNight(on){
+    night=on;document.body.classList.toggle('night',on);const P=on?NIGHT:DAY;
+    scene.background.set(P.bg);scene.fog.color.set(P.bg);hemi.intensity=P.hemi;hemi.color.set(P.hSky);hemi.groundColor.set(P.hGnd);sun.intensity=P.sun;sun.color.set(P.sunC);
+    glass.emissive.set(on?0xffd27a:0x000000);glass.emissiveIntensity=on?.9:0;glass.opacity=on?.8:.45;
+    $('nightBtn').classList.toggle('on',on);$('nightBtn').textContent=on?'☀ Siang':'🌙 Malam';
+    document.querySelector('meta[name=theme-color]').setAttribute('content',on?'#0a1a2e':'#09264a');
+  }
+  $('nightBtn').onclick=()=>setNight(!night);
+  function setLow(on){
+    low=on;sun.castShadow=!on;renderer.setPixelRatio(dpr());renderer.setSize(innerWidth,innerHeight);
+    buildFurniture();$('lowBtn').classList.toggle('on',on);
+  }
+  $('lowBtn').onclick=()=>{setLow(!low);toast(low?'Grafis hemat aktif':'Grafis penuh aktif')};
+  $('lowBtn').classList.toggle('on',low);
+  $('fsBtn').onclick=()=>{ try{ if(document.fullscreenElement)document.exitFullscreen(); else document.documentElement.requestFullscreen() }catch(e){} };
+  if(!document.documentElement.requestFullscreen) $('fsBtn').style.display='none';
+  $('menuBtn').onclick=()=>$('listPanel').classList.toggle('open');
+  function closeHelp(){$('help').classList.remove('show');try{localStorage.setItem('sib3d_help','1')}catch(e){}}
+  $('helpBtn').onclick=()=>$('help').classList.add('show');$('helpClose').onclick=closeHelp;
+  $('help').addEventListener('click',e=>{if(e.target===$('help'))closeHelp()});
+
+  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+
+  /* ---------- Tautan langsung & API untuk SIB CARE (disiapkan untuk Tahap 2) ---------- */
+  function fromHash(){
+    const m=/[#&]r=([^&]+)/.exec(location.hash);if(!m) return;
+    const r=byId.get(decodeURIComponent(m[1]).toUpperCase());if(r){stopTour();selectRoom(r,{fly:true})}
+  }
+  addEventListener('hashchange',fromHash);
+  window.SIB3D={ edit:{start:startEdit,add:addItem,items:()=>EDIT.items.map(i=>({t:i.t,x:i.x,z:i.z,r:i.r})),select:u=>{EDIT.sel=EDIT.items[u]?EDIT.items[u].uid:null;updSel();uiSync()},moveSel,rotate:rotateSel,del:delSel,dup:dupSel,auto:autoArrange,undo,redo,clear:clearAll,save:saveEdit,cancel:cancelEditForce,pointerDown:dragStart,pointerMove:dragMove,pointerUp:dragEnd,valid:()=>{const it=selItem();return it?isValid(EDIT.r,it,EDIT.items):null},state:()=>({on:EDIT.on,sel:EDIT.sel,n:EDIT.items.length,undo:EDIT.undo.length,redo:EDIT.redo.length})}, layouts:()=>layouts, setLayouts, rooms:ROOMS, select:id=>{const r=byId.get(String(id).toUpperCase());if(r)selectRoom(r,{fly:true})}, startTour, stopTour,
+                 enter:id=>{const r=byId.get(String(id).toUpperCase());if(r)enterRoom(r)}, setStatuses, blocked, state:()=>({walk,tour,selected:selected&&selected.id}), spawnPoint };
+  addEventListener('message',e=>{
+    if(e.source!==window.parent||window.parent===window) return; const d=e.data; if(!d||typeof d!=='object') return;
+    if(d.type==='sib3d:select') window.SIB3D.select(d.room);
+    else if(d.type==='sib3d:status') setStatuses(d.rooms||{});
+    else if(d.type==='sib3d:tour') startTour();
+    else if(d.type==='sib3d:layouts') setLayouts(d.rooms);
+    else if(d.type==='sib3d:edit'){ if(d.on) startEdit(d.room); else cancelEditForce() }
+    else if(d.type==='sib3d:facilities'){ facOv=(d.rooms&&typeof d.rooms==='object')?d.rooms:{}; if(selected) showFacs(selected) }
+  });
+  try{ if(window.parent!==window) window.parent.postMessage({type:'sib3d:ready',v:3,rooms:ROOMS.map(r=>({id:r.id,name:r.name,facs:r.facs||[]}))},'*') }catch(e){}
+
+  /* ---------- Loop ---------- */
+  let last=performance.now(), miniT=0;
+  function loop(now){
+    requestAnimationFrame(loop);
+    const dt=Math.min(.1,(now-last)/1000);last=now;
+    stepTween(dt);stepTour(dt);stepWalk(dt);
+    if(!walk.on) controls.update();
+    miniT+=dt; if(!walk.on&&miniT>.15){miniT=0;drawMini()}
+    renderer.render(scene,camera);
+  }
+  syncToggles();drawMini();
+  $('loading').style.display='none';
+  fromHash();
+  try{ if(!localStorage.getItem('sib3d_help')) $('help').classList.add('show') }catch(e){ }
+  requestAnimationFrame(loop);
+}
+</script>
+<noscript><div style="position:fixed;inset:0;display:grid;place-items:center;background:#fff;padding:24px;text-align:center;font-family:sans-serif">Tur 3D membutuhkan JavaScript. Aktifkan JavaScript di browser Anda.</div></noscript>
+</body>
+</html>
