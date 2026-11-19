@@ -1597,6 +1597,29 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
 #page-library{padding:0}
 #sibLibFrame{display:block;width:100%;height:calc(100vh - 120px);min-height:520px;border:1px solid var(--border);border-radius:var(--radius);background:#fff}
 @media(max-width:900px){#sibLibFrame{height:calc(100vh - 100px)}}
+/* ---------- TUR 3D (v11) ---------- */
+#page-tour3d{padding:0}
+#t3dBar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--border);border-bottom:0;border-radius:var(--radius) var(--radius) 0 0;background:#fff}
+#t3dBar b{font-size:14px}
+#t3dBar select{padding:8px 10px;border:1px solid var(--border);border-radius:8px;max-width:240px}
+#t3dBar button{padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-weight:600}
+#t3dBar button.pri{background:var(--primary);border-color:var(--primary);color:#fff}
+#t3dFrame{display:block;width:100%;height:calc(100vh - 175px);min-height:480px;border:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius);background:#dbe7f2}
+#t3dMsg{padding:14px;color:#6b7280}
+#fac3dBack{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:99999;display:none;align-items:center;justify-content:center;padding:12px}
+#fac3dBack.show{display:flex}
+#fac3dBox{background:#fff;border-radius:14px;width:100%;max-width:560px;max-height:92vh;overflow:auto;padding:18px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+#fac3dBox h3{margin:0 0 4px}
+#fac3dBox .sub{color:#6b7280;font-size:13px;margin-bottom:12px}
+.f3row{display:grid;grid-template-columns:1fr 70px 1fr 38px;gap:6px;margin-bottom:6px}
+.f3row input{padding:8px;border:1px solid var(--border);border-radius:8px;min-width:0;width:100%;box-sizing:border-box}
+.f3row button{border:1px solid var(--border);background:#fff;border-radius:8px;cursor:pointer}
+.f3chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}
+.f3chips button{padding:5px 10px;border:1px dashed #9db4d3;background:#f3f7fd;border-radius:999px;cursor:pointer;font-size:13px}
+.f3acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px}
+.f3acts button{padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:600}
+.f3acts button.pri{background:var(--primary);border-color:var(--primary);color:#fff}
+@media(max-width:520px){.f3row{grid-template-columns:1fr 60px 38px}.f3row .f3note{display:none}}
 </style>
 </head>
 
@@ -1816,6 +1839,7 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
             </button>
             <div class="nav-group-items">
                 <div class="nav-item" data-page="denah" onclick="showPage('denah')">🗺️ Denah Sekolah</div>
+                <div class="nav-item" data-page="tour3d" onclick="showPage('tour3d')">🧭 Tur 3D</div>
                 <div class="nav-item" data-page="gallery" onclick="showPage('gallery')">🖼️ Galeri</div>
                 <div class="nav-item" id="navBorrow" data-page="borrow" onclick="showPage('borrow')" style="display:none;">🖥️ Peminjaman Sarana</div>
                 <div class="nav-item" id="navCctv" data-page="cctv" onclick="showPage('cctv')" style="display:none;">📹 CCTV Sekolah</div>
@@ -2176,6 +2200,18 @@ html[data-mode="dark"] #sibThemeModal .tp-sec h3{color:var(--primary-dark)}
         <!-- =================================================
              DENAH SEKOLAH
         ================================================= -->
+        <section id="page-tour3d" class="page">
+            <div id="t3dBar">
+                <b>🧭 Tur 3D Sekolah</b>
+                <select id="t3dRoom" title="Pilih ruangan" onchange="t3dPick(this.value)"></select>
+                <button type="button" onclick="t3dGuided()">▶ Tur terpandu</button>
+                <button type="button" class="pri" id="t3dEditBtn" style="display:none" onclick="t3dEdit()">✏️ Kelola fasilitas ruangan</button>
+                <button type="button" class="pri" id="t3dLayBtn" style="display:none" onclick="t3dLayout()">🧩 Tata ruangan (meja &amp; kursi)</button>
+            </div>
+            <iframe id="t3dFrame" title="Tur 3D Sekolah" allowfullscreen></iframe>
+            <div id="t3dMsg" style="display:none"></div>
+        </section>
+
         <section id="page-denah" class="page">
 
             <div class="page-header">
@@ -17047,5 +17083,246 @@ firebaseAuth.onAuthStateChanged(function(u){ if(!u) sibLibUnload(); sibLibNav();
 })();
 </script>
 
+<script>
+/* =========================================================
+   TUR 3D + FASILITAS RUANGAN (v11) — hanya TAMBAHAN
+   Koleksi baru: roomFacilities/{idRuangan} = {items:[{n,q,c}], updatedAt, updatedBy}
+   Halaman denah-3d.html tidak memakai Firebase; data dikirim lewat postMessage.
+========================================================= */
+var t3dLay = {}, t3dLayUnsub = null, t3dRooms = [], t3dVer = 0;
+var t3dFac = {};          // idRuangan -> [{n,q,c}]
+var t3dUnsub = null, t3dSel = null, t3dEditId = null, t3dReady = false, t3dTimer = null;
+function t3dIsAdmin(){ return !!(typeof currentUser !== "undefined" && currentUser && currentUser.role === "ADMIN_SARPRAS"); }
+function t3dWin(){ var f = document.getElementById("t3dFrame"); return f && f.contentWindow; }
+function t3dSend(m){ try{ var w = t3dWin(); if(w && t3dReady) w.postMessage(m, "*"); }catch(e){} }
+function t3dLabel(i){ var q = Number(i.q) > 1 ? " ×" + Number(i.q) : ""; var c = i.c ? " (" + i.c + ")" : ""; return String(i.n || "") + q + c; }
+function t3dPushFac(){
+    var o = {};
+    Object.keys(t3dFac).forEach(function(id){ o[id] = (t3dFac[id] || []).map(t3dLabel); });
+    t3dSend({type:"sib3d:facilities", rooms:o});
+}
+function t3dPushLay(){
+    var o = {};
+    Object.keys(t3dLay).forEach(function(id){ o[id] = t3dLay[id]; });
+    t3dSend({type:"sib3d:layouts", rooms:o});
+}
+function t3dListenLay(){
+    if(t3dLayUnsub || typeof db === "undefined") return;
+    try{
+        t3dLayUnsub = db.collection("roomLayouts").onSnapshot(function(snap){
+            var o = {};
+            snap.docs.forEach(function(d){ var x = d.data(); if(x && Array.isArray(x.items)) o[d.id] = x.items; });
+            t3dLay = o; t3dPushLay();
+        }, function(e){
+            console.warn("roomLayouts:", e);
+            t3dLayUnsub = null;
+            var m = document.getElementById("t3dMsg");
+            if(m){ m.style.display = "block"; m.textContent = "Tata ruangan belum bisa dimuat/disimpan (" + (e && e.code || "error") + "). Tur 3D tetap berjalan dengan tata ruang bawaan."; }
+        });
+    }catch(e){ console.warn(e); }
+}
+function t3dLayout(){
+    if(!t3dIsAdmin()){ showToast("Hanya Admin Sarpras yang dapat menata ruangan."); return; }
+    var dd = document.getElementById("t3dRoom");
+    if(!t3dSel && dd && dd.value) t3dSel = dd.value;
+    if(!t3dSel){ showToast(t3dVer < 3 ? "File denah-3d.html di server masih versi lama. Unggah denah-3d.html terbaru, lalu Ctrl+F5." : "Pilih ruangan dulu (klik di model 3D atau lewat daftar)."); return; }
+    t3dSend({type:"sib3d:edit", room:t3dSel, on:true});
+}
+function t3dCleanItems(a){
+    if(!Array.isArray(a) || a.length > 150) return null;
+    var out = [];
+    for(var i = 0; i < a.length; i++){
+        var x = a[i]; if(!x || typeof x.t !== "string" || x.t.length > 20) return null;
+        var px = Number(x.x), pz = Number(x.z), pr = Number(x.r);
+        if(!isFinite(px) || !isFinite(pz) || Math.abs(px) > 60 || Math.abs(pz) > 60) return null;
+        out.push({t:x.t, x:Math.round(px*100)/100, z:Math.round(pz*100)/100, r:((Math.round(pr)%4)+4)%4});
+    }
+    return out;
+}
+async function t3dSaveLay(room, items){
+    if(!t3dIsAdmin()){ showToast("Hanya Admin Sarpras yang dapat menyimpan tata ruangan."); return; }
+    room = String(room || "").toUpperCase();
+    if(!/^[A-Z0-9-]{1,20}$/.test(room)){ showToast("Kode ruangan tidak valid."); return; }
+    try{
+        if(items === null){
+            await db.collection("roomLayouts").doc(room).delete();
+            showToast("Tata ruangan " + room + " dikembalikan ke bawaan.");
+        }else{
+            var clean = t3dCleanItems(items);
+            if(!clean){ showToast("Data tata ruangan tidak valid, tidak disimpan."); return; }
+            await db.collection("roomLayouts").doc(room).set({
+                id:room, items:clean,
+                updatedAt:new Date().toISOString(),
+                updatedBy:(currentUser && (currentUser.name || currentUser.username)) || "Admin"
+            });
+            showToast("Tata ruangan " + room + " tersimpan (" + clean.length + " perabot).");
+        }
+    }catch(e){
+        console.error(e);
+        showToast("Gagal menyimpan tata ruangan (" + (e && e.code || "error") + ").");
+        t3dPushLay();
+    }
+}
+function t3dPushStatus(){
+    var map = {}, list = (typeof reports !== "undefined" && Array.isArray(reports)) ? reports : [];
+    var open = {};
+    list.forEach(function(r){ if(r && r.room && r.status !== "Selesai" && r.status !== "Ditolak") open[String(r.room).toUpperCase()] = 1; });
+    t3dRooms.forEach(function(r){ map[r.id] = open[String(r.id).toUpperCase()] ? "warning" : "good"; });
+    t3dSend({type:"sib3d:status", rooms:map});
+}
+function t3dListen(){
+    if(t3dUnsub || typeof db === "undefined") return;
+    try{
+        t3dUnsub = db.collection("roomFacilities").onSnapshot(function(snap){
+            var o = {};
+            snap.docs.forEach(function(d){ var x = d.data(); if(x && Array.isArray(x.items)) o[d.id] = x.items; });
+            t3dFac = o; t3dPushFac();
+        }, function(e){
+            console.warn("roomFacilities:", e);
+            t3dUnsub = null;
+            var m = document.getElementById("t3dMsg");
+            if(m){ m.style.display = "block"; m.textContent = "Data fasilitas belum bisa dimuat (" + (e && e.code || "error") + "). Tur 3D tetap berjalan dengan data bawaan."; }
+        });
+    }catch(e){ console.warn(e); }
+}
+function t3dFillRooms(){
+    var sel = document.getElementById("t3dRoom"); if(!sel) return;
+    var rs = t3dRooms;
+    var care = {}; try{ (rooms || []).forEach(function(r){ care[r.id] = r.name; }); }catch(e){}
+    var h = '<option value="">— Pilih ruangan —</option>';
+    rs.forEach(function(r){
+        var nm = care[r.id] && care[r.id] !== r.name ? r.id + " — " + care[r.id] : r.id + " — " + r.name;
+        h += '<option value="' + escapeHTML(r.id) + '">' + escapeHTML(nm) + '</option>';
+    });
+    sel.innerHTML = h; if(t3dSel) sel.value = t3dSel;
+}
+function t3dOpen(){
+    var f = document.getElementById("t3dFrame"); if(!f) return;
+    document.getElementById("t3dEditBtn").style.display = t3dIsAdmin() ? "" : "none";
+    document.getElementById("t3dLayBtn").style.display = t3dIsAdmin() ? "" : "none";
+    t3dListen(); t3dListenLay();
+    if(f.getAttribute("data-loaded") === "1"){ t3dPushFac(); t3dPushLay(); t3dPushStatus(); }
+    else { f.setAttribute("data-loaded","1"); t3dReady = false; f.src = "denah-3d.html"; }
+    clearInterval(t3dTimer);
+    t3dTimer = setInterval(function(){
+        var p = document.getElementById("page-tour3d");
+        if(!p || !p.classList.contains("active")){ clearInterval(t3dTimer); return; }
+        t3dPushStatus();
+    }, 8000);
+}
+function t3dPick(id){ if(id){ t3dSel = id; t3dSend({type:"sib3d:select", room:id}); } }
+function t3dGuided(){ t3dSend({type:"sib3d:tour"}); }
+window.addEventListener("message", function(e){
+    var w = t3dWin(); if(!w || e.source !== w) return;
+    var d = e.data; if(!d || typeof d !== "object") return;
+    if(d.type === "sib3d:ready"){ t3dReady = true; t3dVer = Number(d.v) || 1; t3dRooms = Array.isArray(d.rooms) ? d.rooms : []; if(t3dVer < 3){ var mm = document.getElementById("t3dMsg"); if(mm){ mm.style.display = "block"; mm.textContent = "denah-3d.html di server masih versi lama, sehingga fasilitas dan tata ruangan belum bisa diubah. Unggah denah-3d.html terbaru lalu tekan Ctrl+F5."; } } t3dFillRooms(); t3dPushFac(); t3dPushLay(); t3dPushStatus(); }
+    else if(d.type === "sib3d:layoutSave"){ t3dSaveLay(d.room, d.items === null ? null : d.items); }
+    else if(d.type === "sib3d:selected"){ t3dSel = d.room || null; var s = document.getElementById("t3dRoom"); if(s) s.value = t3dSel || ""; }
+});
+/* ----- Editor fasilitas (khusus Admin Sarpras) ----- */
+var T3D_PRESET = ["TV","AC","Proyektor","Kipas angin","Papan tulis","Whiteboard","Speaker","Printer","Lemari","Meja guru","Meja & kursi siswa","Wi-Fi","Dispenser","Komputer","Layar proyektor","Jam dinding"];
+function t3dEdit(){
+    if(!t3dIsAdmin()){ showToast("Hanya Admin Sarpras yang dapat mengelola fasilitas."); return; }
+    var dd = document.getElementById("t3dRoom");
+    if(!t3dSel && dd && dd.value) t3dSel = dd.value;
+    if(!t3dSel){ showToast(t3dVer < 3 ? "File denah-3d.html di server masih versi lama. Unggah denah-3d.html terbaru, lalu Ctrl+F5." : "Pilih ruangan dulu (klik di model 3D atau lewat daftar)."); return; }
+    t3dEditId = t3dSel;
+    var items = t3dFac[t3dEditId], base = null;
+    if(!Array.isArray(items)){
+        base = [];
+        var r = t3dRooms.filter(function(x){ return x.id === t3dEditId; })[0];
+        ((r && r.facs) || []).forEach(function(n){ base.push({n:n, q:1, c:""}); });
+        items = base;
+    }
+    var nm = t3dEditId;
+    var rr = t3dRooms.filter(function(x){ return x.id === t3dEditId; })[0]; if(rr) nm += " — " + rr.name;
+    var back = document.getElementById("fac3dBack");
+    if(!back){
+        back = document.createElement("div"); back.id = "fac3dBack";
+        back.innerHTML = '<div id="fac3dBox" role="dialog" aria-modal="true"></div>';
+        back.addEventListener("click", function(ev){ if(ev.target === back) t3dClose(); });
+        document.body.appendChild(back);
+    }
+    var chips = T3D_PRESET.map(function(p){ return '<button type="button" onclick="t3dAdd(\'' + p.replace(/'/g,"\\'") + '\')">+ ' + escapeHTML(p) + '</button>'; }).join("");
+    document.getElementById("fac3dBox").innerHTML =
+        '<h3>Fasilitas ' + escapeHTML(nm) + '</h3>' +
+        '<div class="sub">Tambah, ubah, atau hapus fasilitas. Perubahan langsung tampil di Tur 3D untuk semua pengguna.' + (base ? ' (Daftar awal diambil dari data bawaan.)' : '') + '</div>' +
+        '<div id="f3rows"></div>' +
+        '<div class="f3chips">' + chips + '</div>' +
+        '<button type="button" class="f3add" onclick="t3dAdd(\'\')" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer">＋ Tambah baris kosong</button>' +
+        '<div class="f3acts"><button type="button" onclick="t3dReset()">↺ Kembalikan ke bawaan</button><button type="button" onclick="t3dClose()">Batal</button><button type="button" class="pri" id="f3save" onclick="t3dSave()">💾 Simpan</button></div>';
+    var rows = document.getElementById("f3rows");
+    items.forEach(function(i){ t3dRow(rows, i); });
+    back.classList.add("show");
+}
+function t3dRow(box, i){
+    var d = document.createElement("div"); d.className = "f3row";
+    d.innerHTML = '<input class="f3n" placeholder="Nama (mis. AC)" maxlength="60" list="f3list">' +
+        '<input class="f3q" type="number" min="1" max="999" title="Jumlah">' +
+        '<input class="f3note f3c" placeholder="Catatan (opsional)" maxlength="60">' +
+        '<button type="button" title="Hapus" onclick="this.parentNode.remove()">🗑</button>';
+    d.querySelector(".f3n").value = i.n || ""; d.querySelector(".f3q").value = Number(i.q) > 0 ? Number(i.q) : 1; d.querySelector(".f3c").value = i.c || "";
+    box.appendChild(d);
+    if(!document.getElementById("f3list")){
+        var dl = document.createElement("datalist"); dl.id = "f3list";
+        dl.innerHTML = T3D_PRESET.map(function(p){ return '<option value="' + escapeHTML(p) + '">'; }).join("");
+        document.body.appendChild(dl);
+    }
+}
+function t3dAdd(n){
+    var box = document.getElementById("f3rows"); if(!box) return;
+    if(n){ var ex = [].slice.call(box.querySelectorAll(".f3row")).filter(function(r){ return r.querySelector(".f3n").value.trim().toLowerCase() === n.toLowerCase(); })[0];
+        if(ex){ var q = ex.querySelector(".f3q"); q.value = Math.min(999, (Number(q.value) || 1) + 1); return; } }
+    t3dRow(box, {n:n, q:1, c:""});
+    var last = box.lastChild.querySelector(n ? ".f3q" : ".f3n"); if(last) last.focus();
+}
+function t3dClose(){ var b = document.getElementById("fac3dBack"); if(b) b.classList.remove("show"); }
+function t3dCollect(){
+    var out = [];
+    [].slice.call(document.querySelectorAll("#f3rows .f3row")).forEach(function(r){
+        var n = r.querySelector(".f3n").value.trim(); if(!n) return;
+        var q = parseInt(r.querySelector(".f3q").value, 10); if(!(q > 0)) q = 1; if(q > 999) q = 999;
+        out.push({n:n.slice(0,60), q:q, c:r.querySelector(".f3c").value.trim().slice(0,60)});
+    });
+    return out.slice(0,60);
+}
+async function t3dSave(){
+    if(!t3dIsAdmin() || !t3dEditId) return;
+    var btn = document.getElementById("f3save"); if(btn){ btn.disabled = true; btn.textContent = "Menyimpan…"; }
+    try{
+        await db.collection("roomFacilities").doc(t3dEditId).set({
+            id:t3dEditId, items:t3dCollect(),
+            updatedAt:new Date().toISOString(),
+            updatedBy:(currentUser && (currentUser.name || currentUser.username)) || "Admin"
+        });
+        showToast("Fasilitas " + t3dEditId + " tersimpan."); t3dClose();
+    }catch(e){
+        console.error(e); showToast("Gagal menyimpan fasilitas (" + (e && e.code || "error") + ").");
+    }finally{ if(btn){ btn.disabled = false; btn.textContent = "💾 Simpan"; } }
+}
+async function t3dReset(){
+    if(!t3dIsAdmin() || !t3dEditId) return;
+    if(!confirm("Kembalikan fasilitas " + t3dEditId + " ke data bawaan Tur 3D?")) return;
+    try{ await db.collection("roomFacilities").doc(t3dEditId).delete(); showToast("Dikembalikan ke bawaan."); t3dClose(); }
+    catch(e){ console.error(e); showToast("Gagal mengembalikan (" + (e && e.code || "error") + ")."); }
+}
+document.addEventListener("keydown", function(e){ if(e.key === "Escape") t3dClose(); });
+(function(){
+    var orig = window.showPage;
+    window.showPage = function(p){
+        if(p === "tour3d" && typeof currentUser !== "undefined" && currentUser && currentUser.role !== "TAMU"){ setTimeout(function(){ try{ t3dOpen(); }catch(e){} }, 0); }
+        else { clearInterval(t3dTimer); }
+        return orig.apply(this, arguments);
+    };
+})();
+firebaseAuth.onAuthStateChanged(function(u){
+    if(!u){
+        if(t3dUnsub){ try{ t3dUnsub(); }catch(e){} t3dUnsub = null; }
+        if(t3dLayUnsub){ try{ t3dLayUnsub(); }catch(e){} t3dLayUnsub = null; }
+        t3dFac = {}; t3dLay = {}; t3dReady = false;
+        var f = document.getElementById("t3dFrame"); if(f){ f.removeAttribute("data-loaded"); f.src = "about:blank"; }
+    }
+});
+</script>
 </body>
 </html>
